@@ -88,6 +88,9 @@ export function buildLinearGradient(
           buildXMLString('stop', {
             offset: (stop.offset ?? 0) * 100 + '%',
             'stop-color': stop.color,
+            ...(stop.opacity !== undefined && {
+              'stop-opacity': stop.opacity,
+            }),
           })
         )
         .join('')

@@ -2,9 +2,10 @@ import { lengthToNumber } from '../../utils.js'
 import cssColorParse from 'parse-css-color'
 import type { ColorStop } from 'css-gradient-parser'
 
-interface Stop {
+export interface Stop {
   color: string
   offset?: number
+  opacity?: number
 }
 
 export function normalizeStops(
@@ -114,5 +115,16 @@ export function normalizeStops(
     })
   }
 
-  return stops
+  // Split alpha into a separate opacity field so SVG can interpolate
+  // stop-color and stop-opacity independently (correct premultiplied behavior).
+  return stops.map((stop) => {
+    const parsed = cssColorParse(stop.color)
+    if (!parsed || parsed.alpha === 1) return stop
+    const [r, g, b] = parsed.values
+    return {
+      ...stop,
+      color: `rgb(${r},${g},${b})`,
+      opacity: parsed.alpha,
+    }
+  })
 }

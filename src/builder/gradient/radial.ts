@@ -112,6 +112,9 @@ export function buildRadialGradient(
           buildXMLString('stop', {
             offset: stop.offset || 0,
             'stop-color': stop.color,
+            ...(stop.opacity !== undefined && {
+              'stop-opacity': stop.opacity,
+            }),
           })
         )
         .join('')
@@ -135,6 +138,9 @@ export function buildRadialGradient(
         width: xDelta,
         height: yDelta,
         fill: stops.at(-1)?.color || 'transparent',
+        ...(stops.at(-1)?.opacity !== undefined && {
+          'fill-opacity': stops.at(-1).opacity,
+        }),
       }) +
       buildXMLString(shape, {
         cx: cx,
