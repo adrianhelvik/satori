@@ -269,7 +269,9 @@ function calcRadialGradientProps(
     r:
       last.offset.unit === '%'
         ? `${
-            (Number(last.offset.value) * Math.min(yDelta / xDelta, 1)) / ratio
+            (Number(last.offset.value) * Math.min(yDelta / xDelta, 1)) /
+            ratio /
+            2
           }%`
         : Number(
             lengthToNumber(
