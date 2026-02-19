@@ -8,6 +8,7 @@ node_modules
 dist
 .pnpm-debug.log
 __diff_output__
+test/__browser_diffs__
 .eslintcache
 coverage
 

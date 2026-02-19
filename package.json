@@ -52,7 +52,8 @@
     "prettier-check": "prettier --check .",
     "prettier-fix": "prettier --write --list-different . --cache",
     "ci-check": "concurrently \"pnpm prettier-check\" \"pnpm test-type\" \"pnpm lint\"",
-    "benchmark": "node --experimental-strip-types test/benchmark/index.ts"
+    "benchmark": "node --experimental-strip-types test/benchmark/index.ts",
+    "browser-diff": "node --experimental-strip-types scripts/browser-diff.ts"
   },
   "lint-staged": {
     "*.{ts,tsx}": [
@@ -101,6 +102,10 @@
     "turbo": "^1.6.3",
     "twrnc": "^3.4.0",
     "typescript": "^5",
+    "pixelmatch": "^5.3.0",
+    "playwright": "^1.40.0",
+    "pngjs": "^7.0.0",
+    "react-dom": "^17.0.2",
     "vitest": "^0.32.0"
   },
   "dependencies": {
