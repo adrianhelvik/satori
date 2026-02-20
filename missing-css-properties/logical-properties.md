@@ -1,6 +1,6 @@
 # Logical Properties
 
-Satori supports logical properties as aliases to physical properties in the current layout mode (`horizontal-tb` + LTR assumptions). This is useful for code portability, but it is not a full writing-mode-aware implementation.
+Satori supports logical properties as aliases to physical properties in the current layout mode (`horizontal-tb` + LTR assumptions). In practice this means inline-start/end are mapped as left/right and block-start/end as top/bottom. This is useful for code portability, but it is not a full writing-mode-aware implementation.
 
 ## Supported logical aliases (horizontal-tb / ltr)
 

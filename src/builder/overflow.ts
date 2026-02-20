@@ -52,7 +52,7 @@ export default function overflow(
 
     // When only one axis is hidden, extend the clip rect on the visible axis
     // to a very large value so content overflows freely in that direction.
-    const OVERFLOW_EXTENT = 10000
+    const OVERFLOW_EXTENT = 1_000_000
     let clipX = left
     let clipY = top
     let clipWidth = width

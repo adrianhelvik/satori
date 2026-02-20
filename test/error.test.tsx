@@ -7,29 +7,22 @@ describe('Error', () => {
   let fonts
   initFonts((f) => (fonts = f))
 
-  it('should throw if flex missing on div that has children', async () => {
-    let error = new Error()
-    try {
-      await satori(
-        <div>
-          Test <span>satori</span> with space
-        </div>,
-        {
-          width: 10,
-          height: 10,
-          fonts,
-        }
-      )
-    } catch (err) {
-      error = err
-    }
-    expect(error?.message).toBe(
-      'Expected <div> to have explicit "display: flex", "display: contents", or "display: none" if it has more than one child node.'
+  it('should not throw if flex missing on div that has children', async () => {
+    const svg = await satori(
+      <div>
+        Test <span>satori</span> with space
+      </div>,
+      {
+        width: 10,
+        height: 10,
+        fonts,
+      }
     )
+    expect(typeof svg).toBe('string')
   })
 
-  it('should throw if display inline-block on div that has children', async () => {
-    const result = satori(
+  it('should not throw if display inline-block on div that has children', async () => {
+    const svg = await satori(
       <div style={{ display: 'inline-block' }}>
         Test <span>satori</span> with space
       </div>,
@@ -39,9 +32,7 @@ describe('Error', () => {
         fonts,
       }
     )
-    expect(result).rejects.toThrowError(
-      `Invalid value for CSS property "display". Allowed values: "flex" | "block" | "contents" | "none" | "-webkit-box". Received: "inline-block".`
-    )
+    expect(typeof svg).toBe('string')
   })
 
   it('should throw if using invalid values', async () => {
