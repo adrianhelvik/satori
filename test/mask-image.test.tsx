@@ -345,4 +345,20 @@ describe('Mask-*', () => {
     )
     expect(toImage(svg, 60)).toMatchImageSnapshot()
   })
+
+  it('should support mask-mode: match-source for url masks', async () => {
+    const svg = await satori(
+      <div
+        style={{
+          width: 60,
+          height: 60,
+          backgroundColor: 'red',
+          maskImage: `url(${BLUE_1X1_PNG})`,
+          maskMode: 'match-source',
+        }}
+      />,
+      { width: 60, height: 60, fonts }
+    )
+    expect(toImage(svg, 60)).toMatchImageSnapshot()
+  })
 })
