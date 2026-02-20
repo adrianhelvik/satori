@@ -138,4 +138,70 @@ describe('Object Fit & Position Extras', () => {
 
     expect(toImage(svg, 100)).toMatchImageSnapshot()
   })
+
+  it('should support object-position with 4-value side offsets', async () => {
+    const svg = await satori(
+      <div
+        style={{ width: 100, height: 100, display: 'flex', background: '#ddd' }}
+      >
+        <img
+          src={PNG_SAMPLE}
+          style={{
+            width: 100,
+            height: 100,
+            objectFit: 'none',
+            objectPosition: 'right 10px bottom 20px',
+            backgroundColor: 'red',
+          }}
+        />
+      </div>,
+      { width: 100, height: 100, fonts }
+    )
+
+    expect(toImage(svg, 100)).toMatchImageSnapshot()
+  })
+
+  it('should support object-position with 3-value side offsets', async () => {
+    const svg = await satori(
+      <div
+        style={{ width: 100, height: 100, display: 'flex', background: '#ddd' }}
+      >
+        <img
+          src={PNG_SAMPLE}
+          style={{
+            width: 100,
+            height: 100,
+            objectFit: 'none',
+            objectPosition: 'top 20px right',
+            backgroundColor: 'red',
+          }}
+        />
+      </div>,
+      { width: 100, height: 100, fonts }
+    )
+
+    expect(toImage(svg, 100)).toMatchImageSnapshot()
+  })
+
+  it('should support side-based percentage offsets in object-position', async () => {
+    const svg = await satori(
+      <div
+        style={{ width: 100, height: 100, display: 'flex', background: '#ddd' }}
+      >
+        <img
+          src={PNG_SAMPLE}
+          style={{
+            width: 100,
+            height: 100,
+            objectFit: 'none',
+            objectPosition: 'right 25% bottom 10%',
+            backgroundColor: 'red',
+          }}
+        />
+      </div>,
+      { width: 100, height: 100, fonts }
+    )
+
+    expect(toImage(svg, 100)).toMatchImageSnapshot()
+  })
 })

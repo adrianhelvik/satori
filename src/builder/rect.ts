@@ -39,6 +39,8 @@ interface ResolvedObjectPosition {
   y: ObjectPositionAxis
 }
 
+type ObjectPositionAxisName = 'x' | 'y'
+
 const supportedBackgroundBlendModes = new Set([
   'normal',
   'multiply',
@@ -236,6 +238,72 @@ function parseObjectPositionCoordinate(
   }
 }
 
+const horizontalObjectPositionKeywords = new Set(['left', 'center', 'right'])
+const verticalObjectPositionKeywords = new Set(['top', 'center', 'bottom'])
+const objectPositionKeywords = new Set([
+  'left',
+  'center',
+  'right',
+  'top',
+  'bottom',
+])
+
+function buildObjectPositionAxisFromKeyword(
+  axis: ObjectPositionAxisName,
+  keyword: string,
+  offset?: ObjectPositionAxis
+): ObjectPositionAxis | undefined {
+  if (axis === 'x') {
+    if (!horizontalObjectPositionKeywords.has(keyword)) return
+    if (keyword === 'center') {
+      if (offset) return
+      return { type: 'ratio', value: 0.5 }
+    }
+
+    if (!offset) {
+      return { type: 'ratio', value: keyword === 'left' ? 0 : 1 }
+    }
+
+    if (offset.type === 'ratio') {
+      return {
+        type: 'ratio',
+        value: offset.value,
+        fromEnd: keyword === 'right',
+      }
+    }
+
+    return {
+      type: 'length',
+      value: offset.value,
+      fromEnd: keyword === 'right',
+    }
+  }
+
+  if (!verticalObjectPositionKeywords.has(keyword)) return
+  if (keyword === 'center') {
+    if (offset) return
+    return { type: 'ratio', value: 0.5 }
+  }
+
+  if (!offset) {
+    return { type: 'ratio', value: keyword === 'top' ? 0 : 1 }
+  }
+
+  if (offset.type === 'ratio') {
+    return {
+      type: 'ratio',
+      value: offset.value,
+      fromEnd: keyword === 'bottom',
+    }
+  }
+
+  return {
+    type: 'length',
+    value: offset.value,
+    fromEnd: keyword === 'bottom',
+  }
+}
+
 function parseObjectPosition(
   position: unknown,
   baseFontSize: number,
@@ -253,156 +321,80 @@ function parseObjectPosition(
   const parts = raw.split(/\s+/).filter(Boolean)
   if (!parts.length) return defaults
 
-  const horizontalKeywordRatio: Record<string, number> = {
-    left: 0,
-    center: 0.5,
-    right: 1,
-  }
-  const verticalKeywordRatio: Record<string, number> = {
-    top: 0,
-    center: 0.5,
-    bottom: 1,
-  }
+  let x: ObjectPositionAxis | undefined
+  let y: ObjectPositionAxis | undefined
 
-  const isHorizontalKeyword = (token: string) =>
-    typeof horizontalKeywordRatio[token] === 'number'
-  const isVerticalKeyword = (token: string) =>
-    typeof verticalKeywordRatio[token] === 'number'
-  const isCenter = (token: string) => token === 'center'
+  let i = 0
+  while (i < parts.length) {
+    const token = parts[i]
+    const next = parts[i + 1]
 
-  if (parts.length === 1) {
-    const [token] = parts
-    if (isHorizontalKeyword(token)) {
-      return {
-        x: { type: 'ratio', value: horizontalKeywordRatio[token] },
-        y: defaults.y,
+    if (horizontalObjectPositionKeywords.has(token) && token !== 'center') {
+      if (x) return defaults
+      const offset =
+        next && !objectPositionKeywords.has(next)
+          ? parseObjectPositionCoordinate(next, baseFontSize, inheritedStyle)
+          : undefined
+      if (next && !objectPositionKeywords.has(next) && !offset) {
+        return defaults
       }
+      const axis = buildObjectPositionAxisFromKeyword('x', token, offset)
+      if (!axis) return defaults
+      x = axis
+      i += offset ? 2 : 1
+      continue
     }
-    if (isVerticalKeyword(token)) {
-      return {
-        x: defaults.x,
-        y: { type: 'ratio', value: verticalKeywordRatio[token] },
+
+    if (verticalObjectPositionKeywords.has(token) && token !== 'center') {
+      if (y) return defaults
+      const offset =
+        next && !objectPositionKeywords.has(next)
+          ? parseObjectPositionCoordinate(next, baseFontSize, inheritedStyle)
+          : undefined
+      if (next && !objectPositionKeywords.has(next) && !offset) {
+        return defaults
       }
+      const axis = buildObjectPositionAxisFromKeyword('y', token, offset)
+      if (!axis) return defaults
+      y = axis
+      i += offset ? 2 : 1
+      continue
     }
+
+    if (token === 'center') {
+      if (!x) {
+        x = { type: 'ratio', value: 0.5 }
+      } else if (!y) {
+        y = { type: 'ratio', value: 0.5 }
+      } else {
+        return defaults
+      }
+      i += 1
+      continue
+    }
+
     const coordinate = parseObjectPositionCoordinate(
       token,
       baseFontSize,
       inheritedStyle
     )
-    if (coordinate) {
-      return {
-        x: coordinate,
-        y: defaults.y,
-      }
+    if (!coordinate) return defaults
+
+    if (!x) {
+      x = coordinate
+    } else if (!y) {
+      y = coordinate
+    } else {
+      return defaults
     }
-    return defaults
+
+    i += 1
   }
 
-  const first = parts[0]
-  const second = parts[1]
-
-  if (isHorizontalKeyword(first) && isVerticalKeyword(second)) {
-    return {
-      x: { type: 'ratio', value: horizontalKeywordRatio[first] },
-      y: { type: 'ratio', value: verticalKeywordRatio[second] },
-    }
+  return {
+    x: x || defaults.x,
+    y: y || defaults.y,
   }
-  if (isVerticalKeyword(first) && isHorizontalKeyword(second)) {
-    return {
-      x: { type: 'ratio', value: horizontalKeywordRatio[second] },
-      y: { type: 'ratio', value: verticalKeywordRatio[first] },
-    }
-  }
-
-  if (isHorizontalKeyword(first) && !isHorizontalKeyword(second)) {
-    const coordinate = parseObjectPositionCoordinate(
-      second,
-      baseFontSize,
-      inheritedStyle
-    )
-    if (coordinate) {
-      return {
-        x:
-          coordinate.type === 'length'
-            ? {
-                ...coordinate,
-                fromEnd: first === 'right',
-              }
-            : {
-                type: 'ratio',
-                value: coordinate.value,
-              },
-        y: defaults.y,
-      }
-    }
-  }
-
-  if (isVerticalKeyword(first) && !isVerticalKeyword(second)) {
-    const coordinate = parseObjectPositionCoordinate(
-      second,
-      baseFontSize,
-      inheritedStyle
-    )
-    if (coordinate) {
-      return {
-        x: defaults.x,
-        y:
-          coordinate.type === 'length'
-            ? {
-                ...coordinate,
-                fromEnd: first === 'bottom',
-              }
-            : {
-                type: 'ratio',
-                value: coordinate.value,
-              },
-      }
-    }
-  }
-
-  if (isCenter(first) && isVerticalKeyword(second)) {
-    return {
-      x: defaults.x,
-      y: { type: 'ratio', value: verticalKeywordRatio[second] },
-    }
-  }
-  if (isCenter(first) && isHorizontalKeyword(second)) {
-    return {
-      x: { type: 'ratio', value: horizontalKeywordRatio[second] },
-      y: defaults.y,
-    }
-  }
-  if (isHorizontalKeyword(first) && isCenter(second)) {
-    return {
-      x: { type: 'ratio', value: horizontalKeywordRatio[first] },
-      y: defaults.y,
-    }
-  }
-  if (isVerticalKeyword(first) && isCenter(second)) {
-    return {
-      x: defaults.x,
-      y: { type: 'ratio', value: verticalKeywordRatio[first] },
-    }
-  }
-
-  const firstCoordinate = parseObjectPositionCoordinate(
-    first,
-    baseFontSize,
-    inheritedStyle
-  )
-  const secondCoordinate = parseObjectPositionCoordinate(
-    second,
-    baseFontSize,
-    inheritedStyle
-  )
-  if (firstCoordinate || secondCoordinate) {
-    return {
-      x: firstCoordinate || defaults.x,
-      y: secondCoordinate || defaults.y,
-    }
-  }
-
-  return defaults
 }
 
 function resolveObjectPositionOffset(
@@ -412,7 +404,8 @@ function resolveObjectPositionOffset(
 ): number {
   const freeSpace = containerSize - objectSize
   if (coordinate.type === 'ratio') {
-    return freeSpace * coordinate.value
+    const ratio = coordinate.fromEnd ? 1 - coordinate.value : coordinate.value
+    return freeSpace * ratio
   }
   return coordinate.fromEnd ? freeSpace - coordinate.value : coordinate.value
 }
