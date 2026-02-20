@@ -346,6 +346,7 @@ function handleSpecialCase(
   if (name === 'textDecorationLine') return { textDecorationLine: value }
   if (name === 'textDecorationStyle') return { textDecorationStyle: value }
   if (name === 'textDecorationColor') return { textDecorationColor: value }
+  if (name === 'textAlignLast') return { textAlignLast: value }
   if (name === 'visibility') return { visibility: value }
 
   // mix-blend-mode, image-rendering: pass through to SVG attributes
@@ -687,6 +688,7 @@ type MainStyle = {
   whiteSpace: string
   wordBreak: string
   textAlign: string
+  textAlignLast: string
   lineHeight: number | string
   letterSpacing: number
 

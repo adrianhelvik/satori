@@ -65,6 +65,7 @@ export default async function* buildTextNodes(
 
   const {
     textAlign,
+    textAlignLast,
     lineHeight,
     textWrap,
     fontSize,
@@ -564,18 +565,23 @@ export default async function* buildTextNodes(
       // Calculate alignment. Note that for Flexbox, there is only text
       // alignment when the container is multi-line.
       const remainingWidth = containerWidth - lineWidths[line]
-      if (textAlign === 'right' || textAlign === 'end') {
+      const isLastLine = line === lineWidths.length - 1
+      const effectiveAlign =
+        isLastLine && textAlignLast && textAlignLast !== 'auto'
+          ? textAlignLast
+          : textAlign === 'justify' && isLastLine
+          ? 'start'
+          : textAlign
+
+      if (effectiveAlign === 'right' || effectiveAlign === 'end') {
         leftOffset += remainingWidth
-      } else if (textAlign === 'center') {
+      } else if (effectiveAlign === 'center') {
         leftOffset += remainingWidth / 2
-      } else if (textAlign === 'justify') {
-        // Don't justify the last line.
-        if (line < lineWidths.length - 1) {
-          const segments = lineSegmentNumber[line]
-          const gutter = segments > 1 ? remainingWidth / (segments - 1) : 0
-          leftOffset += gutter * layout.lineIndex
-          extendedWidth = true
-        }
+      } else if (effectiveAlign === 'justify') {
+        const segments = lineSegmentNumber[line] || 1
+        const gutter = segments > 1 ? remainingWidth / (segments - 1) : 0
+        leftOffset += gutter * layout.lineIndex
+        extendedWidth = true
       }
 
       leftOffset = Math.round(leftOffset)
