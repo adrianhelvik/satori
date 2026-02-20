@@ -464,6 +464,24 @@ describe('Visual Extras', () => {
       expect(svg).toContain('mix-blend-mode:plus-lighter')
       expect(toImage(svg, 100)).toMatchImageSnapshot()
     })
+
+    it('should support soft-light for solid background layers', async () => {
+      const svg = await satori(
+        <div
+          style={{
+            display: 'flex',
+            width: 100,
+            height: 100,
+            backgroundImage:
+              'linear-gradient(rgb(128,128,128), rgb(128,128,128)), linear-gradient(rgb(0,0,255), rgb(0,0,255))',
+            backgroundBlendMode: 'soft-light',
+          }}
+        />,
+        { width: 100, height: 100, fonts }
+      )
+      expect(svg).toContain('fill="rgba(0,0,255,1)"')
+      expect(toImage(svg, 100)).toMatchImageSnapshot()
+    })
   })
 
   describe('isolation', () => {

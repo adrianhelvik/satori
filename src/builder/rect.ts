@@ -74,6 +74,7 @@ const supportedSolidBackgroundBlendModes = new Set([
   'hard-light',
   'color-dodge',
   'color-burn',
+  'soft-light',
 ])
 
 const supportedMixBlendFallbackModes = new Set([
@@ -631,6 +632,16 @@ function blendChannel(mode: string, backdrop: number, source: number): number {
       return source <= 0.5
         ? 2 * backdrop * source
         : 1 - 2 * (1 - backdrop) * (1 - source)
+    case 'soft-light': {
+      if (source <= 0.5) {
+        return backdrop - (1 - 2 * source) * backdrop * (1 - backdrop)
+      }
+      const d =
+        backdrop <= 0.25
+          ? ((16 * backdrop - 12) * backdrop + 4) * backdrop
+          : Math.sqrt(backdrop)
+      return backdrop + (2 * source - 1) * (d - backdrop)
+    }
     case 'normal':
     default:
       return source
