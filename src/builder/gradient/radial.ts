@@ -6,20 +6,22 @@ import {
 } from 'css-gradient-parser'
 import { buildXMLString, lengthToNumber } from '../../utils.js'
 import { normalizeStops, resolveSolidColorFromStops } from './utils.js'
+import {
+  type RepeatMode,
+  resolveBackgroundAxisTiling,
+} from '../background-repeat.js'
 
 export function buildRadialGradient(
   {
     id,
     width,
     height,
-    repeatX,
-    repeatY,
+    repeatModes,
   }: {
     id: string
     width: number
     height: number
-    repeatX: boolean
-    repeatY: boolean
+    repeatModes: { x: RepeatMode; y: RepeatMode }
   },
   image: string,
   dimensions: number[],
@@ -35,7 +37,23 @@ export function buildRadialGradient(
     size,
     repeating,
   } = parseRadialGradient(image)
-  const [xDelta, yDelta] = dimensions
+  const [baseXDelta, baseYDelta] = dimensions
+  const xAxis = resolveBackgroundAxisTiling({
+    mode: repeatModes.x,
+    areaSize: width,
+    tileSize: baseXDelta,
+    offset: offsets[0],
+    origin: 0,
+  })
+  const yAxis = resolveBackgroundAxisTiling({
+    mode: repeatModes.y,
+    areaSize: height,
+    tileSize: baseYDelta,
+    offset: offsets[1],
+    origin: 0,
+  })
+  const xDelta = xAxis.imageSize
+  const yDelta = yAxis.imageSize
 
   let cx: number = xDelta / 2
   let cy: number = yDelta / 2
@@ -92,15 +110,20 @@ export function buildRadialGradient(
     spread
   )
 
-  // TODO: check for repeat-x/repeat-y
   const defs = buildXMLString(
     'pattern',
     {
       id: patternId,
-      x: offsets[0] / width,
-      y: offsets[1] / height,
-      width: repeatX ? xDelta / width : '1',
-      height: repeatY ? yDelta / height : '1',
+      x: width ? xAxis.patternOffset / width : 0,
+      y: height ? yAxis.patternOffset / height : 0,
+      width:
+        typeof xAxis.patternSize === 'number' && width
+          ? xAxis.patternSize / width
+          : '1',
+      height:
+        typeof yAxis.patternSize === 'number' && height
+          ? yAxis.patternSize / height
+          : '1',
       patternUnits: 'objectBoundingBox',
     },
     buildXMLString(
@@ -127,16 +150,16 @@ export function buildRadialGradient(
           id: maskId,
         },
         buildXMLString('rect', {
-          x: 0,
-          y: 0,
+          x: xAxis.imageOffset,
+          y: yAxis.imageOffset,
           width: xDelta,
           height: yDelta,
           fill: '#fff',
         })
       ) +
       buildXMLString('rect', {
-        x: 0,
-        y: 0,
+        x: xAxis.imageOffset,
+        y: yAxis.imageOffset,
         width: xDelta,
         height: yDelta,
         fill: stops.at(-1)?.color || 'transparent',

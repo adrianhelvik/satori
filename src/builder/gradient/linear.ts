@@ -1,20 +1,22 @@
 import { parseLinearGradient, ColorStop } from 'css-gradient-parser'
 import { normalizeStops, resolveSolidColorFromStops } from './utils.js'
 import { buildXMLString, calcDegree, lengthToNumber } from '../../utils.js'
+import {
+  type RepeatMode,
+  resolveBackgroundAxisTiling,
+} from '../background-repeat.js'
 
 export function buildLinearGradient(
   {
     id,
     width,
     height,
-    repeatX,
-    repeatY,
+    repeatModes,
   }: {
     id: string
     width: number
     height: number
-    repeatX: boolean
-    repeatY: boolean
+    repeatModes: { x: RepeatMode; y: RepeatMode }
   },
   image: string,
   dimensions: number[],
@@ -24,7 +26,23 @@ export function buildLinearGradient(
   maskMode?: string
 ) {
   const parsed = parseLinearGradient(image)
-  const [imageWidth, imageHeight] = dimensions
+  const [baseImageWidth, baseImageHeight] = dimensions
+  const xAxis = resolveBackgroundAxisTiling({
+    mode: repeatModes.x,
+    areaSize: width,
+    tileSize: baseImageWidth,
+    offset: offsets[0],
+    origin: 0,
+  })
+  const yAxis = resolveBackgroundAxisTiling({
+    mode: repeatModes.y,
+    areaSize: height,
+    tileSize: baseImageHeight,
+    offset: offsets[1],
+    origin: 0,
+  })
+  const imageWidth = xAxis.imageSize
+  const imageHeight = yAxis.imageSize
   const repeating = image.startsWith('repeating')
 
   // Calculate the direction.
@@ -72,10 +90,16 @@ export function buildLinearGradient(
     'pattern',
     {
       id: patternId,
-      x: offsets[0] / width,
-      y: offsets[1] / height,
-      width: repeatX ? imageWidth / width : '1',
-      height: repeatY ? imageHeight / height : '1',
+      x: width ? xAxis.patternOffset / width : 0,
+      y: height ? yAxis.patternOffset / height : 0,
+      width:
+        typeof xAxis.patternSize === 'number' && width
+          ? xAxis.patternSize / width
+          : '1',
+      height:
+        typeof yAxis.patternSize === 'number' && height
+          ? yAxis.patternSize / height
+          : '1',
       patternUnits: 'objectBoundingBox',
     },
     buildXMLString(
@@ -98,8 +122,8 @@ export function buildLinearGradient(
         .join('')
     ) +
       buildXMLString('rect', {
-        x: 0,
-        y: 0,
+        x: xAxis.imageOffset,
+        y: yAxis.imageOffset,
         width: imageWidth,
         height: imageHeight,
         fill: `url(#${gradientId})`,
