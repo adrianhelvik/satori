@@ -2,7 +2,7 @@
 
 ## What Satori supports
 
-- `display`: `flex`, `block`, `none`, `contents`, `-webkit-box`, `list-item` (approximate flex mapping)
+- `display`: `flex`, `block`, `inline`, `inline-block`, `inline-flex`, `none`, `contents`, `-webkit-box`, `list-item` (approximate flex mapping)
 - `position`: `relative`, `absolute`, `static`
 - `top`, `right`, `bottom`, `left`, `inset`
 - `z-index`
@@ -20,7 +20,7 @@
 
 | Property | Values missing | Feasibility | Notes |
 |----------|---------------|-------------|-------|
-| `display` | `inline`, `inline-block`, `inline-flex`, `grid`, `inline-grid`, `table` | Hard | Satori maps everything to Yoga's flex model. Inline layout would require a line-box model. Grid would need a full grid solver. |
+| `display` | `grid`, `inline-grid`, `table` | Hard | Satori maps everything to Yoga's flex model. `inline*` values are accepted but mapped to flex without line-box semantics. Grid would need a full grid solver. |
 
 ### Positioning
 

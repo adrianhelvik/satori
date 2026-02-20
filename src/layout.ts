@@ -543,12 +543,20 @@ export default async function* layout(
       newInheritableStyle
     )
   } else {
-    const display = style?.display
+    const display = String(style?.display || computedStyle.display || '')
+      .trim()
+      .toLowerCase()
     if (
       type === 'div' &&
       children &&
       typeof children !== 'string' &&
       display !== 'flex' &&
+      display !== 'block' &&
+      display !== 'inline' &&
+      display !== 'inline-block' &&
+      display !== 'inline-flex' &&
+      display !== 'list-item' &&
+      display !== '-webkit-box' &&
       display !== 'none' &&
       display !== 'contents'
     ) {

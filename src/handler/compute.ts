@@ -209,6 +209,9 @@ export default async function compute(
       {
         flex: Yoga.DISPLAY_FLEX,
         block: Yoga.DISPLAY_FLEX,
+        inline: Yoga.DISPLAY_FLEX,
+        'inline-block': Yoga.DISPLAY_FLEX,
+        'inline-flex': Yoga.DISPLAY_FLEX,
         'list-item': Yoga.DISPLAY_FLEX,
         contents: Yoga.DISPLAY_CONTENTS,
         none: Yoga.DISPLAY_NONE,
