@@ -19,43 +19,6 @@ import { resolveImageData } from './image.js'
 
 type SatoriElement = keyof typeof presets
 
-function mapJustifyAxisToAlign(
-  value: unknown
-):
-  | 'auto'
-  | 'stretch'
-  | 'center'
-  | 'flex-start'
-  | 'flex-end'
-  | 'baseline'
-  | undefined {
-  if (typeof value !== 'string') return
-  const normalized = value.trim().toLowerCase()
-  switch (normalized) {
-    case 'auto':
-      return 'auto'
-    case 'normal':
-    case 'stretch':
-      return 'stretch'
-    case 'center':
-      return 'center'
-    case 'start':
-    case 'self-start':
-    case 'left':
-    case 'flex-start':
-      return 'flex-start'
-    case 'end':
-    case 'self-end':
-    case 'right':
-    case 'flex-end':
-      return 'flex-end'
-    case 'baseline':
-      return 'baseline'
-    default:
-      return
-  }
-}
-
 export default async function compute(
   node: YogaNode,
   type: SatoriElement | string,
@@ -240,16 +203,9 @@ export default async function compute(
     )
   )
 
-  const mappedJustifyItems = mapJustifyAxisToAlign(style.justifyItems)
-  const effectiveAlignItems =
-    style.alignItems ||
-    (mappedJustifyItems === 'auto' ? undefined : mappedJustifyItems)
-  const effectiveAlignSelf =
-    style.alignSelf || mapJustifyAxisToAlign(style.justifySelf)
-
   node.setAlignItems(
     v(
-      effectiveAlignItems,
+      style.alignItems,
       {
         stretch: Yoga.ALIGN_STRETCH,
         center: Yoga.ALIGN_CENTER,
@@ -264,7 +220,7 @@ export default async function compute(
   )
   node.setAlignSelf(
     v(
-      effectiveAlignSelf,
+      style.alignSelf,
       {
         stretch: Yoga.ALIGN_STRETCH,
         center: Yoga.ALIGN_CENTER,

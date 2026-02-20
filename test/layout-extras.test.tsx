@@ -208,14 +208,28 @@ describe('Layout Extras', () => {
   })
 
   describe('justify-items / justify-self', () => {
-    it('should support justify-items via cross-axis approximation', async () => {
-      const svg = await satori(
+    it('should ignore justify-items for flex layout', async () => {
+      const base = await satori(
         <div
           style={{
             width: 120,
             height: 120,
             display: 'flex',
-            flexDirection: 'column',
+            flexDirection: 'row',
+            backgroundColor: 'white',
+          }}
+        >
+          <div style={{ width: 30, height: 30, backgroundColor: 'red' }} />
+        </div>,
+        { width: 120, height: 120, fonts }
+      )
+      const withJustifyItems = await satori(
+        <div
+          style={{
+            width: 120,
+            height: 120,
+            display: 'flex',
+            flexDirection: 'row',
             justifyItems: 'center',
             backgroundColor: 'white',
           }}
@@ -224,11 +238,32 @@ describe('Layout Extras', () => {
         </div>,
         { width: 120, height: 120, fonts }
       )
-      expect(toImage(svg, 120)).toMatchImageSnapshot()
+
+      expect(toImage(withJustifyItems, 120)).toEqual(toImage(base, 120))
     })
 
-    it('should support justify-self on flex items via cross-axis approximation', async () => {
-      const svg = await satori(
+    it('should ignore justify-self for flex items', async () => {
+      const base = await satori(
+        <div
+          style={{
+            width: 120,
+            height: 120,
+            display: 'flex',
+            flexDirection: 'column',
+            backgroundColor: 'white',
+          }}
+        >
+          <div
+            style={{
+              width: 30,
+              height: 30,
+              backgroundColor: 'blue',
+            }}
+          />
+        </div>,
+        { width: 120, height: 120, fonts }
+      )
+      const withJustifySelf = await satori(
         <div
           style={{
             width: 120,
@@ -249,7 +284,8 @@ describe('Layout Extras', () => {
         </div>,
         { width: 120, height: 120, fonts }
       )
-      expect(toImage(svg, 120)).toMatchImageSnapshot()
+
+      expect(toImage(withJustifySelf, 120)).toEqual(toImage(base, 120))
     })
   })
 

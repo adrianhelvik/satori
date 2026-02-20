@@ -11,7 +11,6 @@
 - `box-sizing`: `border-box`, `content-box`
 - Flexbox: `flex-direction`, `flex-wrap`, `flex-grow`, `flex-shrink`, `flex-basis`, `flex`, `align-items`, `align-self`, `align-content`, `justify-content`, `gap`, `row-gap`, `column-gap`
 - Alignment shorthands: `place-content`, `place-items`, `place-self`
-- `justify-items`, `justify-self` (approximate cross-axis mapping in flex layout)
 - `order`
 
 ## Missing properties
@@ -21,6 +20,8 @@
 | Property | Values missing | Feasibility | Notes |
 |----------|---------------|-------------|-------|
 | `display` | `grid`, `inline-grid`, `table` | Hard | Satori maps everything to Yoga's flex model. `inline*` values are accepted but mapped to flex without line-box semantics. Grid would need a full grid solver. |
+
+> `inline-block` and `inline-flex` are accepted, but both map to flex layout. Browser `inline-block` shrink-to-fit and inline formatting semantics are not modeled.
 
 ### Positioning
 
@@ -55,8 +56,8 @@
 | Property | Values missing | Feasibility | Notes |
 |----------|---------------|-------------|-------|
 | `vertical-align` | All | Hard | Only meaningful for inline/table-cell layout which Satori doesn't implement |
-| `justify-items` | **Supported (approx.)** | Mapped to cross-axis alignment (`align-items`) for flex containers. Main-axis per-item semantics are not fully modeled. |
-| `justify-self` | **Supported (approx.)** | Mapped to cross-axis self-alignment (`align-self`) for flex items. Full CSS semantics remain approximate in flex-only layout. |
+| `justify-items` | All meaningful effects | Hard | Grid-focused property. In Satori's flex-only layout it is accepted syntax but has no layout effect for browser parity. |
+| `justify-self` | All meaningful effects | Hard | Same. It is ignored for flex layout. |
 | `float` | All | Hard | Would require block formatting context |
 | `clear` | All | Hard | Same — depends on float |
 
