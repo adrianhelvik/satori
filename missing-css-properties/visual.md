@@ -13,7 +13,7 @@
 - `color`
 - `mask-image`, `mask-position`, `mask-size`, `mask-repeat`
 - `mask-origin`, `mask-clip`, `mask-type`, `mask-mode` (`alpha`, `luminance`, `match-source` approximations)
-- `image-rendering`, `image-orientation` (passed through to SVG image nodes)
+- `image-rendering`, `image-orientation` (`image-rendering` is normalized to SVG-compatible values, e.g. `pixelated` → `optimizeSpeed`)
 - `clip-path`
 
 ## Missing properties

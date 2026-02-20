@@ -155,6 +155,9 @@ export default async function buildMaskImage(
   const miId = genMaskImageId(id)
 
   const maskType = resolveMaskType(style, maskImage)
+  const hasExplicitMaskSize =
+    Object.prototype.hasOwnProperty.call(style, 'maskSize') ||
+    Object.prototype.hasOwnProperty.call(style, 'WebkitMaskSize')
   let defs = ''
   let composedMaskShape = ''
 
@@ -170,7 +173,8 @@ export default async function buildMaskImage(
       'mask',
       style.imageRendering as string | undefined,
       style.imageOrientation as string | undefined,
-      m.mode
+      m.mode,
+      hasExplicitMaskSize
     )
 
     defs += def

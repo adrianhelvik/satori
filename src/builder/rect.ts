@@ -9,6 +9,7 @@ import { buildXMLString } from '../utils.js'
 import border, { getBorderClipPath } from './border.js'
 import { genClipPath } from './clip-path.js'
 import buildMaskImage from './mask-image.js'
+import { resolveSvgImageRendering } from './image-rendering.js'
 import cssColorParse from 'parse-css-color'
 
 type RGBAColor = {
@@ -594,9 +595,12 @@ export default async function rect(
       )
     }
 
+    const svgImageRendering = resolveSvgImageRendering(
+      typeof imageRendering === 'string' ? imageRendering : undefined
+    )
     const imageStyle = [
       cssFilter ? `filter:${cssFilter}` : '',
-      imageRendering ? `image-rendering:${imageRendering}` : '',
+      svgImageRendering ? `image-rendering:${svgImageRendering}` : '',
       imageOrientation ? `image-orientation:${imageOrientation}` : '',
     ]
       .filter(Boolean)

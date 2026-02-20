@@ -345,7 +345,7 @@ describe('Visual Extras', () => {
         />,
         { width: 100, height: 100, fonts }
       )
-      expect(svg).toContain('image-rendering="pixelated"')
+      expect(svg).toContain('image-rendering="optimizeSpeed"')
       expect(toImage(svg, 100)).toMatchImageSnapshot()
     })
 
@@ -365,7 +365,7 @@ describe('Visual Extras', () => {
         />,
         { width: 100, height: 100, fonts }
       )
-      expect(svg).toContain('image-rendering="pixelated"')
+      expect(svg).toContain('image-rendering="optimizeSpeed"')
       expect(toImage(svg, 100)).toMatchImageSnapshot()
     })
   })

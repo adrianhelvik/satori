@@ -9,6 +9,7 @@ import {
   resolveBackgroundAxisTiling,
 } from './background-repeat.js'
 import cssColorParse from 'parse-css-color'
+import { resolveSvgImageRendering } from './image-rendering.js'
 
 interface Background {
   attachment?: string
@@ -76,7 +77,8 @@ export default async function backgroundImage(
   from?: 'background' | 'mask',
   imageRendering?: string,
   imageOrientation?: string,
-  maskMode?: string
+  maskMode?: string,
+  maskSizeIsExplicit = false
 ): Promise<BackgroundImageBuildResult> {
   // Default to `repeat`.
   repeat = repeat || 'repeat'
@@ -127,6 +129,7 @@ export default async function backgroundImage(
   }
 
   if (image.startsWith('url(')) {
+    const svgImageRendering = resolveSvgImageRendering(imageRendering)
     const dimensionsWithoutFallback = parseLengthPairs(size, {
       x: width,
       y: height,
@@ -137,11 +140,11 @@ export default async function backgroundImage(
       image.slice(4, -1)
     )
     const resolvedWidth =
-      from === 'mask'
+      from === 'mask' && !maskSizeIsExplicit
         ? imageWidth || dimensionsWithoutFallback[0]
         : dimensionsWithoutFallback[0] || imageWidth
     const resolvedHeight =
-      from === 'mask'
+      from === 'mask' && !maskSizeIsExplicit
         ? imageHeight || dimensionsWithoutFallback[1]
         : dimensionsWithoutFallback[1] || imageHeight
 
@@ -200,7 +203,7 @@ export default async function backgroundImage(
         y: yAxis.imageOffset,
         width: xAxis.imageSize,
         height: yAxis.imageSize,
-        'image-rendering': imageRendering || undefined,
+        'image-rendering': svgImageRendering || undefined,
         'image-orientation': imageOrientation || undefined,
         preserveAspectRatio: 'none',
         filter: alphaFilterId ? `url(#${alphaFilterId})` : undefined,
