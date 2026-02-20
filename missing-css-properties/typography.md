@@ -60,7 +60,7 @@
 
 | Property | Feasibility | Notes |
 |----------|-------------|-------|
-| `text-underline-position` | Feasible | `under` is supported. Other detailed modes remain approximate. |
+| `text-underline-position` | **Supported (partial)** | Supports `under`; other detailed modes remain approximate. |
 
 ### Text emphasis
 
@@ -80,6 +80,6 @@
 | `ruby-align` | Hard | Ruby annotation alignment |
 | `initial-letter` | Hard | Drop cap sizing and positioning |
 | `text-spacing-trim` | Hard | CJK punctuation spacing |
-| `white-space-collapse` | Feasible | Basic compatibility mapping is supported (`preserve-breaks`, `collapse`, etc.). |
-| `text-wrap-mode` | Feasible | Basic compatibility mapping is supported (`nowrap`/`wrap`). |
-| `text-wrap-style` | Feasible | Compatibility mapping supports `balance`/`pretty`. |
+| `white-space-collapse` | **Supported (approx.)** | Basic compatibility mapping is supported (`preserve-breaks`, `collapse`, etc.). |
+| `text-wrap-mode` | **Supported (approx.)** | Basic compatibility mapping is supported (`nowrap`/`wrap`). |
+| `text-wrap-style` | **Supported (approx.)** | Compatibility mapping supports `balance`/`pretty`. |
