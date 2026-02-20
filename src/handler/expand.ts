@@ -40,6 +40,7 @@ const listStyleTypes = new Set([
   'decimal-leading-zero',
   'lower-alpha',
   'upper-alpha',
+  'lower-greek',
   'lower-latin',
   'upper-latin',
   'lower-roman',

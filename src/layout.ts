@@ -171,6 +171,19 @@ function parseListImageURL(value: string | undefined): string | null {
   return match[1].trim().replace(/(^['"])|(['"]$)/g, '')
 }
 
+function toAlphabeticBySymbols(index: number, symbols: string[]): string {
+  if (index <= 0 || symbols.length === 0) return '0'
+
+  let result = ''
+  let n = index
+  while (n > 0) {
+    n -= 1
+    result = symbols[n % symbols.length] + result
+    n = Math.floor(n / symbols.length)
+  }
+  return result
+}
+
 function parseListStyleStringToken(
   value: string | undefined
 ): string | undefined {
@@ -204,18 +217,10 @@ function parseListStyleStringToken(
 }
 
 function toAlphabeticIndex(index: number, upper: boolean): string {
-  if (index <= 0) return '0'
   const chars = upper
-    ? 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
-    : 'abcdefghijklmnopqrstuvwxyz'
-  let result = ''
-  let n = index
-  while (n > 0) {
-    n -= 1
-    result = chars[n % 26] + result
-    n = Math.floor(n / 26)
-  }
-  return result
+    ? 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('')
+    : 'abcdefghijklmnopqrstuvwxyz'.split('')
+  return toAlphabeticBySymbols(index, chars)
 }
 
 function toRomanIndex(index: number, upper: boolean): string {
@@ -277,6 +282,33 @@ function getListMarkerText(
     case 'lower-alpha':
     case 'lower-latin':
       return `${toAlphabeticIndex(index, false)}.`
+    case 'lower-greek':
+      return `${toAlphabeticBySymbols(index, [
+        'α',
+        'β',
+        'γ',
+        'δ',
+        'ε',
+        'ζ',
+        'η',
+        'θ',
+        'ι',
+        'κ',
+        'λ',
+        'μ',
+        'ν',
+        'ξ',
+        'ο',
+        'π',
+        'ρ',
+        'σ',
+        'τ',
+        'υ',
+        'φ',
+        'χ',
+        'ψ',
+        'ω',
+      ])}.`
     case 'upper-roman':
       return `${toRomanIndex(index, true)}.`
     case 'lower-roman':

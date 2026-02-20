@@ -53,6 +53,44 @@ describe('list-style', () => {
     expect(toImage(svg, 260)).toMatchImageSnapshot()
   })
 
+  it('should support lower-greek listStyleType', async () => {
+    const nodes = []
+    const svg = await satori(
+      <ol
+        style={{
+          width: 260,
+          height: 160,
+          backgroundColor: 'white',
+          fontSize: 18,
+          listStyleType: 'lower-greek',
+          margin: 0,
+        }}
+      >
+        <li>First item</li>
+        <li>Second item</li>
+        <li>Third item</li>
+      </ol>,
+      {
+        width: 260,
+        height: 160,
+        fonts,
+        embedFont: false,
+        onNodeDetected: (node) => nodes.push(node),
+      }
+    )
+
+    const markerTextNodes = nodes.filter(
+      (node) =>
+        node.key === '__satori-list-marker' &&
+        typeof node.textContent === 'string'
+    )
+    const markerText = markerTextNodes.map((node) => node.textContent)
+    expect(markerText).toContain('α.')
+    expect(markerText).toContain('β.')
+    expect(markerText).toContain('γ.')
+    expect(toImage(svg, 260)).toMatchImageSnapshot()
+  })
+
   it('should size outside text markers using marker text metrics', async () => {
     const nodes = []
     await satori(
