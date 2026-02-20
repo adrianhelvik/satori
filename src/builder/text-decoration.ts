@@ -88,6 +88,9 @@ export default function buildDecoration(
 
   const textDecorationThickness = style.textDecorationThickness
   const textUnderlineOffset = style.textUnderlineOffset
+  const textUnderlinePosition = String(
+    style.textUnderlinePosition || 'auto'
+  ).toLowerCase()
 
   // The UA should use such font-based information when choosing auto line thicknesses wherever appropriate.
   // https://drafts.csswg.org/css-text-decor-4/#text-decoration-thickness
@@ -112,6 +115,7 @@ export default function buildDecoration(
       ascender,
       height,
       underlineOffset,
+      underlinePosition: textUnderlinePosition,
       clipPathId,
       matrix,
       glyphBoxes,
@@ -132,6 +136,7 @@ function buildDecorationLine(
     ascender,
     height,
     underlineOffset,
+    underlinePosition,
     clipPathId,
     matrix,
     glyphBoxes,
@@ -145,6 +150,7 @@ function buildDecorationLine(
     ascender: number
     height: number
     underlineOffset: number
+    underlinePosition: string
     clipPathId?: string
     matrix?: string
     glyphBoxes?: GlyphBox[]
@@ -153,11 +159,14 @@ function buildDecorationLine(
     textDecorationSkipInk: string
   }
 ): string {
+  const hasUnderPosition = underlinePosition.split(/\s+/).includes('under')
+  const underlinePositionOffset = hasUnderPosition ? Math.max(height, 1) : 0
+
   const y =
     line === 'line-through'
       ? top + ascender * 0.7
       : line === 'underline'
-      ? top + ascender * 1.1 + underlineOffset
+      ? top + ascender * 1.1 + underlineOffset + underlinePositionOffset
       : line === 'overline'
       ? top + ascender * 0.1
       : top

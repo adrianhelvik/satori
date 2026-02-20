@@ -343,6 +343,7 @@ function handleSpecialCase(
     return { textDecorationThickness: purify('textDecorationThickness', value) }
   if (name === 'textUnderlineOffset')
     return { textUnderlineOffset: purify('textUnderlineOffset', value) }
+  if (name === 'textUnderlinePosition') return { textUnderlinePosition: value }
   if (name === 'textDecorationLine') return { textDecorationLine: value }
   if (name === 'textDecorationStyle') return { textDecorationStyle: value }
   if (name === 'textDecorationColor') return { textDecorationColor: value }

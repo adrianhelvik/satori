@@ -21,6 +21,7 @@ const list = new Set([
   'textDecorationStyle',
   'textDecorationColor',
   'textDecorationSkipInk',
+  'textUnderlinePosition',
   'whiteSpace',
   'transform',
   'wordBreak',

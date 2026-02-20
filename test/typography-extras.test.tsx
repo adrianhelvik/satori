@@ -219,5 +219,43 @@ describe('Typography Extras', () => {
       )
       expect(toImage(svg, 200)).toMatchImageSnapshot()
     })
+
+    it('should support text-underline-position under', async () => {
+      const svg = await satori(
+        <div
+          style={{
+            width: 220,
+            height: 120,
+            backgroundColor: 'white',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 12,
+          }}
+        >
+          <div
+            style={{
+              fontSize: 24,
+              textDecorationLine: 'underline',
+              textDecorationColor: 'black',
+              textUnderlinePosition: 'auto',
+            }}
+          >
+            gypjqy
+          </div>
+          <div
+            style={{
+              fontSize: 24,
+              textDecorationLine: 'underline',
+              textDecorationColor: 'black',
+              textUnderlinePosition: 'under',
+            }}
+          >
+            gypjqy
+          </div>
+        </div>,
+        { width: 220, height: 120, fonts }
+      )
+      expect(toImage(svg, 220)).toMatchImageSnapshot()
+    })
   })
 })
