@@ -195,11 +195,22 @@ export default async function* buildTextNodes(
   const underlineOffsetFromFont = prefersFontUnderlinePosition
     ? engine.underlineOffset()
     : undefined
+  const normalizedDecorationThickness = String(
+    textStyle.textDecorationThickness || 'auto'
+  ).toLowerCase()
+  const prefersFontDecorationThickness = normalizedDecorationThickness
+    .split(/\s+/)
+    .includes('from-font')
+  const underlineThicknessFromFont = prefersFontDecorationThickness
+    ? engine.underlineThickness()
+    : undefined
   const decorationStyle =
-    typeof underlineOffsetFromFont === 'number'
+    typeof underlineOffsetFromFont === 'number' ||
+    typeof underlineThicknessFromFont === 'number'
       ? {
           ...textStyle,
           _textUnderlineOffsetFromFont: underlineOffsetFromFont,
+          _textDecorationThicknessFromFont: underlineThicknessFromFont,
         }
       : textStyle
 

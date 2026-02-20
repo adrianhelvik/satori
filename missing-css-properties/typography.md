@@ -61,6 +61,7 @@
 
 | Property | Feasibility | Notes |
 |----------|-------------|-------|
+| `text-decoration-thickness` | **Supported (partial)** | Supports numeric/length inputs, percentages, and `from-font` (using font underline metrics when available). Full browser parity remains approximate. |
 | `text-underline-position` | **Supported (partial)** | Supports `under` and `from-font`; side-specific and writing-mode-dependent modes remain approximate. |
 
 ### Text emphasis

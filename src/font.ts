@@ -34,6 +34,7 @@ export type FontEngine = {
   baseline: (s?: string, resolvedFont?: any) => number
   height: (s?: string, resolvedFont?: any) => number
   underlineOffset: (s?: string, resolvedFont?: any) => number | undefined
+  underlineThickness: (s?: string, resolvedFont?: any) => number | undefined
   measure: (
     s: string,
     style: {
@@ -706,6 +707,26 @@ export default class FontLoader {
 
         // `post.underlinePosition` is in font units (positive up); SVG y grows downward.
         return (-rawUnderlinePosition / unitsPerEm) * fontSize
+      },
+      underlineThickness: (
+        s?: string,
+        resolvedFont = typeof s === 'undefined'
+          ? defaultResolvedFont
+          : resolveFont(s)
+      ) => {
+        const unitsPerEm = resolvedFont?.unitsPerEm
+        const rawUnderlineThickness =
+          resolvedFont?.tables?.post?.underlineThickness
+        if (
+          typeof unitsPerEm !== 'number' ||
+          unitsPerEm <= 0 ||
+          typeof rawUnderlineThickness !== 'number' ||
+          !Number.isFinite(rawUnderlineThickness)
+        ) {
+          return
+        }
+
+        return (rawUnderlineThickness / unitsPerEm) * fontSize
       },
       measure: (
         s: string,

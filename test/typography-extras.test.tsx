@@ -299,6 +299,50 @@ describe('Typography Extras', () => {
       expect(toImage(svg, 200)).toMatchImageSnapshot()
     })
 
+    it('should support text-decoration-thickness: from-font', async () => {
+      const svg = await satori(
+        <div
+          style={{
+            width: 220,
+            height: 130,
+            backgroundColor: 'white',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 12,
+          }}
+        >
+          <div
+            style={{
+              fontSize: 26,
+              textDecorationLine: 'underline',
+              textDecorationColor: 'black',
+              textDecorationThickness: 'auto',
+            }}
+          >
+            Thickness
+          </div>
+          <div
+            style={{
+              fontSize: 26,
+              textDecorationLine: 'underline',
+              textDecorationColor: 'black',
+              textDecorationThickness: 'from-font',
+            }}
+          >
+            Thickness
+          </div>
+        </div>,
+        { width: 220, height: 130, fonts, embedFont: false }
+      )
+      const underlineWidths = Array.from(
+        svg.matchAll(/<line[^>]*stroke-width="([^"]+)"/g)
+      ).map((match) => Number.parseFloat(match[1]))
+
+      expect(underlineWidths.length).toBeGreaterThanOrEqual(2)
+      expect(underlineWidths[0]).not.toBeCloseTo(underlineWidths[1], 5)
+      expect(toImage(svg, 220)).toMatchImageSnapshot()
+    })
+
     it('should support text-underline-offset', async () => {
       const svg = await satori(
         <div

@@ -87,6 +87,10 @@ export default function buildDecoration(
   if (!textDecorationLine || textDecorationLine === 'none') return ''
 
   const textDecorationThickness = style.textDecorationThickness
+  const textDecorationThicknessFromFont =
+    typeof style._textDecorationThicknessFromFont === 'number'
+      ? style._textDecorationThicknessFromFont
+      : undefined
   const textUnderlineOffset = style.textUnderlineOffset
   const textUnderlinePosition = String(
     style.textUnderlinePosition || 'auto'
@@ -98,10 +102,32 @@ export default function buildDecoration(
 
   // The UA should use such font-based information when choosing auto line thicknesses wherever appropriate.
   // https://drafts.csswg.org/css-text-decor-4/#text-decoration-thickness
-  const height =
-    typeof textDecorationThickness === 'number' && textDecorationThickness > 0
-      ? textDecorationThickness
-      : Math.max(1, fontSize * 0.1)
+  let height = Math.max(1, fontSize * 0.1)
+  if (
+    typeof textDecorationThickness === 'number' &&
+    textDecorationThickness > 0
+  ) {
+    height = textDecorationThickness
+  } else if (typeof textDecorationThickness === 'string') {
+    const normalized = textDecorationThickness.trim().toLowerCase()
+    if (
+      normalized === 'from-font' &&
+      typeof textDecorationThicknessFromFont === 'number' &&
+      textDecorationThicknessFromFont > 0
+    ) {
+      height = textDecorationThicknessFromFont
+    } else if (normalized.endsWith('%')) {
+      const percentage = Number.parseFloat(normalized.slice(0, -1))
+      if (Number.isFinite(percentage) && percentage > 0) {
+        height = (percentage / 100) * fontSize
+      }
+    } else {
+      const parsed = Number.parseFloat(normalized)
+      if (Number.isFinite(parsed) && parsed > 0) {
+        height = parsed
+      }
+    }
+  }
 
   const underlineOffset =
     typeof textUnderlineOffset === 'number' ? textUnderlineOffset : 0
