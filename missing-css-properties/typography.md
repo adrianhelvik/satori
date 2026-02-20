@@ -6,7 +6,7 @@
 - `font-size-adjust` (numeric / `from-font`, approximate)
 - `font-kerning` (`auto` / `normal` / `none`)
 - `line-height`, `letter-spacing`, `tab-size`
-- `word-spacing`, `text-indent`
+- `word-spacing`, `text-indent` (length and percentage values)
 - `text-align` (start, end, left, right, center, justify)
 - `text-transform` (none, lowercase, uppercase, capitalize)
 - `text-overflow` (clip, ellipsis)

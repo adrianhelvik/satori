@@ -64,6 +64,42 @@ describe('Typography Extras', () => {
       )
       expect(toImage(svg, 200)).toMatchImageSnapshot()
     })
+
+    it('should support text-indent length values', async () => {
+      const svg = await satori(
+        <div
+          style={{
+            width: 180,
+            height: 60,
+            backgroundColor: 'white',
+            fontSize: 20,
+            textIndent: '40px',
+          }}
+        >
+          Indented
+        </div>,
+        { width: 180, height: 60, fonts }
+      )
+      expect(toImage(svg, 180)).toMatchImageSnapshot()
+    })
+
+    it('should support text-indent percentage values', async () => {
+      const svg = await satori(
+        <div
+          style={{
+            width: 180,
+            height: 60,
+            backgroundColor: 'white',
+            fontSize: 20,
+            textIndent: '25%',
+          }}
+        >
+          Indented
+        </div>,
+        { width: 180, height: 60, fonts }
+      )
+      expect(toImage(svg, 180)).toMatchImageSnapshot()
+    })
   })
 
   describe('overflow-wrap', () => {

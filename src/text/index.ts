@@ -181,7 +181,20 @@ export default async function* buildTextNodes(
   }
 
   const wordSpacingValue = typeof wordSpacing === 'number' ? wordSpacing : 0
-  const textIndentValue = typeof textIndent === 'number' ? textIndent : 0
+
+  function resolveTextIndent(width: number): number {
+    if (typeof textIndent === 'number') return textIndent
+    if (!isString(textIndent)) return 0
+
+    const resolved = lengthToNumber(
+      textIndent,
+      resolvedFontSize,
+      width,
+      parentStyle as Record<string, number | string>,
+      true
+    )
+    return typeof resolved === 'number' ? resolved : 0
+  }
   const kerning = fontKerning !== 'none'
 
   const { measureGrapheme, measureGraphemeArray, measureText } = genMeasurer(
@@ -260,6 +273,8 @@ export default async function* buildTextNodes(
 
   // With the given container width, compute the text layout.
   function flow(width: number) {
+    const textIndentValue = resolveTextIndent(width)
+
     let lines = 0
     let maxWidth = 0
     let lineIndex = -1
