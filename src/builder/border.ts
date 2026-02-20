@@ -54,24 +54,31 @@ function normalizeInsetOutsetBorders(
       continue
     }
 
-    normalized[styleKey] = 'solid'
-    if (borderStyle === 'groove' || borderStyle === 'ridge') {
-      continue
-    }
+    const bevelStyle =
+      borderStyle === 'groove'
+        ? 'inset'
+        : borderStyle === 'ridge'
+        ? 'outset'
+        : borderStyle
 
+    normalized[styleKey] = 'solid'
     const topOrLeft = side === 'Top' || side === 'Left'
     const tone =
-      borderStyle === 'inset'
+      bevelStyle === 'inset'
         ? topOrLeft
           ? 'dark'
           : 'light'
         : topOrLeft
         ? 'light'
         : 'dark'
+    const ratio =
+      tone === 'dark' && (borderStyle === 'groove' || borderStyle === 'ridge')
+        ? 1 / 3
+        : undefined
 
     const borderColor = normalized[colorKey]
     if (typeof borderColor === 'string') {
-      normalized[colorKey] = shadeBorderColor(borderColor, tone)
+      normalized[colorKey] = shadeBorderColor(borderColor, tone, ratio)
     }
   }
 

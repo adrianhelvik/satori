@@ -18,10 +18,10 @@
 
 | Value | Feasibility | Notes |
 |-------|-------------|-------|
-| `groove` | **Supported (approx.)** | Accepted syntax, currently rendered using solid-border semantics (no true bevel). |
-| `ridge` | **Supported (approx.)** | Accepted syntax, currently rendered using solid-border semantics (no true bevel). |
+| `groove` | **Supported (approx.)** | Accepted syntax, approximated via inset-like side shading (no true dual-band bevel). |
+| `ridge` | **Supported (approx.)** | Accepted syntax, approximated via outset-like side shading (no true dual-band bevel). |
 
-> `inset`/`outset` use SVG-friendly side shading (top/left vs bottom/right tinting). `groove`/`ridge` are accepted but flattened to solid-border rendering.
+> `inset`/`outset` use SVG-friendly side shading (top/left vs bottom/right tinting). `groove`/`ridge` are accepted and approximated via inset/outset-like shading, but still lack true dual-band bevel rendering.
 
 > `*` Outline `groove`/`ridge`/`inset`/`outset` values are accepted and currently rendered using solid-outline semantics.
 
