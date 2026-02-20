@@ -19,6 +19,74 @@ import { resolveImageData } from './image.js'
 
 type SatoriElement = keyof typeof presets
 
+function isAutoSize(value: unknown): boolean {
+  return typeof value === 'undefined' || value === 'auto'
+}
+
+function parseAspectRatioValue(value: unknown): number | undefined {
+  if (typeof value === 'number') {
+    return Number.isFinite(value) && value > 0 ? value : undefined
+  }
+
+  if (typeof value === 'string') {
+    if (value === 'auto') return undefined
+
+    const parts = value.split('/').map((s) => parseFloat(s.trim()))
+    if (
+      parts.length === 2 &&
+      Number.isFinite(parts[0]) &&
+      Number.isFinite(parts[1]) &&
+      parts[0] > 0 &&
+      parts[1] > 0
+    ) {
+      return parts[0] / parts[1]
+    }
+
+    if (parts.length === 1 && Number.isFinite(parts[0]) && parts[0] > 0) {
+      return parts[0]
+    }
+  }
+
+  return undefined
+}
+
+function shouldApplyAspectRatio(
+  node: YogaNode,
+  style: SerializedStyle,
+  Yoga: Awaited<ReturnType<typeof getYoga>>
+): boolean {
+  const parent = node.getParent()
+  if (!parent) return true
+
+  const parentDirection = parent.getFlexDirection()
+  const isRowParent =
+    parentDirection === Yoga.FLEX_DIRECTION_ROW ||
+    parentDirection === Yoga.FLEX_DIRECTION_ROW_REVERSE
+  const isColumnParent =
+    parentDirection === Yoga.FLEX_DIRECTION_COLUMN ||
+    parentDirection === Yoga.FLEX_DIRECTION_COLUMN_REVERSE
+
+  if (!isRowParent && !isColumnParent) return true
+
+  const alignSelf = style.alignSelf
+  const isAlignSelfStretch = alignSelf === 'stretch'
+  const isAlignSelfOverridden =
+    typeof alignSelf === 'string' &&
+    alignSelf !== 'auto' &&
+    alignSelf !== 'normal' &&
+    alignSelf !== 'stretch'
+  const isCrossStretch =
+    isAlignSelfStretch ||
+    (!isAlignSelfOverridden && parent.getAlignItems() === Yoga.ALIGN_STRETCH)
+
+  if (!isCrossStretch) return true
+
+  if (isRowParent && isAutoSize(style.height)) return false
+  if (isColumnParent && isAutoSize(style.width)) return false
+
+  return true
+}
+
 export default async function compute(
   node: YogaNode,
   type: SatoriElement | string,
@@ -196,9 +264,9 @@ export default async function compute(
         'space-between': Yoga.ALIGN_SPACE_BETWEEN,
         'space-around': Yoga.ALIGN_SPACE_AROUND,
         baseline: Yoga.ALIGN_BASELINE,
-        normal: Yoga.ALIGN_AUTO,
+        normal: Yoga.ALIGN_STRETCH,
       },
-      Yoga.ALIGN_AUTO,
+      Yoga.ALIGN_STRETCH,
       'alignContent'
     )
   )
@@ -248,19 +316,12 @@ export default async function compute(
     )
   )
   if (typeof style.aspectRatio !== 'undefined') {
-    const ar = style.aspectRatio
-    if (ar !== 'auto') {
-      if (typeof ar === 'number') {
-        node.setAspectRatio(ar)
-      } else if (typeof ar === 'string') {
-        // Support "16/9" or "16 / 9" syntax
-        const parts = ar.split('/').map((s) => parseFloat(s.trim()))
-        if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
-          node.setAspectRatio(parts[0] / parts[1])
-        } else if (parts.length === 1 && !isNaN(parts[0])) {
-          node.setAspectRatio(parts[0])
-        }
-      }
+    const ar = parseAspectRatioValue(style.aspectRatio)
+    if (
+      typeof ar !== 'undefined' &&
+      shouldApplyAspectRatio(node, style, Yoga)
+    ) {
+      node.setAspectRatio(ar)
     }
   }
 

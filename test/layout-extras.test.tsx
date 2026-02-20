@@ -28,7 +28,7 @@ describe('Layout Extras', () => {
         </div>,
         { width: 100, height: 100, fonts }
       )
-      // width=60, aspect-ratio=2 → height=30
+      // In flex rows with default align-items: stretch, browser stretches cross-axis size.
       expect(toImage(svg, 100)).toMatchImageSnapshot()
     })
 
@@ -52,7 +52,7 @@ describe('Layout Extras', () => {
         </div>,
         { width: 100, height: 100, fonts }
       )
-      // width=80, aspect-ratio=16/9 → height=45
+      // Browser behavior matches stretched cross-axis sizing in this setup.
       expect(toImage(svg, 100)).toMatchImageSnapshot()
     })
 
