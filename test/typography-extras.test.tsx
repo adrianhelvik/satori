@@ -103,6 +103,66 @@ describe('Typography Extras', () => {
       )
       expect(toImage(svg, 180)).toMatchImageSnapshot()
     })
+
+    it('should support text-indent: each-line for forced line breaks', async () => {
+      const svg = await satori(
+        <div
+          style={{
+            width: 220,
+            height: 100,
+            backgroundColor: 'white',
+            fontFamily: 'Playfair Display',
+            fontSize: 16,
+            whiteSpace: 'pre-line',
+            textIndent: '30px each-line',
+          }}
+        >
+          {'Alpha beta gamma.\nDelta epsilon zeta.\nEta theta iota.'}
+        </div>,
+        { width: 220, height: 100, fonts }
+      )
+      expect(toImage(svg, 220)).toMatchImageSnapshot()
+    })
+
+    it('should support text-indent: hanging', async () => {
+      const svg = await satori(
+        <div
+          style={{
+            width: 220,
+            height: 100,
+            backgroundColor: 'white',
+            fontFamily: 'Playfair Display',
+            fontSize: 16,
+            whiteSpace: 'pre-line',
+            textIndent: '30px hanging',
+          }}
+        >
+          {'Alpha beta gamma.\nDelta epsilon zeta.\nEta theta iota.'}
+        </div>,
+        { width: 220, height: 100, fonts }
+      )
+      expect(toImage(svg, 220)).toMatchImageSnapshot()
+    })
+
+    it('should support text-indent with each-line and hanging', async () => {
+      const svg = await satori(
+        <div
+          style={{
+            width: 220,
+            height: 100,
+            backgroundColor: 'white',
+            fontFamily: 'Playfair Display',
+            fontSize: 16,
+            whiteSpace: 'pre-line',
+            textIndent: '30px each-line hanging',
+          }}
+        >
+          {'one two three\nfour five six seven\neight nine ten eleven twelve'}
+        </div>,
+        { width: 220, height: 100, fonts }
+      )
+      expect(toImage(svg, 220)).toMatchImageSnapshot()
+    })
   })
 
   describe('overflow-wrap', () => {
