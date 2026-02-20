@@ -207,6 +207,52 @@ describe('Layout Extras', () => {
     })
   })
 
+  describe('justify-items / justify-self', () => {
+    it('should support justify-items via cross-axis approximation', async () => {
+      const svg = await satori(
+        <div
+          style={{
+            width: 120,
+            height: 120,
+            display: 'flex',
+            flexDirection: 'column',
+            justifyItems: 'center',
+            backgroundColor: 'white',
+          }}
+        >
+          <div style={{ width: 30, height: 30, backgroundColor: 'red' }} />
+        </div>,
+        { width: 120, height: 120, fonts }
+      )
+      expect(toImage(svg, 120)).toMatchImageSnapshot()
+    })
+
+    it('should support justify-self on flex items via cross-axis approximation', async () => {
+      const svg = await satori(
+        <div
+          style={{
+            width: 120,
+            height: 120,
+            display: 'flex',
+            flexDirection: 'column',
+            backgroundColor: 'white',
+          }}
+        >
+          <div
+            style={{
+              width: 30,
+              height: 30,
+              justifySelf: 'end',
+              backgroundColor: 'blue',
+            }}
+          />
+        </div>,
+        { width: 120, height: 120, fonts }
+      )
+      expect(toImage(svg, 120)).toMatchImageSnapshot()
+    })
+  })
+
   describe('overflow-x / overflow-y', () => {
     it('should clip when overflow-x is hidden', async () => {
       const svg = await satori(

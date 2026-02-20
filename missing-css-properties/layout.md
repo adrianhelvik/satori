@@ -11,6 +11,7 @@
 - `box-sizing`: `border-box`, `content-box`
 - Flexbox: `flex-direction`, `flex-wrap`, `flex-grow`, `flex-shrink`, `flex-basis`, `flex`, `align-items`, `align-self`, `align-content`, `justify-content`, `gap`, `row-gap`, `column-gap`
 - Alignment shorthands: `place-content`, `place-items`, `place-self`
+- `justify-items`, `justify-self` (approximate cross-axis mapping in flex layout)
 - `order`
 
 ## Missing properties
@@ -54,8 +55,8 @@
 | Property | Values missing | Feasibility | Notes |
 |----------|---------------|-------------|-------|
 | `vertical-align` | All | Hard | Only meaningful for inline/table-cell layout which Satori doesn't implement |
-| `justify-items` | All | Feasible | Yoga may support this |
-| `justify-self` | All | Feasible | Same |
+| `justify-items` | **Supported (approx.)** | Mapped to cross-axis alignment (`align-items`) for flex containers. Main-axis per-item semantics are not fully modeled. |
+| `justify-self` | **Supported (approx.)** | Mapped to cross-axis self-alignment (`align-self`) for flex items. Full CSS semantics remain approximate in flex-only layout. |
 | `float` | All | Hard | Would require block formatting context |
 | `clear` | All | Hard | Same — depends on float |
 
