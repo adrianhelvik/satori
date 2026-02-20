@@ -49,14 +49,16 @@ export function preprocess(
 
 function processTextTransform(
   content: string,
-  textTransform: string,
+  textTransform: unknown,
   locale?: Locale
 ): string {
-  if (textTransform === 'uppercase') {
+  const normalized = typeof textTransform === 'string' ? textTransform : 'none'
+
+  if (normalized === 'uppercase') {
     content = content.toLocaleUpperCase(locale)
-  } else if (textTransform === 'lowercase') {
+  } else if (normalized === 'lowercase') {
     content = content.toLocaleLowerCase(locale)
-  } else if (textTransform === 'capitalize') {
+  } else if (normalized === 'capitalize') {
     content = segment(content, 'word', locale)
       // For each word...
       .map((word) => {
@@ -87,7 +89,10 @@ function processTextOverflow(
     display,
   } = style
 
-  if (display === 'block' && lineClamp) {
+  if (
+    display === 'block' &&
+    (typeof lineClamp === 'number' || typeof lineClamp === 'string')
+  ) {
     const [lineLimit, blockEllipsis = HorizontalEllipsis] =
       parseLineClamp(lineClamp)
     if (lineLimit) {
@@ -118,16 +123,21 @@ function processTextOverflow(
 
 function processWordBreak(
   content,
-  wordBreak: string,
-  overflowWrap?: string
+  wordBreak: unknown,
+  overflowWrap?: unknown
 ): { words: string[]; requiredBreaks: boolean[]; allowBreakWord: boolean } {
+  const normalizedWordBreak =
+    typeof wordBreak === 'string' ? wordBreak : 'normal'
+  const normalizedOverflowWrap =
+    typeof overflowWrap === 'string' ? overflowWrap : 'normal'
+
   const allowBreakWord =
-    ['break-all', 'break-word'].includes(wordBreak) ||
-    ['break-word', 'anywhere'].includes(overflowWrap)
+    ['break-all', 'break-word'].includes(normalizedWordBreak) ||
+    ['break-word', 'anywhere'].includes(normalizedOverflowWrap)
 
   const { words, requiredBreaks } = splitByBreakOpportunities(
     content,
-    wordBreak
+    normalizedWordBreak
   )
 
   return { words, requiredBreaks, allowBreakWord }
@@ -135,21 +145,23 @@ function processWordBreak(
 
 function processWhiteSpace(
   content: string,
-  whiteSpace: string
+  whiteSpace: unknown
 ): {
   content: string
   shouldCollapseTabsAndSpaces: boolean
   allowSoftWrap: boolean
 } {
+  const normalized = typeof whiteSpace === 'string' ? whiteSpace : 'normal'
+
   const shouldKeepLinebreak = ['pre', 'pre-wrap', 'pre-line'].includes(
-    whiteSpace
+    normalized
   )
 
   const shouldCollapseTabsAndSpaces = ['normal', 'nowrap', 'pre-line'].includes(
-    whiteSpace
+    normalized
   )
 
-  const allowSoftWrap = !['pre', 'nowrap'].includes(whiteSpace)
+  const allowSoftWrap = !['pre', 'nowrap'].includes(normalized)
 
   if (!shouldKeepLinebreak) {
     content = content.replace(/\n/g, Space)

@@ -20,11 +20,13 @@ describe('Text Wrap Subproperties', () => {
         }}
       >
         <div
-          style={{
-            width: 106,
-            whiteSpaceCollapse: 'preserve-breaks',
-            backgroundColor: '#f5f5f5',
-          }}
+          style={
+            {
+              width: 106,
+              whiteSpaceCollapse: 'preserve-breaks',
+              backgroundColor: '#f5f5f5',
+            } as any
+          }
         >
           {'line  one\nline   two'}
         </div>
@@ -56,13 +58,15 @@ describe('Text Wrap Subproperties', () => {
         }}
       >
         <div
-          style={{
-            width: 106,
-            textWrapMode: 'nowrap',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            backgroundColor: '#f5f5f5',
-          }}
+          style={
+            {
+              width: 106,
+              textWrapMode: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              backgroundColor: '#f5f5f5',
+            } as any
+          }
         >
           this line should not wrap and should be ellipsized
         </div>
@@ -96,20 +100,24 @@ describe('Text Wrap Subproperties', () => {
         }}
       >
         <div
-          style={{
-            width: 106,
-            textWrapStyle: 'balance',
-            backgroundColor: '#f5f5f5',
-          }}
+          style={
+            {
+              width: 106,
+              textWrapStyle: 'balance',
+              backgroundColor: '#f5f5f5',
+            } as any
+          }
         >
           balance wrapping can spread words more evenly across lines
         </div>
         <div
-          style={{
-            width: 106,
-            textWrap: 'balance',
-            backgroundColor: '#f5f5f5',
-          }}
+          style={
+            {
+              width: 106,
+              textWrap: 'balance',
+              backgroundColor: '#f5f5f5',
+            } as any
+          }
         >
           balance wrapping can spread words more evenly across lines
         </div>

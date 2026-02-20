@@ -28,7 +28,7 @@ describe('all property', () => {
               border: '8px solid #00ff00',
               backgroundColor: 'red',
               all: 'initial',
-            },
+            } as any,
             {
               display: 'block',
               width: 60,

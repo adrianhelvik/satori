@@ -903,12 +903,9 @@ type MainStyle = {
   textDecorationSkipInk: 'auto' | 'none' | 'all'
 }
 
-type OtherStyle = Exclude<
-  Record<PropertyKey, string | number | object>,
-  keyof MainStyle
->
+type OtherStyle = Record<PropertyKey, string | number | object | undefined>
 
-export type SerializedStyle = Partial<MainStyle & OtherStyle>
+export type SerializedStyle = Partial<MainStyle> & OtherStyle
 
 const allInheritedProps = new Set([
   'color',

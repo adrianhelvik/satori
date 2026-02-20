@@ -141,11 +141,28 @@ export function multiply(m1: number[], m2: number[]) {
 }
 
 export function v(
-  field: string | number | undefined,
+  field: unknown,
   map: Record<string, any>,
   fallback: any,
   errorIfNotAllowedForProperty?: string
 ) {
+  if (
+    typeof field !== 'string' &&
+    typeof field !== 'number' &&
+    typeof field !== 'undefined'
+  ) {
+    if (errorIfNotAllowedForProperty) {
+      throw new Error(
+        `Invalid value for CSS property "${errorIfNotAllowedForProperty}". Allowed values: ${Object.keys(
+          map
+        )
+          .map((_v) => `"${_v}"`)
+          .join(' | ')}. Received: "${field}".`
+      )
+    }
+    return fallback
+  }
+
   let value = map[field]
   if (typeof value === 'undefined') {
     if (errorIfNotAllowedForProperty && typeof field !== 'undefined') {
@@ -291,13 +308,13 @@ export function isUndefined(x: unknown): x is undefined {
 }
 
 export function asPointPercentageLength(
-  x: string | number,
+  x: unknown,
   propertyName?: string
 ): number | `${number}%` | undefined {
   if (typeof x === 'number') {
     return x
   }
-  if (x.endsWith('%')) {
+  if (typeof x === 'string' && x.endsWith('%')) {
     const percentageValue = parseFloat(x.slice(0, -1))
     if (isNaN(percentageValue)) {
       console.warn(
@@ -310,16 +327,18 @@ export function asPointPercentageLength(
     return `${percentageValue}%`
   }
 
-  console.warn(
-    `Invalid value "${x}"${
-      typeof propertyName === 'string' ? ` for "${propertyName}"` : ''
-    }. Expected a number or a percentage value (e.g., "50%").`
-  )
+  if (typeof x !== 'undefined') {
+    console.warn(
+      `Invalid value "${x}"${
+        typeof propertyName === 'string' ? ` for "${propertyName}"` : ''
+      }. Expected a number or a percentage value (e.g., "50%").`
+    )
+  }
   return undefined
 }
 
 export function asPointAutoPercentageLength(
-  x: string | number,
+  x: unknown,
   propertyName?: string
 ): number | 'auto' | `${number}%` | undefined {
   if (typeof x === 'number') {
@@ -328,7 +347,7 @@ export function asPointAutoPercentageLength(
   if (x === 'auto') {
     return 'auto'
   }
-  if (x.endsWith('%')) {
+  if (typeof x === 'string' && x.endsWith('%')) {
     const percentageValue = parseFloat(x.slice(0, -1))
     if (isNaN(percentageValue)) {
       console.warn(
@@ -341,11 +360,13 @@ export function asPointAutoPercentageLength(
     return `${percentageValue}%`
   }
 
-  console.warn(
-    `Invalid value "${x}"${
-      typeof propertyName === 'string' ? ` for "${propertyName}"` : ''
-    }. Expected a number, "auto", or a percentage value (e.g., "50%").`
-  )
+  if (typeof x !== 'undefined') {
+    console.warn(
+      `Invalid value "${x}"${
+        typeof propertyName === 'string' ? ` for "${propertyName}"` : ''
+      }. Expected a number, "auto", or a percentage value (e.g., "50%").`
+    )
+  }
   return undefined
 }
 

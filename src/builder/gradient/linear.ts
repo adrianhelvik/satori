@@ -24,7 +24,7 @@ export function buildLinearGradient(
   inheritableStyle: Record<string, number | string>,
   from?: 'background' | 'mask',
   maskMode?: string
-) {
+): [string, string, string?, string?] {
   const parsed = parseLinearGradient(image)
   const [baseImageWidth, baseImageHeight] = dimensions
   const xAxis = resolveBackgroundAxisTiling({

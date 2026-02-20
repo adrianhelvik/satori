@@ -17,7 +17,7 @@ export function container(
     height: number
     isInheritingTransform: boolean
   },
-  style: Record<string, number | string>
+  style: Record<string, number | string | object>
 ) {
   let matrix = ''
   let opacity = 1
@@ -75,8 +75,10 @@ export default function buildText(
     shape?: boolean
     decorationShape?: string
   },
-  style: Record<string, number | string>
+  style: Record<string, number | string | object>
 ) {
+  const textStyle = style as Record<string, string | number | undefined>
+
   let extra = ''
   if (debug) {
     extra = buildXMLString('rect', {
@@ -102,7 +104,7 @@ export default function buildText(
       height,
       transform: matrix || undefined,
       'clip-path': clipPathId ? `url(#${clipPathId})` : undefined,
-      style: style.filter ? `filter:${style.filter}` : undefined,
+      style: textStyle.filter ? `filter:${textStyle.filter}` : undefined,
     }
     return [
       (filter ? `${filter}<g filter="url(#satori_s-${id})">` : '') +
@@ -124,23 +126,23 @@ export default function buildText(
     y: top,
     width,
     height,
-    'font-weight': style.fontWeight,
-    'font-style': style.fontStyle,
-    'font-size': style.fontSize,
-    'font-family': style.fontFamily,
-    'font-kerning': style.fontKerning || undefined,
-    'letter-spacing': style.letterSpacing || undefined,
+    'font-weight': textStyle.fontWeight,
+    'font-style': textStyle.fontStyle,
+    'font-size': textStyle.fontSize,
+    'font-family': textStyle.fontFamily,
+    'font-kerning': textStyle.fontKerning || undefined,
+    'letter-spacing': textStyle.letterSpacing || undefined,
     transform: matrix || undefined,
     'clip-path': clipPathId ? `url(#${clipPathId})` : undefined,
-    style: style.filter ? `filter:${style.filter}` : undefined,
-    'stroke-width': style.WebkitTextStrokeWidth
-      ? `${style.WebkitTextStrokeWidth}px`
+    style: textStyle.filter ? `filter:${textStyle.filter}` : undefined,
+    'stroke-width': textStyle.WebkitTextStrokeWidth
+      ? `${textStyle.WebkitTextStrokeWidth}px`
       : undefined,
-    stroke: style.WebkitTextStrokeWidth
-      ? style.WebkitTextStrokeColor
+    stroke: textStyle.WebkitTextStrokeWidth
+      ? textStyle.WebkitTextStrokeColor
       : undefined,
-    'stroke-linejoin': style.WebkitTextStrokeWidth ? 'round' : undefined,
-    'paint-order': style.WebkitTextStrokeWidth ? 'stroke' : undefined,
+    'stroke-linejoin': textStyle.WebkitTextStrokeWidth ? 'round' : undefined,
+    'paint-order': textStyle.WebkitTextStrokeWidth ? 'stroke' : undefined,
   }
   return [
     (filter ? `${filter}<g filter="url(#satori_s-${id})">` : '') +
@@ -148,7 +150,7 @@ export default function buildText(
         'text',
         {
           ...shapeProps,
-          fill: style.color,
+          fill: textStyle.color,
           opacity: opacity !== 1 ? opacity : undefined,
         },
         escapeHTML(content)

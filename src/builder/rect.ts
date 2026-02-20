@@ -189,6 +189,11 @@ export default async function rect(
   inheritableStyle: Record<string, number | string | object>
 ) {
   if (style.display === 'none') return ''
+  const primitiveStyle = style as Record<string, string | number>
+  const primitiveInheritedStyle = inheritableStyle as Record<
+    string,
+    string | number
+  >
 
   const isHidden = style.visibility === 'hidden'
   const isImage = !!src
@@ -248,7 +253,7 @@ export default async function rect(
       const image = await backgroundImage(
         { id: id + '_' + index, width, height, left, top },
         background,
-        inheritableStyle,
+        primitiveInheritedStyle,
         'background',
         style.imageRendering as string | undefined,
         style.imageOrientation as string | undefined
@@ -289,8 +294,8 @@ export default async function rect(
 
   const [miId, mi] = await buildMaskImage(
     { id, left, top, width, height },
-    style,
-    inheritableStyle
+    primitiveStyle,
+    primitiveInheritedStyle
   )
 
   defs += mi
@@ -344,8 +349,8 @@ export default async function rect(
 
   const clip = overflow(
     { left, top, width, height, path, id, matrix, currentClipPath, src },
-    style as Record<string, number>,
-    inheritableStyle
+    primitiveStyle,
+    primitiveInheritedStyle
   )
 
   // Each background generates a new rectangle.
@@ -400,7 +405,7 @@ export default async function rect(
       borderPath: path,
       borderType: type,
     },
-    style
+    primitiveStyle
   )
 
   // border radius for images with transform property
@@ -480,7 +485,7 @@ export default async function rect(
           width,
           height,
         },
-        style
+        primitiveStyle
       )
     }
 
@@ -531,7 +536,7 @@ export default async function rect(
           'clip-path': `url(#${rectClipId})`,
         },
       },
-      style
+      primitiveStyle
     )
   }
 

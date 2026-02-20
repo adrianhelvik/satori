@@ -29,7 +29,7 @@ export function buildRadialGradient(
   inheritableStyle: Record<string, number | string>,
   from?: 'background' | 'mask',
   maskMode?: string
-) {
+): [string, string, string?, string?] {
   const {
     shape,
     stops: colorStops,
@@ -178,7 +178,12 @@ export function buildRadialGradient(
       })
   )
 
-  const result = [patternId, defs, undefined, resolveSolidColorFromStops(stops)]
+  const result: [string, string, string?, string?] = [
+    patternId,
+    defs,
+    undefined,
+    resolveSolidColorFromStops(stops),
+  ]
   return result
 }
 

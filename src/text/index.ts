@@ -196,8 +196,8 @@ export default async function* buildTextNodes(
   )
 
   const tabWidth = isString(tabSize)
-    ? lengthToNumber(tabSize, resolvedFontSize, 1, parentStyle)
-    : measureGrapheme(Space) * tabSize
+    ? lengthToNumber(tabSize, resolvedFontSize, 1, parentStyle) ?? 0
+    : measureGrapheme(Space) * (typeof tabSize === 'number' ? tabSize : 8)
 
   const calc = (
     text: string,
