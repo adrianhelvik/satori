@@ -8,6 +8,126 @@ export interface Stop {
   opacity?: number
 }
 
+interface ParsedStop {
+  color: [number, number, number]
+  opacity: number
+  offset: number
+}
+
+function toRounded(value: number, precision = 6): number {
+  const factor = Math.pow(10, precision)
+  return Math.round(value * factor) / factor
+}
+
+function clamp01(value: number): number {
+  return Math.max(0, Math.min(1, value))
+}
+
+function clampColor(value: number): number {
+  return Math.max(0, Math.min(255, value))
+}
+
+function toPremultipliedStop(parsedStop: ParsedStop): Stop {
+  const [r, g, b] = parsedStop.color
+  const opacity = clamp01(parsedStop.opacity)
+  return {
+    offset: parsedStop.offset,
+    color: `rgb(${toRounded(clampColor(r), 3)},${toRounded(
+      clampColor(g),
+      3
+    )},${toRounded(clampColor(b), 3)})`,
+    ...(opacity !== 1 ? { opacity: toRounded(opacity) } : {}),
+  }
+}
+
+// SVG gradient interpolation differs from CSS when transparent colors are
+// involved (CSS uses premultiplied interpolation). Approximate CSS behavior by
+// inserting intermediate premultiplied stops.
+function approximatePremultipliedStops(stops: Stop[]): Stop[] {
+  if (stops.length < 2) return stops
+
+  const parsedStops: ParsedStop[] = []
+  for (const stop of stops) {
+    if (typeof stop.offset !== 'number') return stops
+    const parsed = cssColorParse(stop.color)
+    if (!parsed) return stops
+    const opacity = clamp01(stop.opacity ?? parsed.alpha ?? 1)
+    parsedStops.push({
+      color: [
+        clampColor(parsed.values[0]),
+        clampColor(parsed.values[1]),
+        clampColor(parsed.values[2]),
+      ],
+      opacity,
+      offset: clamp01(stop.offset),
+    })
+  }
+
+  if (!parsedStops.some((stop) => stop.opacity < 1)) {
+    return parsedStops.map(toPremultipliedStop)
+  }
+
+  const expandedStops: Stop[] = []
+  for (let i = 0; i < parsedStops.length - 1; i++) {
+    const current = parsedStops[i]
+    const next = parsedStops[i + 1]
+    const offsetDelta = next.offset - current.offset
+
+    // Zero-length segments represent hard stops; keep both boundaries.
+    if (Math.abs(offsetDelta) <= 1e-6) {
+      if (!expandedStops.length) {
+        expandedStops.push(toPremultipliedStop(current))
+      }
+      expandedStops.push(toPremultipliedStop(next))
+      continue
+    }
+
+    const [r1, g1, b1] = current.color
+    const [r2, g2, b2] = next.color
+    const alphaDelta = Math.abs(next.opacity - current.opacity)
+    const channelDelta = Math.max(
+      Math.abs(r2 - r1),
+      Math.abs(g2 - g1),
+      Math.abs(b2 - b1)
+    )
+    const steps = Math.max(
+      1,
+      Math.min(24, Math.ceil(alphaDelta * 14 + channelDelta / 50))
+    )
+
+    for (let step = 0; step <= steps; step++) {
+      if (i > 0 && step === 0) continue
+      const t = step / steps
+      const opacity = current.opacity + (next.opacity - current.opacity) * t
+      const premulR =
+        r1 * current.opacity + (r2 * next.opacity - r1 * current.opacity) * t
+      const premulG =
+        g1 * current.opacity + (g2 * next.opacity - g1 * current.opacity) * t
+      const premulB =
+        b1 * current.opacity + (b2 * next.opacity - b1 * current.opacity) * t
+
+      const resolvedColor: [number, number, number] =
+        opacity > 1e-6
+          ? [
+              clampColor(premulR / opacity),
+              clampColor(premulG / opacity),
+              clampColor(premulB / opacity),
+            ]
+          : [0, 0, 0]
+
+      expandedStops.push(
+        toPremultipliedStop({
+          offset: current.offset + offsetDelta * t,
+          opacity,
+          color: resolvedColor,
+        })
+      )
+    }
+  }
+
+  return expandedStops
+}
+
 export function resolveSolidColorFromStops(stops: Stop[]): string | undefined {
   if (!stops.length) return
 
@@ -147,16 +267,5 @@ export function normalizeStops(
     }
   }
 
-  // Split alpha into a separate opacity field so SVG can interpolate
-  // stop-color and stop-opacity independently (correct premultiplied behavior).
-  return stops.map((stop) => {
-    const parsed = cssColorParse(stop.color)
-    if (!parsed || parsed.alpha === 1) return stop
-    const [r, g, b] = parsed.values
-    return {
-      ...stop,
-      color: `rgb(${r},${g},${b})`,
-      opacity: parsed.alpha,
-    }
-  })
+  return approximatePremultipliedStops(stops)
 }
