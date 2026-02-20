@@ -9,7 +9,7 @@ Satori supports ~80 CSS properties (mostly Flexbox layout, basic typography, bac
 | File | Category | Key gaps |
 |------|----------|----------|
 | [layout.md](layout.md) | Layout & Display | Grid, float, `position: fixed/sticky`, writing-mode/RTL |
-| [typography.md](typography.md) | Typography & Fonts | OpenType features, font-variant, hyphenation, text emphasis |
+| [typography.md](typography.md) | Typography & Fonts | OpenType features, font-variant, hyphenation, advanced decoration emphasis |
 | [box-model.md](box-model.md) | Box Model & Borders | `border-image`, advanced border styles (`groove/ridge/...`), shape-outside |
 | [visual.md](visual.md) | Visual & Decoration | backdrop-filter, background-blend-mode, mask composition/full mode parity |
 | [transforms-animations.md](transforms-animations.md) | Transforms & Animations | 3D transforms, transitions, animations, will-change |

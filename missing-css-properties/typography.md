@@ -47,7 +47,6 @@
 
 | Property | Feasibility | Notes |
 |----------|-------------|-------|
-| `text-align-last` | Feasible | Alignment of the last line in justified text |
 | `text-justify` | Hard | Justification algorithm (auto, inter-word, inter-character) |
 | `hyphens` | Hard | Requires hyphenation dictionaries per language |
 | `hyphenate-character` | Hard | Depends on `hyphens` |
