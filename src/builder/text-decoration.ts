@@ -1,4 +1,4 @@
-import { buildXMLString } from '../utils.js'
+import { buildXMLString, lengthToNumber } from '../utils.js'
 import type { GlyphBox } from '../font.js'
 
 function buildSkipInkSegments(
@@ -54,6 +54,31 @@ function buildSkipInkSegments(
   }
 
   return segments
+}
+
+function resolveLengthOrPercentage(
+  value: unknown,
+  fontSize: number,
+  style: Record<string, any>
+): number | undefined {
+  if (typeof value === 'number' && Number.isFinite(value)) return value
+  if (typeof value !== 'string') return
+
+  const normalized = value.trim()
+  if (!normalized || normalized === 'auto' || normalized === 'from-font') {
+    return
+  }
+
+  const resolved = lengthToNumber(
+    normalized,
+    fontSize,
+    fontSize,
+    style as Record<string, string | number | object>,
+    true
+  )
+  return typeof resolved === 'number' && Number.isFinite(resolved)
+    ? resolved
+    : undefined
 }
 
 export default function buildDecoration(
@@ -116,21 +141,21 @@ export default function buildDecoration(
       textDecorationThicknessFromFont > 0
     ) {
       height = textDecorationThicknessFromFont
-    } else if (normalized.endsWith('%')) {
-      const percentage = Number.parseFloat(normalized.slice(0, -1))
-      if (Number.isFinite(percentage) && percentage > 0) {
-        height = (percentage / 100) * fontSize
-      }
     } else {
-      const parsed = Number.parseFloat(normalized)
-      if (Number.isFinite(parsed) && parsed > 0) {
-        height = parsed
+      const resolved = resolveLengthOrPercentage(normalized, fontSize, style)
+      if (typeof resolved === 'number' && resolved > 0) {
+        height = resolved
       }
     }
   }
 
+  const resolvedUnderlineOffset = resolveLengthOrPercentage(
+    textUnderlineOffset,
+    fontSize,
+    style
+  )
   const underlineOffset =
-    typeof textUnderlineOffset === 'number' ? textUnderlineOffset : 0
+    typeof resolvedUnderlineOffset === 'number' ? resolvedUnderlineOffset : 0
 
   // Support multiple decoration lines (e.g. "underline overline")
   const lines = textDecorationLine.split(/\s+/)

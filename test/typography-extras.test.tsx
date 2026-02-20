@@ -343,6 +343,62 @@ describe('Typography Extras', () => {
       expect(toImage(svg, 220)).toMatchImageSnapshot()
     })
 
+    it('should support text-decoration-thickness percentage values', async () => {
+      const svg = await satori(
+        <div
+          style={{
+            width: 240,
+            height: 80,
+            backgroundColor: 'white',
+            position: 'relative',
+          }}
+        >
+          <div
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              fontSize: 24,
+              color: 'transparent',
+              textDecorationLine: 'underline',
+              textDecorationColor: 'red',
+              textDecorationThickness: 'auto',
+            }}
+          >
+            Thickness
+          </div>
+          <div
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              fontSize: 24,
+              color: 'transparent',
+              textDecorationLine: 'underline',
+              textDecorationColor: 'blue',
+              textDecorationThickness: '20%',
+            }}
+          >
+            Thickness
+          </div>
+        </div>,
+        { width: 240, height: 80, fonts, embedFont: false }
+      )
+
+      const redMatch = svg.match(
+        /<line[^>]*stroke="red"[^>]*stroke-width="([^"]+)"/
+      )
+      const blueMatch = svg.match(
+        /<line[^>]*stroke="blue"[^>]*stroke-width="([^"]+)"/
+      )
+      expect(redMatch).toBeTruthy()
+      expect(blueMatch).toBeTruthy()
+      expect(Number.parseFloat(blueMatch![1])).toBeGreaterThan(
+        Number.parseFloat(redMatch![1])
+      )
+      expect(toImage(svg, 240)).toMatchImageSnapshot()
+    })
+
     it('should support text-underline-offset', async () => {
       const svg = await satori(
         <div
@@ -361,6 +417,58 @@ describe('Typography Extras', () => {
         { width: 200, height: 100, fonts }
       )
       expect(toImage(svg, 200)).toMatchImageSnapshot()
+    })
+
+    it('should support text-underline-offset length values', async () => {
+      const svg = await satori(
+        <div
+          style={{
+            width: 240,
+            height: 80,
+            backgroundColor: 'white',
+            position: 'relative',
+          }}
+        >
+          <div
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              fontSize: 24,
+              color: 'transparent',
+              textDecorationLine: 'underline',
+              textDecorationColor: 'red',
+              textUnderlineOffset: 'auto',
+            }}
+          >
+            Offset
+          </div>
+          <div
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              fontSize: 24,
+              color: 'transparent',
+              textDecorationLine: 'underline',
+              textDecorationColor: 'blue',
+              textUnderlineOffset: '0.25em',
+            }}
+          >
+            Offset
+          </div>
+        </div>,
+        { width: 240, height: 80, fonts, embedFont: false }
+      )
+
+      const redMatch = svg.match(/<line[^>]*y1="([^"]+)"[^>]*stroke="red"/)
+      const blueMatch = svg.match(/<line[^>]*y1="([^"]+)"[^>]*stroke="blue"/)
+      expect(redMatch).toBeTruthy()
+      expect(blueMatch).toBeTruthy()
+      expect(Number.parseFloat(blueMatch![1])).toBeGreaterThan(
+        Number.parseFloat(redMatch![1])
+      )
+      expect(toImage(svg, 240)).toMatchImageSnapshot()
     })
 
     it('should support text-underline-position under', async () => {
