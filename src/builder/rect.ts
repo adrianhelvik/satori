@@ -75,6 +75,10 @@ const supportedSolidBackgroundBlendModes = new Set([
   'color-dodge',
   'color-burn',
   'soft-light',
+  'hue',
+  'saturation',
+  'color',
+  'luminosity',
 ])
 
 const supportedMixBlendFallbackModes = new Set([
@@ -648,6 +652,151 @@ function blendChannel(mode: string, backdrop: number, source: number): number {
   }
 }
 
+function blendLuminance(color: { r: number; g: number; b: number }): number {
+  return 0.3 * color.r + 0.59 * color.g + 0.11 * color.b
+}
+
+function blendSaturation(color: { r: number; g: number; b: number }): number {
+  return (
+    Math.max(color.r, color.g, color.b) - Math.min(color.r, color.g, color.b)
+  )
+}
+
+function clipBlendColor(color: { r: number; g: number; b: number }): {
+  r: number
+  g: number
+  b: number
+} {
+  let { r, g, b } = color
+  const l = blendLuminance({ r, g, b })
+  const n = Math.min(r, g, b)
+  const x = Math.max(r, g, b)
+
+  if (n < 0) {
+    const denominator = l - n
+    if (Math.abs(denominator) > 1e-12) {
+      r = l + ((r - l) * l) / denominator
+      g = l + ((g - l) * l) / denominator
+      b = l + ((b - l) * l) / denominator
+    } else {
+      r = l
+      g = l
+      b = l
+    }
+  }
+
+  if (x > 1) {
+    const denominator = x - l
+    if (Math.abs(denominator) > 1e-12) {
+      r = l + ((r - l) * (1 - l)) / denominator
+      g = l + ((g - l) * (1 - l)) / denominator
+      b = l + ((b - l) * (1 - l)) / denominator
+    } else {
+      r = l
+      g = l
+      b = l
+    }
+  }
+
+  return { r: clamp01(r), g: clamp01(g), b: clamp01(b) }
+}
+
+function setBlendLuminance(
+  color: {
+    r: number
+    g: number
+    b: number
+  },
+  luminance: number
+): {
+  r: number
+  g: number
+  b: number
+} {
+  const delta = luminance - blendLuminance(color)
+  return clipBlendColor({
+    r: color.r + delta,
+    g: color.g + delta,
+    b: color.b + delta,
+  })
+}
+
+function setBlendSaturation(
+  color: {
+    r: number
+    g: number
+    b: number
+  },
+  saturation: number
+): {
+  r: number
+  g: number
+  b: number
+} {
+  const channels: Array<{
+    key: 'r' | 'g' | 'b'
+    value: number
+  }> = [
+    { key: 'r', value: color.r },
+    { key: 'g', value: color.g },
+    { key: 'b', value: color.b },
+  ]
+  channels.sort((a, b) => a.value - b.value)
+
+  let min = channels[0].value
+  let mid = channels[1].value
+  let max = channels[2].value
+
+  if (max > min) {
+    mid = ((mid - min) * saturation) / (max - min)
+    max = saturation
+  } else {
+    mid = 0
+    max = 0
+  }
+  min = 0
+
+  const result = { r: 0, g: 0, b: 0 }
+  result[channels[0].key] = min
+  result[channels[1].key] = mid
+  result[channels[2].key] = max
+  return result
+}
+
+function blendRGB(
+  mode: string,
+  backdrop: RGBAColor,
+  source: RGBAColor
+): [number, number, number] {
+  if (mode === 'hue') {
+    const withSat = setBlendSaturation(source, blendSaturation(backdrop))
+    const result = setBlendLuminance(withSat, blendLuminance(backdrop))
+    return [result.r, result.g, result.b]
+  }
+
+  if (mode === 'saturation') {
+    const withSat = setBlendSaturation(backdrop, blendSaturation(source))
+    const result = setBlendLuminance(withSat, blendLuminance(backdrop))
+    return [result.r, result.g, result.b]
+  }
+
+  if (mode === 'color') {
+    const result = setBlendLuminance(source, blendLuminance(backdrop))
+    return [result.r, result.g, result.b]
+  }
+
+  if (mode === 'luminosity') {
+    const result = setBlendLuminance(backdrop, blendLuminance(source))
+    return [result.r, result.g, result.b]
+  }
+
+  return [
+    blendChannel(mode, backdrop.r, source.r),
+    blendChannel(mode, backdrop.g, source.g),
+    blendChannel(mode, backdrop.b, source.b),
+  ]
+}
+
 function blendSolidColor(
   backdrop: RGBAColor,
   source: RGBAColor,
@@ -658,9 +807,7 @@ function blendSolidColor(
   const outA = as + ab * (1 - as)
   if (outA === 0) return { r: 0, g: 0, b: 0, a: 0 }
 
-  const br = blendChannel(mode, backdrop.r, source.r)
-  const bg = blendChannel(mode, backdrop.g, source.g)
-  const bb = blendChannel(mode, backdrop.b, source.b)
+  const [br, bg, bb] = blendRGB(mode, backdrop, source)
 
   const outR =
     (as * (1 - ab) * source.r + as * ab * br + (1 - as) * ab * backdrop.r) /

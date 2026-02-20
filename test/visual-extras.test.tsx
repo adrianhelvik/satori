@@ -482,6 +482,74 @@ describe('Visual Extras', () => {
       expect(svg).toContain('fill="rgba(0,0,255,1)"')
       expect(toImage(svg, 100)).toMatchImageSnapshot()
     })
+
+    it('should support hue for solid background layers', async () => {
+      const svg = await satori(
+        <div
+          style={{
+            display: 'flex',
+            width: 100,
+            height: 100,
+            backgroundImage:
+              'linear-gradient(rgb(220,40,60), rgb(220,40,60)), linear-gradient(rgb(80,120,200), rgb(80,120,200))',
+            backgroundBlendMode: 'hue',
+          }}
+        />,
+        { width: 100, height: 100, fonts }
+      )
+      expect(toImage(svg, 100)).toMatchImageSnapshot()
+    })
+
+    it('should support saturation for solid background layers', async () => {
+      const svg = await satori(
+        <div
+          style={{
+            display: 'flex',
+            width: 100,
+            height: 100,
+            backgroundImage:
+              'linear-gradient(rgb(220,40,60), rgb(220,40,60)), linear-gradient(rgb(80,120,200), rgb(80,120,200))',
+            backgroundBlendMode: 'saturation',
+          }}
+        />,
+        { width: 100, height: 100, fonts }
+      )
+      expect(toImage(svg, 100)).toMatchImageSnapshot()
+    })
+
+    it('should support color for solid background layers', async () => {
+      const svg = await satori(
+        <div
+          style={{
+            display: 'flex',
+            width: 100,
+            height: 100,
+            backgroundImage:
+              'linear-gradient(rgb(220,40,60), rgb(220,40,60)), linear-gradient(rgb(80,120,200), rgb(80,120,200))',
+            backgroundBlendMode: 'color',
+          }}
+        />,
+        { width: 100, height: 100, fonts }
+      )
+      expect(toImage(svg, 100)).toMatchImageSnapshot()
+    })
+
+    it('should support luminosity for solid background layers', async () => {
+      const svg = await satori(
+        <div
+          style={{
+            display: 'flex',
+            width: 100,
+            height: 100,
+            backgroundImage:
+              'linear-gradient(rgb(220,40,60), rgb(220,40,60)), linear-gradient(rgb(80,120,200), rgb(80,120,200))',
+            backgroundBlendMode: 'luminosity',
+          }}
+        />,
+        { width: 100, height: 100, fonts }
+      )
+      expect(toImage(svg, 100)).toMatchImageSnapshot()
+    })
   })
 
   describe('isolation', () => {
