@@ -86,15 +86,80 @@ export default function buildDecoration(
   } = style
   if (!textDecorationLine || textDecorationLine === 'none') return ''
 
+  const textDecorationThickness = style.textDecorationThickness
+  const textUnderlineOffset = style.textUnderlineOffset
+
   // The UA should use such font-based information when choosing auto line thicknesses wherever appropriate.
   // https://drafts.csswg.org/css-text-decor-4/#text-decoration-thickness
-  const height = Math.max(1, fontSize * 0.1)
+  const height =
+    typeof textDecorationThickness === 'number' && textDecorationThickness > 0
+      ? textDecorationThickness
+      : Math.max(1, fontSize * 0.1)
 
+  const underlineOffset =
+    typeof textUnderlineOffset === 'number' ? textUnderlineOffset : 0
+
+  // Support multiple decoration lines (e.g. "underline overline")
+  const lines = textDecorationLine.split(/\s+/)
+
+  let result = ''
+  for (const line of lines) {
+    if (line === 'none') continue
+    result += buildDecorationLine(line, {
+      top,
+      left,
+      width,
+      ascender,
+      height,
+      underlineOffset,
+      clipPathId,
+      matrix,
+      glyphBoxes,
+      textDecorationColor: textDecorationColor || color,
+      textDecorationStyle,
+      textDecorationSkipInk,
+    })
+  }
+  return result
+}
+
+function buildDecorationLine(
+  line: string,
+  {
+    top,
+    left,
+    width,
+    ascender,
+    height,
+    underlineOffset,
+    clipPathId,
+    matrix,
+    glyphBoxes,
+    textDecorationColor,
+    textDecorationStyle,
+    textDecorationSkipInk,
+  }: {
+    top: number
+    left: number
+    width: number
+    ascender: number
+    height: number
+    underlineOffset: number
+    clipPathId?: string
+    matrix?: string
+    glyphBoxes?: GlyphBox[]
+    textDecorationColor: string
+    textDecorationStyle: string
+    textDecorationSkipInk: string
+  }
+): string {
   const y =
-    textDecorationLine === 'line-through'
+    line === 'line-through'
       ? top + ascender * 0.7
-      : textDecorationLine === 'underline'
-      ? top + ascender * 1.1
+      : line === 'underline'
+      ? top + ascender * 1.1 + underlineOffset
+      : line === 'overline'
+      ? top + ascender * 0.1
       : top
 
   const dasharray =
@@ -105,7 +170,7 @@ export default function buildDecoration(
       : undefined
 
   const applySkipInk =
-    textDecorationLine === 'underline' &&
+    line === 'underline' &&
     (textDecorationSkipInk || 'auto') !== 'none' &&
     glyphBoxes?.length
 
@@ -125,16 +190,45 @@ export default function buildDecoration(
               y1: y + height + 1,
               x2,
               y2: y + height + 1,
-              stroke: textDecorationColor || color,
+              stroke: textDecorationColor,
               'stroke-width': height,
-              'stroke-dasharray': dasharray,
-              'stroke-linecap':
-                textDecorationStyle === 'dotted' ? 'round' : 'square',
+              'stroke-linecap': 'square',
               transform: matrix,
             })
           )
           .join('')
       : ''
+
+  // Wavy decoration: alternating quadratic Bézier arcs (half-wave steps).
+  // Each half-wave is a single Q command so short segments scale gracefully.
+  if (textDecorationStyle === 'wavy') {
+    const amplitude = height * 1.5
+    const halfWave = height * 2
+    return (
+      (clipPathId ? `<g clip-path="url(#${clipPathId})">` : '') +
+      segments
+        .map(([x1, x2]) => {
+          let d = `M ${x1} ${y}`
+          let up = true
+          for (let x = x1; x < x2; x += halfWave) {
+            const nextX = Math.min(x + halfWave, x2)
+            const cpX = (x + nextX) / 2
+            const cpY = up ? y - amplitude : y + amplitude
+            d += ` Q ${cpX} ${cpY} ${nextX} ${y}`
+            up = !up
+          }
+          return buildXMLString('path', {
+            d,
+            fill: 'none',
+            stroke: textDecorationColor,
+            'stroke-width': height,
+            transform: matrix,
+          })
+        })
+        .join('') +
+      (clipPathId ? '</g>' : '')
+    )
+  }
 
   return (
     (clipPathId ? `<g clip-path="url(#${clipPathId})">` : '') +
@@ -145,7 +239,7 @@ export default function buildDecoration(
           y1: y,
           x2,
           y2: y,
-          stroke: textDecorationColor || color,
+          stroke: textDecorationColor,
           'stroke-width': height,
           'stroke-dasharray': dasharray,
           'stroke-linecap':

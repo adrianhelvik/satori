@@ -17,7 +17,7 @@ export function preprocess(
   lineLimit: number
   blockEllipsis: string
 } {
-  const { textTransform, whiteSpace, wordBreak } = style
+  const { textTransform, whiteSpace, wordBreak, overflowWrap } = style
 
   content = processTextTransform(content, textTransform, locale)
 
@@ -29,7 +29,8 @@ export function preprocess(
 
   const { words, requiredBreaks, allowBreakWord } = processWordBreak(
     processedContent,
-    wordBreak
+    wordBreak,
+    overflowWrap
   )
 
   const [lineLimit, blockEllipsis] = processTextOverflow(style, allowSoftWrap)
@@ -113,9 +114,12 @@ function processTextOverflow(
 
 function processWordBreak(
   content,
-  wordBreak: string
+  wordBreak: string,
+  overflowWrap?: string
 ): { words: string[]; requiredBreaks: boolean[]; allowBreakWord: boolean } {
-  const allowBreakWord = ['break-all', 'break-word'].includes(wordBreak)
+  const allowBreakWord =
+    ['break-all', 'break-word'].includes(wordBreak) ||
+    ['break-word', 'anywhere'].includes(overflowWrap)
 
   const { words, requiredBreaks } = splitByBreakOpportunities(
     content,

@@ -71,6 +71,8 @@ export default async function* buildTextNodes(
     filter: cssFilter,
     tabSize = 8,
     letterSpacing,
+    wordSpacing,
+    textIndent,
     _inheritedBackgroundClipTextPath,
     _inheritedBackgroundClipTextHasBackground,
     flexShrink,
@@ -121,12 +123,16 @@ export default async function* buildTextNodes(
     return !!(graphemeImages && graphemeImages[s])
   }
 
+  const wordSpacingValue = typeof wordSpacing === 'number' ? wordSpacing : 0
+  const textIndentValue = typeof textIndent === 'number' ? textIndent : 0
+
   const { measureGrapheme, measureGraphemeArray, measureText } = genMeasurer(
     engine,
     isImage,
     {
       fontSize,
       letterSpacing,
+      wordSpacing: wordSpacingValue,
     }
   )
 
@@ -207,6 +213,11 @@ export default async function* buildTextNodes(
     lineSegmentNumber = [0]
     texts = []
     wordPositionInLayout = []
+
+    // Apply text-indent to the first line.
+    if (textIndentValue) {
+      currentWidth = textIndentValue
+    }
 
     // We naively implement the width calculation without proper kerning.
     // @TODO: Support different writing modes.
@@ -903,6 +914,11 @@ export default async function* buildTextNodes(
   if (backgroundClipDef) {
     ;(parentStyle._inheritedBackgroundClipTextPath as any).value +=
       backgroundClipDef
+  }
+
+  // visibility: hidden — layout is computed but no visual output is emitted.
+  if (parentStyle.visibility === 'hidden') {
+    return ''
   }
 
   return result

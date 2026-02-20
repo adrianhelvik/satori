@@ -65,6 +65,19 @@ function resolveTransforms(transforms: any[], width: number, height: number) {
       case 'skewY':
         transformMatrix[1] = Math.tan((len * Math.PI) / 180)
         break
+      case 'matrix': {
+        // matrix(a, b, c, d, tx, ty) — value is already an array of 6 numbers
+        const m = v as unknown as number[]
+        if (Array.isArray(m) && m.length === 6) {
+          transformMatrix[0] = m[0]
+          transformMatrix[1] = m[1]
+          transformMatrix[2] = m[2]
+          transformMatrix[3] = m[3]
+          transformMatrix[4] = m[4]
+          transformMatrix[5] = m[5]
+        }
+        break
+      }
     }
     matrix = multiply(transformMatrix, matrix)
   }

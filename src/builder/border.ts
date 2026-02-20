@@ -1,6 +1,106 @@
 import { buildXMLString } from '../utils.js'
 import radius from './border-radius.js'
 
+function getBorderStrokeProps(
+  w: number,
+  borderStyle: string,
+  asContentMask: boolean
+): Record<string, string | undefined> {
+  if (asContentMask) return {}
+
+  if (borderStyle === 'dashed') {
+    return { 'stroke-dasharray': w * 2 + ' ' + w }
+  }
+  if (borderStyle === 'dotted') {
+    return {
+      'stroke-dasharray': '0 ' + w * 2,
+      'stroke-linecap': 'round',
+    }
+  }
+  return {}
+}
+
+function buildBorderPath(
+  w: number,
+  currentStyle: any[],
+  asContentMask: boolean | undefined,
+  props: any,
+  dims: { left: number; top: number; width: number; height: number },
+  style: Record<string, number | string>,
+  partialSides: boolean[]
+): string {
+  const borderStyleValue = currentStyle[1] as string
+  const d = radius(dims, style as Record<string, number>, partialSides)
+
+  if (!asContentMask && borderStyleValue === 'double' && w >= 3) {
+    // Double border: two lines at 1/3 width each, separated by 1/3 gap.
+    // Outer line: full width stroke clipped to outer 1/3
+    // Inner line: full width stroke clipped to inner 1/3
+    const outerW = Math.round(w / 3)
+    const innerW = outerW
+    // We approximate by using two strokes offset by adjusting stroke-width.
+    // Outer stroke at full size, inner stroke at reduced size.
+    return (
+      buildXMLString('path', {
+        ...dims,
+        ...props,
+        fill: 'none',
+        stroke: currentStyle[2],
+        'stroke-width': outerW * 2,
+        d,
+      }) +
+      buildXMLString('path', {
+        ...dims,
+        ...props,
+        fill: 'none',
+        stroke: currentStyle[2],
+        'stroke-width': innerW * 2,
+        d: radius(
+          {
+            left: dims.left,
+            top: dims.top,
+            width: dims.width,
+            height: dims.height,
+          },
+          // Inset by 2/3 of border width for the inner line.
+          {
+            ...style,
+            borderTopWidth: Math.max(
+              0,
+              ((style.borderTopWidth as number) || 0) - outerW * 2
+            ),
+            borderRightWidth: Math.max(
+              0,
+              ((style.borderRightWidth as number) || 0) - outerW * 2
+            ),
+            borderBottomWidth: Math.max(
+              0,
+              ((style.borderBottomWidth as number) || 0) - outerW * 2
+            ),
+            borderLeftWidth: Math.max(
+              0,
+              ((style.borderLeftWidth as number) || 0) - outerW * 2
+            ),
+          } as Record<string, number>,
+          partialSides
+        ),
+      })
+    )
+  }
+
+  const strokeProps = getBorderStrokeProps(w, borderStyleValue, !!asContentMask)
+
+  return buildXMLString('path', {
+    ...dims,
+    ...props,
+    fill: 'none',
+    stroke: asContentMask ? '#000' : currentStyle[2],
+    'stroke-width': w * 2,
+    ...strokeProps,
+    d,
+  })
+}
+
 function compareBorderDirections(a: string, b: string, style: any) {
   return (
     style[a + 'Width'] === style[b + 'Width'] &&
@@ -130,23 +230,15 @@ export default function border(
           ? style[d.replace('border', 'padding')] || 0
           : 0)
       if (w) {
-        fullBorder += buildXMLString('path', {
-          width,
-          height,
-          ...props,
-          fill: 'none',
-          stroke: asContentMask ? '#000' : currentStyle[2],
-          'stroke-width': w * 2,
-          'stroke-dasharray':
-            !asContentMask && currentStyle[1] === 'dashed'
-              ? w * 2 + ' ' + w
-              : undefined,
-          d: radius(
-            { left, top, width, height },
-            style as Record<string, number>,
-            partialSides
-          ),
-        })
+        fullBorder += buildBorderPath(
+          w,
+          currentStyle,
+          asContentMask,
+          props,
+          { left, top, width, height },
+          style,
+          partialSides
+        )
       }
       partialSides = [false, false, false, false]
     }
@@ -159,23 +251,15 @@ export default function border(
         ? style[currentStyle[3].replace('border', 'padding')] || 0
         : 0)
     if (w) {
-      fullBorder += buildXMLString('path', {
-        width,
-        height,
-        ...props,
-        fill: 'none',
-        stroke: asContentMask ? '#000' : currentStyle[2],
-        'stroke-width': w * 2,
-        'stroke-dasharray':
-          !asContentMask && currentStyle[1] === 'dashed'
-            ? w * 2 + ' ' + w
-            : undefined,
-        d: radius(
-          { left, top, width, height },
-          style as Record<string, number>,
-          partialSides
-        ),
-      })
+      fullBorder += buildBorderPath(
+        w,
+        currentStyle,
+        asContentMask,
+        props,
+        { left, top, width, height },
+        style,
+        partialSides
+      )
     }
   }
 

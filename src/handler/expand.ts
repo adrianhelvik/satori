@@ -28,6 +28,7 @@ const optOutPx = new Set([
   'scale',
   'scaleX',
   'scaleY',
+  'aspectRatio',
 ])
 const keepNumber = new Set(['lineHeight'])
 
@@ -59,8 +60,333 @@ function handleSpecialCase(
   value: string | number,
   currentColor: string
 ) {
+  // --- Logical property mappings (horizontal-tb, ltr) ---
+
+  // Logical sizing
+  if (name === 'inlineSize')
+    return (
+      handleSpecialCase('width', value, currentColor) || {
+        width: purify('width', value),
+      }
+    )
+  if (name === 'blockSize')
+    return (
+      handleSpecialCase('height', value, currentColor) || {
+        height: purify('height', value),
+      }
+    )
+  if (name === 'minInlineSize') return { minWidth: purify('minWidth', value) }
+  if (name === 'minBlockSize') return { minHeight: purify('minHeight', value) }
+  if (name === 'maxInlineSize') return { maxWidth: purify('maxWidth', value) }
+  if (name === 'maxBlockSize') return { maxHeight: purify('maxHeight', value) }
+
+  // Logical margin
+  if (name === 'marginInlineStart')
+    return { marginLeft: purify('marginLeft', value) }
+  if (name === 'marginInlineEnd')
+    return { marginRight: purify('marginRight', value) }
+  if (name === 'marginBlockStart')
+    return { marginTop: purify('marginTop', value) }
+  if (name === 'marginBlockEnd')
+    return { marginBottom: purify('marginBottom', value) }
+  if (name === 'marginInline') {
+    const vals = value.toString().trim().split(/\s+/)
+    return {
+      marginLeft: purify('marginLeft', vals[0]),
+      marginRight: purify('marginRight', vals[1] || vals[0]),
+    }
+  }
+  if (name === 'marginBlock') {
+    const vals = value.toString().trim().split(/\s+/)
+    return {
+      marginTop: purify('marginTop', vals[0]),
+      marginBottom: purify('marginBottom', vals[1] || vals[0]),
+    }
+  }
+
+  // Logical padding
+  if (name === 'paddingInlineStart')
+    return { paddingLeft: purify('paddingLeft', value) }
+  if (name === 'paddingInlineEnd')
+    return { paddingRight: purify('paddingRight', value) }
+  if (name === 'paddingBlockStart')
+    return { paddingTop: purify('paddingTop', value) }
+  if (name === 'paddingBlockEnd')
+    return { paddingBottom: purify('paddingBottom', value) }
+  if (name === 'paddingInline') {
+    const vals = value.toString().trim().split(/\s+/)
+    return {
+      paddingLeft: purify('paddingLeft', vals[0]),
+      paddingRight: purify('paddingRight', vals[1] || vals[0]),
+    }
+  }
+  if (name === 'paddingBlock') {
+    const vals = value.toString().trim().split(/\s+/)
+    return {
+      paddingTop: purify('paddingTop', vals[0]),
+      paddingBottom: purify('paddingBottom', vals[1] || vals[0]),
+    }
+  }
+
+  // Logical inset
+  if (name === 'insetInlineStart') return { left: purify('left', value) }
+  if (name === 'insetInlineEnd') return { right: purify('right', value) }
+  if (name === 'insetBlockStart') return { top: purify('top', value) }
+  if (name === 'insetBlockEnd') return { bottom: purify('bottom', value) }
+  if (name === 'insetInline') {
+    const vals = value.toString().trim().split(/\s+/)
+    return {
+      left: purify('left', vals[0]),
+      right: purify('right', vals[1] || vals[0]),
+    }
+  }
+  if (name === 'insetBlock') {
+    const vals = value.toString().trim().split(/\s+/)
+    return {
+      top: purify('top', vals[0]),
+      bottom: purify('bottom', vals[1] || vals[0]),
+    }
+  }
+  if (name === 'inset') {
+    const vals = value.toString().trim().split(/\s+/)
+    const [t, r = t, b = t, l = r] = vals
+    return {
+      top: purify('top', t),
+      right: purify('right', r),
+      bottom: purify('bottom', b),
+      left: purify('left', l),
+    }
+  }
+
+  // Logical border shorthand
+  if (name === 'borderInline') {
+    const resolved = handleSpecialCase('border', value, currentColor)
+    if (!resolved) return
+    const result = {}
+    for (const k of ['Left', 'Right']) {
+      for (const p of ['Width', 'Style', 'Color']) {
+        result['border' + k + p] = resolved['borderTop' + p]
+      }
+    }
+    return result
+  }
+  if (name === 'borderBlock') {
+    const resolved = handleSpecialCase('border', value, currentColor)
+    if (!resolved) return
+    const result = {}
+    for (const k of ['Top', 'Bottom']) {
+      for (const p of ['Width', 'Style', 'Color']) {
+        result['border' + k + p] = resolved['borderTop' + p]
+      }
+    }
+    return result
+  }
+  if (name === 'borderInlineStart')
+    return handleSpecialCase('borderLeft', value, currentColor)
+  if (name === 'borderInlineEnd')
+    return handleSpecialCase('borderRight', value, currentColor)
+  if (name === 'borderBlockStart')
+    return handleSpecialCase('borderTop', value, currentColor)
+  if (name === 'borderBlockEnd')
+    return handleSpecialCase('borderBottom', value, currentColor)
+
+  // Logical border sub-properties (width)
+  if (name === 'borderInlineWidth') {
+    const vals = value.toString().trim().split(/\s+/)
+    return {
+      borderLeftWidth: purify('borderLeftWidth', vals[0]),
+      borderRightWidth: purify('borderRightWidth', vals[1] || vals[0]),
+    }
+  }
+  if (name === 'borderBlockWidth') {
+    const vals = value.toString().trim().split(/\s+/)
+    return {
+      borderTopWidth: purify('borderTopWidth', vals[0]),
+      borderBottomWidth: purify('borderBottomWidth', vals[1] || vals[0]),
+    }
+  }
+  if (name === 'borderInlineStartWidth')
+    return { borderLeftWidth: purify('borderLeftWidth', value) }
+  if (name === 'borderInlineEndWidth')
+    return { borderRightWidth: purify('borderRightWidth', value) }
+  if (name === 'borderBlockStartWidth')
+    return { borderTopWidth: purify('borderTopWidth', value) }
+  if (name === 'borderBlockEndWidth')
+    return { borderBottomWidth: purify('borderBottomWidth', value) }
+
+  // Logical border sub-properties (style)
+  if (name === 'borderInlineStyle') {
+    const vals = value.toString().trim().split(/\s+/)
+    return {
+      borderLeftStyle: vals[0],
+      borderRightStyle: vals[1] || vals[0],
+    }
+  }
+  if (name === 'borderBlockStyle') {
+    const vals = value.toString().trim().split(/\s+/)
+    return {
+      borderTopStyle: vals[0],
+      borderBottomStyle: vals[1] || vals[0],
+    }
+  }
+  if (name === 'borderInlineStartStyle') return { borderLeftStyle: value }
+  if (name === 'borderInlineEndStyle') return { borderRightStyle: value }
+  if (name === 'borderBlockStartStyle') return { borderTopStyle: value }
+  if (name === 'borderBlockEndStyle') return { borderBottomStyle: value }
+
+  // Logical border sub-properties (color)
+  if (name === 'borderInlineColor') {
+    const vals = value.toString().trim().split(/\s+/)
+    return {
+      borderLeftColor: vals[0],
+      borderRightColor: vals[1] || vals[0],
+    }
+  }
+  if (name === 'borderBlockColor') {
+    const vals = value.toString().trim().split(/\s+/)
+    return {
+      borderTopColor: vals[0],
+      borderBottomColor: vals[1] || vals[0],
+    }
+  }
+  if (name === 'borderInlineStartColor') return { borderLeftColor: value }
+  if (name === 'borderInlineEndColor') return { borderRightColor: value }
+  if (name === 'borderBlockStartColor') return { borderTopColor: value }
+  if (name === 'borderBlockEndColor') return { borderBottomColor: value }
+
+  // Logical border radius
+  if (name === 'borderStartStartRadius')
+    return { borderTopLeftRadius: purify('borderRadius', value) }
+  if (name === 'borderStartEndRadius')
+    return { borderTopRightRadius: purify('borderRadius', value) }
+  if (name === 'borderEndStartRadius')
+    return { borderBottomLeftRadius: purify('borderRadius', value) }
+  if (name === 'borderEndEndRadius')
+    return { borderBottomRightRadius: purify('borderRadius', value) }
+
+  // --- Shorthand expansions ---
+
+  // flex-flow → flexDirection + flexWrap
+  if (name === 'flexFlow') {
+    const parts = value.toString().trim().split(/\s+/)
+    const result: Record<string, string> = {}
+    for (const part of parts) {
+      if (['row', 'column', 'row-reverse', 'column-reverse'].includes(part)) {
+        result.flexDirection = part
+      } else if (['wrap', 'nowrap', 'wrap-reverse'].includes(part)) {
+        result.flexWrap = part
+      }
+    }
+    return result
+  }
+
+  // place-content → alignContent + justifyContent
+  if (name === 'placeContent') {
+    const parts = value.toString().trim().split(/\s+/)
+    return {
+      alignContent: parts[0],
+      justifyContent: parts[1] || parts[0],
+    }
+  }
+
+  // place-items → alignItems + justifyItems
+  if (name === 'placeItems') {
+    const parts = value.toString().trim().split(/\s+/)
+    return {
+      alignItems: parts[0],
+      justifyItems: parts[1] || parts[0],
+    }
+  }
+
+  // place-self → alignSelf + justifySelf
+  if (name === 'placeSelf') {
+    const parts = value.toString().trim().split(/\s+/)
+    return {
+      alignSelf: parts[0],
+      justifySelf: parts[1] || parts[0],
+    }
+  }
+
+  // overflow-x / overflow-y: store individually, compute.ts will merge
+  if (name === 'overflowX') return { overflowX: value }
+  if (name === 'overflowY') return { overflowY: value }
+
+  // outline shorthand: <width> <style> <color>
+  if (name === 'outline') {
+    const parts = value.toString().trim().split(/\s+/)
+    const result: Record<string, string | number> = {}
+    for (const part of parts) {
+      if (['solid', 'dashed', 'dotted', 'double', 'none'].includes(part)) {
+        result.outlineStyle = part
+      } else if (/^\d/.test(part) || part === '0') {
+        result.outlineWidth = purify('outlineWidth', part)
+      } else {
+        result.outlineColor = part
+      }
+    }
+    return result
+  }
+  if (name === 'outlineWidth')
+    return { outlineWidth: purify('outlineWidth', value) }
+  if (name === 'outlineStyle') return { outlineStyle: value }
+  if (name === 'outlineColor') return { outlineColor: value }
+  if (name === 'outlineOffset')
+    return { outlineOffset: purify('outlineOffset', value) }
+
+  // Pass-through properties that don't need special handling
+  if (name === 'wordSpacing')
+    return { wordSpacing: purify('wordSpacing', value) }
+  if (name === 'textIndent') return { textIndent: purify('textIndent', value) }
+  if (name === 'overflowWrap' || name === 'wordWrap')
+    return { overflowWrap: value }
+  if (name === 'textDecorationThickness')
+    return { textDecorationThickness: purify('textDecorationThickness', value) }
+  if (name === 'textUnderlineOffset')
+    return { textUnderlineOffset: purify('textUnderlineOffset', value) }
+  if (name === 'textDecorationLine') return { textDecorationLine: value }
+  if (name === 'textDecorationStyle') return { textDecorationStyle: value }
+  if (name === 'textDecorationColor') return { textDecorationColor: value }
+  if (name === 'visibility') return { visibility: value }
+
+  // mix-blend-mode, image-rendering: pass through to SVG attributes
+  if (name === 'mixBlendMode') return { mixBlendMode: value }
+  if (name === 'imageRendering') return { imageRendering: value }
+
+  // background-position-x / background-position-y
+  if (name === 'backgroundPositionX') return { backgroundPositionX: value }
+  if (name === 'backgroundPositionY') return { backgroundPositionY: value }
+
+  // mask sub-properties
+  if (name === 'maskMode') return { maskMode: value }
+  if (name === 'maskOrigin') return { maskOrigin: value }
+  if (name === 'maskClip') return { maskClip: value }
+  if (name === 'maskComposite') return { maskComposite: value }
+  if (name === 'maskType') return { maskType: value }
+
+  // Individual transform properties (CSS Transforms Level 2)
+  if (name === 'rotate') {
+    const deg = typeof value === 'number' ? value : parseFloat(value as string)
+    return { transform: [{ rotate: deg }] }
+  }
+  if (name === 'scale') {
+    const parts = value.toString().trim().split(/\s+/)
+    const sx = parseFloat(parts[0])
+    const sy = parts.length > 1 ? parseFloat(parts[1]) : sx
+    if (sx === sy) return { transform: [{ scale: sx }] }
+    return { transform: [{ scaleX: sx }, { scaleY: sy }] }
+  }
+  if (name === 'translate') {
+    const parts = value.toString().trim().split(/\s+/)
+    const result = [{ translateX: purify('translateX', parts[0]) }]
+    if (parts.length > 1) {
+      result.push({ translateY: purify('translateY', parts[1]) } as any)
+    }
+    return { transform: result }
+  }
+
+  if (name === 'aspectRatio') return { aspectRatio: value }
+
   if (name === 'zIndex') {
-    console.warn('`z-index` is currently not supported.')
     return { [name]: value }
   }
 
@@ -95,7 +421,30 @@ function handleSpecialCase(
   }
 
   if (/^border(Top|Right|Bottom|Left)?$/.test(name)) {
-    const resolved = getStylesForProperty('border', value, true)
+    // css-to-react-native only supports 'solid' and 'dashed' border styles.
+    // Pre-process to swap unsupported styles with 'solid' for parsing, then restore.
+    const valueStr = String(value)
+    const extraStyles = [
+      'dotted',
+      'double',
+      'groove',
+      'ridge',
+      'inset',
+      'outset',
+    ]
+    let actualBorderStyle: string | null = null
+    let parsableValue = valueStr
+    for (const es of extraStyles) {
+      if (valueStr.includes(es)) {
+        actualBorderStyle = es
+        parsableValue = valueStr.replace(es, 'solid')
+        break
+      }
+    }
+    const resolved = getStylesForProperty('border', parsableValue, true)
+    if (actualBorderStyle) {
+      resolved.borderStyle = actualBorderStyle
+    }
 
     // Border width should be default to 3px (medium) instead of 1px:
     // https://w3c.github.io/csswg-drafts/css-backgrounds-3/#border-width
@@ -119,6 +468,8 @@ function handleSpecialCase(
         {
           solid: 'solid',
           dashed: 'dashed',
+          dotted: 'dotted',
+          double: 'double',
         },
         'solid',
         name + 'Style'
@@ -148,6 +499,17 @@ function handleSpecialCase(
 
   if (name === 'transform') {
     if (typeof value !== 'string') throw new Error('Invalid `transform` value.')
+
+    // Handle matrix() directly since css-to-react-native doesn't support it.
+    const matrixMatch = value.match(
+      /^matrix\(\s*(-?[\d.]+)\s*,\s*(-?[\d.]+)\s*,\s*(-?[\d.]+)\s*,\s*(-?[\d.]+)\s*,\s*(-?[\d.]+)\s*,\s*(-?[\d.]+)\s*\)$/
+    )
+    if (matrixMatch) {
+      return {
+        transform: [{ matrix: matrixMatch.slice(1).map(Number) }],
+      }
+    }
+
     // To support percentages in transform (which is not supported in RN), we
     // replace them with random symbols and then replace them back after parsing.
     const symbols = {}
