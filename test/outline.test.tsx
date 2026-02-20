@@ -190,6 +190,7 @@ describe('Outline', () => {
       </div>,
       { width: 100, height: 100, fonts }
     )
+    expect(svg).toContain('rgba(')
     expect(toImage(svg, 100)).toMatchImageSnapshot()
   })
 
@@ -216,6 +217,61 @@ describe('Outline', () => {
       </div>,
       { width: 100, height: 100, fonts }
     )
+    expect(svg).toContain('rgba(')
+    expect(toImage(svg, 100)).toMatchImageSnapshot()
+  })
+
+  it('should accept ridge outline style (approximate)', async () => {
+    const svg = await satori(
+      <div
+        style={{
+          width: 100,
+          height: 100,
+          backgroundColor: 'white',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        <div
+          style={{
+            width: 50,
+            height: 50,
+            backgroundColor: 'lightyellow',
+            outline: '6px ridge red',
+          }}
+        />
+      </div>,
+      { width: 100, height: 100, fonts }
+    )
+    expect(svg).toContain('rgba(')
+    expect(toImage(svg, 100)).toMatchImageSnapshot()
+  })
+
+  it('should accept outset outline style (approximate)', async () => {
+    const svg = await satori(
+      <div
+        style={{
+          width: 100,
+          height: 100,
+          backgroundColor: 'white',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        <div
+          style={{
+            width: 50,
+            height: 50,
+            backgroundColor: 'lightyellow',
+            outline: '6px outset blue',
+          }}
+        />
+      </div>,
+      { width: 100, height: 100, fonts }
+    )
+    expect(svg).toContain('rgba(')
     expect(toImage(svg, 100)).toMatchImageSnapshot()
   })
 

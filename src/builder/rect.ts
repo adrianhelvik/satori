@@ -86,6 +86,23 @@ function clamp01(value: number): number {
   return Math.max(0, Math.min(1, value))
 }
 
+function shadeColorForTone(
+  color: string,
+  tone: 'light' | 'dark',
+  ratio = tone === 'light' ? 0 : 0.5
+): string {
+  const parsed = parseRGBAColor(color)
+  if (!parsed) return color
+
+  const target = tone === 'light' ? 1 : 0
+  return serializeRGBAColor({
+    r: parsed.r + (target - parsed.r) * ratio,
+    g: parsed.g + (target - parsed.g) * ratio,
+    b: parsed.b + (target - parsed.b) * ratio,
+    a: parsed.a,
+  })
+}
+
 function hslToRgb(h: number, s: number, l: number): [number, number, number] {
   const hue = ((h % 360) + 360) % 360
   const saturation = clamp01(s / 100)
@@ -643,12 +660,8 @@ export default async function rect(
       'black') as string
     const outlineStyle = style.outlineStyle as string
 
-    const makeOutlineLine = (
-      expand: number,
-      strokeWidth: number,
-      strokeProps: Record<string, string | undefined> = {}
-    ) => {
-      const outlinePath = radius(
+    const resolveOutlinePath = (expand: number) =>
+      radius(
         {
           left: left - expand,
           top: top - expand,
@@ -658,6 +671,14 @@ export default async function rect(
         style as Record<string, number>
       )
 
+    const makeOutlineLine = (
+      expand: number,
+      strokeWidth: number,
+      strokeColor = outlineColor,
+      strokeProps: Record<string, string | undefined> = {}
+    ) => {
+      const outlinePath = resolveOutlinePath(expand)
+
       return buildXMLString(outlinePath ? 'path' : 'rect', {
         x: outlinePath ? undefined : left - expand,
         y: outlinePath ? undefined : top - expand,
@@ -665,12 +686,70 @@ export default async function rect(
         height: outlinePath ? undefined : height + expand * 2,
         d: outlinePath || undefined,
         fill: 'none',
-        stroke: outlineColor,
+        stroke: strokeColor,
         'stroke-width': strokeWidth,
         ...strokeProps,
         transform: matrix ? matrix : undefined,
         'clip-path': clipPathId ? `url(#${clipPathId})` : undefined,
       })
+    }
+
+    const makeBeveledOutline = (
+      expand: number,
+      strokeWidth: number,
+      topLeftColor: string,
+      bottomRightColor: string
+    ) => {
+      if (resolveOutlinePath(expand)) {
+        // Rounded outlines fallback to a single-stroke approximation.
+        return makeOutlineLine(expand, strokeWidth)
+      }
+
+      const x0 = left - expand
+      const y0 = top - expand
+      const x1 = left + width + expand
+      const y1 = top + height + expand
+      const commonProps = {
+        'stroke-width': strokeWidth,
+        'stroke-linecap': 'square',
+        transform: matrix ? matrix : undefined,
+        'clip-path': clipPathId ? `url(#${clipPathId})` : undefined,
+      }
+
+      return (
+        buildXMLString('line', {
+          x1: x0,
+          y1: y0,
+          x2: x1,
+          y2: y0,
+          stroke: topLeftColor,
+          ...commonProps,
+        }) +
+        buildXMLString('line', {
+          x1: x0,
+          y1: y0,
+          x2: x0,
+          y2: y1,
+          stroke: topLeftColor,
+          ...commonProps,
+        }) +
+        buildXMLString('line', {
+          x1: x1,
+          y1: y0,
+          x2: x1,
+          y2: y1,
+          stroke: bottomRightColor,
+          ...commonProps,
+        }) +
+        buildXMLString('line', {
+          x1: x0,
+          y1: y1,
+          x2: x1,
+          y2: y1,
+          stroke: bottomRightColor,
+          ...commonProps,
+        })
+      )
     }
 
     if (outlineStyle === 'double' && outlineWidth >= 3) {
@@ -685,16 +764,55 @@ export default async function rect(
     } else {
       // Outline is drawn outside the border box, offset by outlineOffset.
       const expand = outlineWidth / 2 + outlineOffset
-      const outlineStrokeProps: Record<string, string | undefined> = {}
-      if (outlineStyle === 'dashed') {
-        outlineStrokeProps['stroke-dasharray'] =
-          outlineWidth * 2 + ' ' + outlineWidth
-      } else if (outlineStyle === 'dotted') {
-        outlineStrokeProps['stroke-dasharray'] = '0 ' + outlineWidth * 2
-        outlineStrokeProps['stroke-linecap'] = 'round'
-      }
+      if (
+        outlineStyle === 'inset' ||
+        outlineStyle === 'outset' ||
+        outlineStyle === 'groove' ||
+        outlineStyle === 'ridge'
+      ) {
+        const bevelStyle =
+          outlineStyle === 'groove'
+            ? 'inset'
+            : outlineStyle === 'ridge'
+            ? 'outset'
+            : outlineStyle
+        const darkRatio =
+          outlineStyle === 'groove' || outlineStyle === 'ridge'
+            ? 1 / 3
+            : undefined
+        const topLeftColor = shadeColorForTone(
+          outlineColor,
+          bevelStyle === 'inset' ? 'dark' : 'light',
+          bevelStyle === 'inset' ? darkRatio : undefined
+        )
+        const bottomRightColor = shadeColorForTone(
+          outlineColor,
+          bevelStyle === 'inset' ? 'light' : 'dark',
+          bevelStyle === 'inset' ? undefined : darkRatio
+        )
+        outlineShape = makeBeveledOutline(
+          expand,
+          outlineWidth,
+          topLeftColor,
+          bottomRightColor
+        )
+      } else {
+        const outlineStrokeProps: Record<string, string | undefined> = {}
+        if (outlineStyle === 'dashed') {
+          outlineStrokeProps['stroke-dasharray'] =
+            outlineWidth * 2 + ' ' + outlineWidth
+        } else if (outlineStyle === 'dotted') {
+          outlineStrokeProps['stroke-dasharray'] = '0 ' + outlineWidth * 2
+          outlineStrokeProps['stroke-linecap'] = 'round'
+        }
 
-      outlineShape = makeOutlineLine(expand, outlineWidth, outlineStrokeProps)
+        outlineShape = makeOutlineLine(
+          expand,
+          outlineWidth,
+          outlineColor,
+          outlineStrokeProps
+        )
+      }
     }
   }
 

@@ -23,7 +23,7 @@
 
 > `inset`/`outset` use SVG-friendly side shading (top/left vs bottom/right tinting). `groove`/`ridge` are accepted and approximated via inset/outset-like shading, but still lack true dual-band bevel rendering.
 
-> `*` Outline `groove`/`ridge`/`inset`/`outset` values are accepted and currently rendered using solid-outline semantics.
+> `*` Outline `groove`/`ridge`/`inset`/`outset` values are accepted and approximated using inset/outset-style side shading for rectangular outlines.
 
 ### Border image
 
