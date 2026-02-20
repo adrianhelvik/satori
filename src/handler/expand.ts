@@ -424,6 +424,21 @@ function handleSpecialCase(
     return { lineHeight: purify(name, value) }
   }
 
+  if (name === 'zoom') {
+    const normalized = String(value).trim().toLowerCase()
+    if (!normalized || normalized === 'normal') return { zoom: 1 }
+
+    if (normalized.endsWith('%')) {
+      const percentage = parseFloat(normalized)
+      if (!isNaN(percentage)) return { zoom: percentage / 100 }
+      return
+    }
+
+    const zoom = Number(normalized)
+    if (!isNaN(zoom)) return { zoom }
+    return
+  }
+
   if (name === 'fontFamily') {
     return {
       fontFamily: (value as string).split(',').map((_v) => {
@@ -833,6 +848,27 @@ export default function expand(
       serializedStyle.transformOrigin as any,
       baseFontSize
     )
+  }
+
+  if (typeof serializedStyle.zoom === 'number') {
+    const zoom = Number(serializedStyle.zoom)
+    delete serializedStyle.zoom
+
+    if (isFinite(zoom) && zoom > 0 && zoom !== 1) {
+      const existingTransforms = Array.isArray(serializedStyle.transform)
+        ? (serializedStyle.transform as {
+            [type: string]: number | string
+          }[])
+        : []
+      const hasExplicitTransform = existingTransforms.length > 0
+
+      serializedStyle.transform = [{ scale: zoom }, ...existingTransforms]
+      // `zoom` scales from the top-left corner in browsers. Only force this when
+      // zoom is the sole transform-like input to avoid altering existing behavior.
+      if (!hasExplicitTransform && !serializedStyle.transformOrigin) {
+        serializedStyle.transformOrigin = { xRelative: 0, yRelative: 0 }
+      }
+    }
   }
 
   for (const prop in serializedStyle) {

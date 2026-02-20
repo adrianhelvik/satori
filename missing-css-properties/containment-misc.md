@@ -27,7 +27,7 @@
 |----------|-------------|-------|
 | `all` | Feasible | Resets all properties — could be implemented as expanding to all supported defaults |
 | `appearance` | N/A | Platform-native form control styling |
-| `zoom` | Feasible | Could scale the entire element like `transform: scale()` |
+| `zoom` | **Supported (approx.)** | Maps to `transform: scale(...)` with top-left anchoring for zoom-only cases. Does not fully emulate browser layout reflow semantics. |
 | `aspect-ratio` | **Supported** | Number and fraction syntax (e.g. `1.5`, `16/9`) |
 | `object-fit` | **Supported** | `contain`, `cover`, `none` |
 | `object-position` | **Supported** | Various keyword combinations |
