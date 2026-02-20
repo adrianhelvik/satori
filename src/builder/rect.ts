@@ -232,16 +232,17 @@ function parseObjectPositionCoordinate(
   const raw = token.trim()
   const normalized = raw.toLowerCase()
 
+  let parsedDimension: CssDimension | undefined
   try {
-    const parsed = new CssDimension(raw)
-    if (parsed.type === 'percentage') {
-      return {
-        type: 'ratio',
-        value: parsed.value / 100,
-      }
-    }
+    parsedDimension = new CssDimension(raw)
   } catch {
-    return
+    // continue handling non-CssDimension syntax like `calc(...)`
+  }
+  if (parsedDimension?.type === 'percentage') {
+    return {
+      type: 'ratio',
+      value: parsedDimension.value / 100,
+    }
   }
 
   if (normalized.startsWith('calc(') && normalized.endsWith(')')) {
@@ -402,7 +403,29 @@ function parseObjectPosition(
     .trim()
     .toLowerCase()
   if (!raw) return defaults
-  const parts = raw.split(/\s+/).filter(Boolean)
+  const parts: string[] = []
+  let tokenStart = 0
+  let parenDepth = 0
+  const flush = (end: number) => {
+    const token = raw.slice(tokenStart, end).trim()
+    if (token) parts.push(token)
+  }
+
+  for (let index = 0; index < raw.length; index++) {
+    const char = raw[index]
+    if (char === '(') parenDepth++
+    if (char === ')' && parenDepth > 0) parenDepth--
+    if (parenDepth === 0 && /\s/.test(char)) {
+      flush(index)
+      tokenStart = index + 1
+      while (tokenStart < raw.length && /\s/.test(raw[tokenStart])) {
+        tokenStart++
+      }
+      index = tokenStart - 1
+    }
+  }
+  flush(raw.length)
+
   if (!parts.length) return defaults
 
   let x: ObjectPositionAxis | undefined

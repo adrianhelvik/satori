@@ -10,6 +10,14 @@ describe('Object Position Edge Cases', () => {
   let fonts
   initFonts((f) => (fonts = f))
 
+  function extractImageXY(svg: string): { x: number; y: number } {
+    const match = svg.match(/<image[^>]*x="([^"]+)"[^>]*y="([^"]+)"/)
+    if (!match) {
+      throw new Error('Expected SVG output to contain an <image> element.')
+    }
+    return { x: Number(match[1]), y: Number(match[2]) }
+  }
+
   async function render(position: string) {
     const svg = await satori(
       <div
@@ -29,50 +37,64 @@ describe('Object Position Edge Cases', () => {
       { width: 100, height: 100, fonts }
     )
 
-    return toImage(svg, 100)
+    return { svg, image: toImage(svg, 100) }
   }
 
   it('should support object-position center right', async () => {
-    expect(await render('center right')).toMatchImageSnapshot()
+    const { image } = await render('center right')
+    expect(image).toMatchImageSnapshot()
   })
 
   it('should support object-position center bottom', async () => {
-    expect(await render('center bottom')).toMatchImageSnapshot()
+    const { image } = await render('center bottom')
+    expect(image).toMatchImageSnapshot()
   })
 
   it('should support object-position right center', async () => {
-    expect(await render('right center')).toMatchImageSnapshot()
+    const { image } = await render('right center')
+    expect(image).toMatchImageSnapshot()
   })
 
   it('should support object-position bottom center', async () => {
-    expect(await render('bottom center')).toMatchImageSnapshot()
+    const { image } = await render('bottom center')
+    expect(image).toMatchImageSnapshot()
   })
 
   it('should support object-position center 10px', async () => {
-    expect(await render('center 10px')).toMatchImageSnapshot()
+    const { image } = await render('center 10px')
+    expect(image).toMatchImageSnapshot()
   })
 
   it('should support object-position 10px center', async () => {
-    expect(await render('10px center')).toMatchImageSnapshot()
+    const { image } = await render('10px center')
+    expect(image).toMatchImageSnapshot()
   })
 
   it('should support object-position center left', async () => {
-    expect(await render('center left')).toMatchImageSnapshot()
+    const { image } = await render('center left')
+    expect(image).toMatchImageSnapshot()
   })
 
   it('should support object-position center top', async () => {
-    expect(await render('center top')).toMatchImageSnapshot()
+    const { image } = await render('center top')
+    expect(image).toMatchImageSnapshot()
   })
 
   it('should support object-position with calc coordinates', async () => {
-    expect(
-      await render('calc(100% - 10px) calc(100% - 5px)')
-    ).toMatchImageSnapshot()
+    const { svg, image } = await render('calc(100% - 10px) calc(100% - 5px)')
+    const { x, y } = extractImageXY(svg)
+    expect(x).toBe(70)
+    expect(y).toBe(80)
+    expect(image).toMatchImageSnapshot()
   })
 
   it('should support object-position with side-based calc offsets', async () => {
-    expect(
-      await render('right calc(25% + 2px) bottom calc(10% + 3px)')
-    ).toMatchImageSnapshot()
+    const { svg, image } = await render(
+      'right calc(25% + 2px) bottom calc(10% + 3px)'
+    )
+    const { x, y } = extractImageXY(svg)
+    expect(x).toBe(58)
+    expect(y).toBeCloseTo(73.5, 5)
+    expect(image).toMatchImageSnapshot()
   })
 })
