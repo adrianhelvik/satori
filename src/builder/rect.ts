@@ -80,7 +80,9 @@ export default async function rect(
       const image = await backgroundImage(
         { id: id + '_' + index, width, height, left, top },
         background,
-        inheritableStyle
+        inheritableStyle,
+        'background',
+        style.imageRendering as string | undefined
       )
       if (image) {
         // Background images that come first in the array are rendered last.

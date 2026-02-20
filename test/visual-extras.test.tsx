@@ -3,6 +3,9 @@ import { it, describe, expect } from 'vitest'
 import { initFonts, toImage } from './utils.js'
 import satori from '../src/index.js'
 
+const PIXEL_ART_2X2_PNG =
+  'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAYAAABytg0kAAAAGElEQVR4AQXBAQEAAAjDIG7/zhNE0k3CAz7tBf7utunjAAAAAElFTkSuQmCC'
+
 describe('Visual Extras', () => {
   let fonts
   initFonts((f) => (fonts = f))
@@ -217,7 +220,7 @@ describe('Visual Extras', () => {
   })
 
   describe('image-rendering', () => {
-    it('should accept image-rendering property without error', async () => {
+    it('should apply image-rendering to background-image patterns', async () => {
       const svg = await satori(
         <div
           style={{
@@ -225,14 +228,36 @@ describe('Visual Extras', () => {
             width: 100,
             height: 100,
             backgroundColor: 'white',
+            backgroundImage: `url(${PIXEL_ART_2X2_PNG})`,
+            backgroundRepeat: 'no-repeat',
+            backgroundSize: '80px 80px',
             imageRendering: 'pixelated',
           }}
-        >
-          <div style={{ width: 50, height: 50, backgroundColor: 'red' }} />
-        </div>,
+        />,
         { width: 100, height: 100, fonts }
       )
-      expect(svg).toBeTruthy()
+      expect(svg).toContain('image-rendering="pixelated"')
+      expect(toImage(svg, 100)).toMatchImageSnapshot()
+    })
+
+    it('should apply image-rendering to mask-image patterns', async () => {
+      const svg = await satori(
+        <div
+          style={{
+            display: 'flex',
+            width: 100,
+            height: 100,
+            backgroundColor: 'red',
+            maskImage: `url(${PIXEL_ART_2X2_PNG})`,
+            maskSize: '80px 80px',
+            maskRepeat: 'no-repeat',
+            imageRendering: 'pixelated',
+          }}
+        />,
+        { width: 100, height: 100, fonts }
+      )
+      expect(svg).toContain('image-rendering="pixelated"')
+      expect(toImage(svg, 100)).toMatchImageSnapshot()
     })
   })
 })

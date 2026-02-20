@@ -85,7 +85,8 @@ export default async function buildMaskImage(
       { id: `${miId}-${i}`, left, top, width, height },
       m,
       inheritedStyle,
-      'mask'
+      'mask',
+      style.imageRendering as string | undefined
     )
 
     mask +=
