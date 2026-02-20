@@ -49,6 +49,47 @@ export interface SatoriNode {
   textContent?: string
 }
 
+interface ChildSortMeta {
+  child: ReactNode
+  order: number
+  zIndex: number
+  originalIndex: number
+}
+
+function parseStyleNumber(value: unknown, fallback = 0): number {
+  if (typeof value === 'number' && Number.isFinite(value)) return value
+  if (typeof value === 'string') {
+    const parsed = Number(value)
+    if (Number.isFinite(parsed)) return parsed
+  }
+  return fallback
+}
+
+function getChildSortMeta(
+  child: ReactNode,
+  originalIndex: number,
+  getTwStyles: LayoutContext['getTwStyles']
+): ChildSortMeta {
+  if (!isReactElement(child) || typeof child.type !== 'string') {
+    return { child, order: 0, zIndex: 0, originalIndex }
+  }
+
+  const childProps = child.props || {}
+  let childStyle = childProps.style
+
+  if (childProps.tw) {
+    const twStyles = getTwStyles(childProps.tw, childStyle)
+    childStyle = Object.assign(twStyles, childStyle)
+  }
+
+  return {
+    child,
+    order: parseStyleNumber(childStyle?.order, 0),
+    zIndex: parseStyleNumber(childStyle?.zIndex, 0),
+    originalIndex,
+  }
+}
+
 export default async function* layout(
   element: ReactNode,
   context: LayoutContext
@@ -183,12 +224,21 @@ export default async function* layout(
   }
 
   // 2. Do layout recursively for its children.
-  const normalizedChildren = normalizeChildren(children)
-  const iterators: ReturnType<typeof layout>[] = []
+  const sortedChildren = normalizeChildren(children)
+    .map((child, originalIndex) =>
+      getChildSortMeta(child, originalIndex, getTwStyles)
+    )
+    .sort((a, b) => a.order - b.order || a.originalIndex - b.originalIndex)
+  const iterators: {
+    iter: ReturnType<typeof layout>
+    orderIndex: number
+    zIndex: number
+  }[] = []
 
   let i = 0
   const segmentsMissingFont: { word: string; locale?: string }[] = []
-  for (const child of normalizedChildren) {
+  for (let orderIndex = 0; orderIndex < sortedChildren.length; orderIndex++) {
+    const { child, zIndex } = sortedChildren[orderIndex]
     const iter = layout(child, {
       id: id + '-' + i++,
       parentStyle: computedStyle,
@@ -209,10 +259,10 @@ export default async function* layout(
     } else {
       await iter.next()
     }
-    iterators.push(iter)
+    iterators.push({ iter, orderIndex, zIndex })
   }
   yield segmentsMissingFont
-  for (const iter of iterators) await iter.next()
+  for (const { iter } of iterators) await iter.next()
 
   // 3. Post-process the node.
   const [x, y] = yield
@@ -298,7 +348,10 @@ export default async function* layout(
   }
 
   // Generate the rendered markup for the children.
-  for (const iter of iterators) {
+  const paintIterators = [...iterators].sort(
+    (a, b) => a.zIndex - b.zIndex || a.orderIndex - b.orderIndex
+  )
+  for (const { iter } of paintIterators) {
     childrenRenderResult += (await iter.next([left, top])).value
   }
 
