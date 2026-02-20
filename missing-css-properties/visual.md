@@ -2,7 +2,7 @@
 
 ## What Satori supports
 
-- `background-color`, `background-image` (linear/radial/repeating gradients, url), `background-position`, `background-size`, `background-repeat`, `background-clip` (border-box, text), `background-attachment`, `background-origin`
+- `background-color`, `background-image` (linear/radial/repeating gradients, url), `background-position`, `background-size`, `background-repeat` (`repeat`, `no-repeat`, `repeat-x`, `repeat-y`, `round`, `space`), `background-clip` (border-box, text), `background-attachment`, `background-origin`
 - `background-position-x`, `background-position-y`
 - `background-blend-mode` (partial; exact for solid-color layers)
 - `box-shadow` (including inset, spread radius)
