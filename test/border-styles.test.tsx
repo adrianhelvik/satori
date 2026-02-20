@@ -139,4 +139,60 @@ describe('Border Styles', () => {
       expect(toImage(svg, 100)).toMatchImageSnapshot()
     })
   })
+
+  describe('groove/ridge', () => {
+    it('should render groove border (approximate)', async () => {
+      const svg = await satori(
+        <div
+          style={{
+            width: 100,
+            height: 100,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: 'white',
+          }}
+        >
+          <div
+            style={{
+              width: 80,
+              height: 80,
+              border: '6px groove red',
+              backgroundColor: 'white',
+            }}
+          />
+        </div>,
+        { width: 100, height: 100, fonts }
+      )
+      expect(svg).toContain('rgba(')
+      expect(toImage(svg, 100)).toMatchImageSnapshot()
+    })
+
+    it('should render ridge border (approximate)', async () => {
+      const svg = await satori(
+        <div
+          style={{
+            width: 100,
+            height: 100,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: 'white',
+          }}
+        >
+          <div
+            style={{
+              width: 80,
+              height: 80,
+              border: '6px ridge red',
+              backgroundColor: 'white',
+            }}
+          />
+        </div>,
+        { width: 100, height: 100, fonts }
+      )
+      expect(svg).toContain('rgba(')
+      expect(toImage(svg, 100)).toMatchImageSnapshot()
+    })
+  })
 })

@@ -626,6 +626,8 @@ function handleSpecialCase(
           dashed: 'dashed',
           dotted: 'dotted',
           double: 'double',
+          groove: 'groove',
+          ridge: 'ridge',
           inset: 'inset',
           outset: 'outset',
         },

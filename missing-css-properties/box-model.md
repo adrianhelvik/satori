@@ -7,21 +7,21 @@
 - `padding` (all sides + shorthand)
 - `border` (all sides, width/style/color)
 - `border-radius` (all corners, including `x / y` syntax)
-- Border styles: `solid`, `dashed`, `dotted`, `double`, `inset` (approx), `outset` (approx)
+- Border styles: `solid`, `dashed`, `dotted`, `double`, `inset` (approx), `outset` (approx), `groove` (approx), `ridge` (approx)
 - `outline`, `outline-width`, `outline-style`, `outline-color`, `outline-offset`
 - `aspect-ratio`
 - Logical sizing aliases: `inline-size`, `block-size`, `min-inline-size`, `min-block-size`, `max-inline-size`, `max-block-size`
 
 ## Missing properties
 
-### Border styles (missing values)
+### Border styles (remaining caveats)
 
 | Value | Feasibility | Notes |
 |-------|-------------|-------|
-| `groove` | Hard | Requires simulated 3D shading |
-| `ridge` | Hard | Same |
+| `groove` | **Supported (approx.)** | Accepted syntax, currently rendered using solid-border semantics (no true bevel). |
+| `ridge` | **Supported (approx.)** | Accepted syntax, currently rendered using solid-border semantics (no true bevel). |
 
-> `inset` and `outset` are supported with SVG-friendly shading approximations (top/left vs bottom/right color tinting).
+> `inset`/`outset` use SVG-friendly side shading (top/left vs bottom/right tinting). `groove`/`ridge` are accepted but flattened to solid-border rendering.
 
 ### Border image
 

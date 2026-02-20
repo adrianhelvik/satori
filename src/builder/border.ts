@@ -45,7 +45,19 @@ function normalizeInsetOutsetBorders(
     const colorKey = `border${side}Color`
     const borderStyle = String(normalized[styleKey] || '')
 
-    if (borderStyle !== 'inset' && borderStyle !== 'outset') continue
+    if (
+      borderStyle !== 'inset' &&
+      borderStyle !== 'outset' &&
+      borderStyle !== 'groove' &&
+      borderStyle !== 'ridge'
+    ) {
+      continue
+    }
+
+    normalized[styleKey] = 'solid'
+    if (borderStyle === 'groove' || borderStyle === 'ridge') {
+      continue
+    }
 
     const topOrLeft = side === 'Top' || side === 'Left'
     const tone =
@@ -57,7 +69,6 @@ function normalizeInsetOutsetBorders(
         ? 'light'
         : 'dark'
 
-    normalized[styleKey] = 'solid'
     const borderColor = normalized[colorKey]
     if (typeof borderColor === 'string') {
       normalized[colorKey] = shadeBorderColor(borderColor, tone)
