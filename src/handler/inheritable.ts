@@ -8,6 +8,7 @@ const list = new Set([
   'fontSizeAdjust',
   'fontStyle',
   'fontWeight',
+  'fontKerning',
   'letterSpacing',
   'lineHeight',
   'textAlign',

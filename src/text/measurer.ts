@@ -8,13 +8,14 @@ export function genMeasurer(
     fontSize: number
     letterSpacing: number
     wordSpacing?: number
+    kerning?: boolean
   }
 ): {
   measureGrapheme: (grapheme: string) => number
   measureGraphemeArray: (graphemes: string[]) => number
   measureText: (text: string) => number
 } {
-  const { fontSize, letterSpacing, wordSpacing = 0 } = style
+  const { fontSize, letterSpacing, wordSpacing = 0, kerning = true } = style
 
   const cache = new Map<string, number>()
 
@@ -23,7 +24,7 @@ export function genMeasurer(
       return cache.get(grapheme)
     }
 
-    let width = engine.measure(grapheme, { fontSize, letterSpacing })
+    let width = engine.measure(grapheme, { fontSize, letterSpacing, kerning })
     // word-spacing: add extra space for each space character
     if (wordSpacing && grapheme === ' ') {
       width += wordSpacing

@@ -4,6 +4,7 @@
 
 - `font-family`, `font-size`, `font-weight`, `font-style`
 - `font-size-adjust` (numeric / `from-font`, approximate)
+- `font-kerning` (`auto` / `normal` / `none`)
 - `line-height`, `letter-spacing`, `tab-size`
 - `word-spacing`, `text-indent`
 - `text-align` (start, end, left, right, center, justify)
@@ -34,7 +35,7 @@
 | `font-feature-settings` | Hard | Low-level OpenType feature control. opentype.js would need GSUB/GPOS table application. |
 | `font-variation-settings` | Hard | Variable font axis control — requires variable font rendering in opentype.js |
 | `font-optical-sizing` | Hard | Requires variable font `opsz` axis support |
-| `font-kerning` | Hard | opentype.js can read kern tables but Satori doesn't apply them during layout |
+| `font-kerning` | **Supported (approx.)** | Supports `auto`/`normal`/`none` in text output and embedded glyph layout. Coverage depends on kern data in the active font(s). |
 | `font-stretch` | Hard | Requires width-variant font matching |
 | `font-size-adjust` | **Supported (approx.)** | Numeric and `from-font` values are applied using primary font x-height metrics. Per-glyph fallback-font adjustment is not fully modeled. |
 | `font-synthesis` | N/A | Browser-level bold/italic synthesis — Satori uses actual font files |

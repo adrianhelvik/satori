@@ -128,6 +128,7 @@ export default function buildText(
     'font-style': style.fontStyle,
     'font-size': style.fontSize,
     'font-family': style.fontFamily,
+    'font-kerning': style.fontKerning || undefined,
     'letter-spacing': style.letterSpacing || undefined,
     transform: matrix || undefined,
     'clip-path': clipPathId ? `url(#${clipPathId})` : undefined,

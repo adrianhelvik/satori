@@ -424,6 +424,18 @@ function handleSpecialCase(
     return { lineHeight: purify(name, value) }
   }
 
+  if (name === 'fontKerning') {
+    const normalized = String(value).trim().toLowerCase()
+    if (
+      normalized === 'auto' ||
+      normalized === 'normal' ||
+      normalized === 'none'
+    ) {
+      return { fontKerning: normalized }
+    }
+    return
+  }
+
   if (name === 'zoom') {
     const normalized = String(value).trim().toLowerCase()
     if (!normalized || normalized === 'normal') return { zoom: 1 }

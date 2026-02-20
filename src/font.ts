@@ -38,6 +38,7 @@ export type FontEngine = {
     style: {
       fontSize: number
       letterSpacing: number
+      kerning?: boolean
     }
   ) => number
   getSVG: (
@@ -47,6 +48,7 @@ export type FontEngine = {
       top: number
       left: number
       letterSpacing: number
+      kerning?: boolean
     },
     band?: SkipInkBand
   ) => { path: string; boxes: GlyphBox[] }
@@ -688,6 +690,7 @@ export default class FontLoader {
         style: {
           fontSize: number
           letterSpacing: number
+          kerning?: boolean
         }
       ) => {
         return this.measure(resolveFont, s, style)
@@ -699,6 +702,7 @@ export default class FontLoader {
           top: number
           left: number
           letterSpacing: number
+          kerning?: boolean
         },
         band?: SkipInkBand
       ) => {
@@ -772,9 +776,11 @@ export default class FontLoader {
     {
       fontSize,
       letterSpacing = 0,
+      kerning = true,
     }: {
       fontSize: number
       letterSpacing: number
+      kerning?: boolean
     }
   ) {
     const font = resolveFont(content)
@@ -783,6 +789,7 @@ export default class FontLoader {
     try {
       return font.getAdvanceWidth(content, fontSize, {
         letterSpacing: letterSpacing / fontSize,
+        kerning,
       })
     } finally {
       unpatch()
@@ -797,11 +804,13 @@ export default class FontLoader {
       top,
       left,
       letterSpacing = 0,
+      kerning = true,
     }: {
       fontSize: number
       top: number
       left: number
       letterSpacing: number
+      kerning?: boolean
     },
     band?: SkipInkBand
   ): { path: string; boxes: GlyphBox[] } {
@@ -818,6 +827,7 @@ export default class FontLoader {
 
       const options = {
         letterSpacing: letterSpacing / fontSize,
+        kerning,
       }
 
       const cachedPath = new WeakMap<

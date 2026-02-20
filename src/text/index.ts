@@ -115,6 +115,7 @@ export default async function* buildTextNodes(
     letterSpacing,
     wordSpacing,
     textIndent,
+    fontKerning,
     _inheritedBackgroundClipTextPath,
     _inheritedBackgroundClipTextHasBackground,
     flexShrink,
@@ -181,6 +182,7 @@ export default async function* buildTextNodes(
 
   const wordSpacingValue = typeof wordSpacing === 'number' ? wordSpacing : 0
   const textIndentValue = typeof textIndent === 'number' ? textIndent : 0
+  const kerning = fontKerning !== 'none'
 
   const { measureGrapheme, measureGraphemeArray, measureText } = genMeasurer(
     engine,
@@ -189,6 +191,7 @@ export default async function* buildTextNodes(
       fontSize: resolvedFontSize,
       letterSpacing,
       wordSpacing: wordSpacingValue,
+      kerning,
     }
   )
 
@@ -794,6 +797,7 @@ export default async function* buildTextNodes(
           // Since we need to pass the baseline position, add the ascender to the top.
           top: top + topOffset + baselineOfWord + baselineDelta,
           letterSpacing,
+          kerning,
         },
         band
       )
@@ -850,6 +854,7 @@ export default async function* buildTextNodes(
             left: left + leftOffset,
             top: top + topOffset,
             letterSpacing,
+            kerning,
           },
           band
         )
