@@ -328,7 +328,10 @@ export default async function compute(
   // Merge overflow-x/overflow-y into overflow: hidden if either axis is hidden.
   const effectiveOverflow =
     style.overflow ||
-    (style.overflowX === 'hidden' || style.overflowY === 'hidden'
+    (style.overflowX === 'hidden' ||
+    style.overflowY === 'hidden' ||
+    style.overflowX === 'clip' ||
+    style.overflowY === 'clip'
       ? 'hidden'
       : undefined)
 
@@ -338,6 +341,7 @@ export default async function compute(
       {
         visible: Yoga.OVERFLOW_VISIBLE,
         hidden: Yoga.OVERFLOW_HIDDEN,
+        clip: Yoga.OVERFLOW_HIDDEN,
       },
       Yoga.OVERFLOW_VISIBLE,
       'overflow'

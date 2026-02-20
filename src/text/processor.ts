@@ -105,7 +105,11 @@ function processTextOverflow(
     return [WebkitLineClamp, HorizontalEllipsis]
   }
 
-  if (textOverflow === 'ellipsis' && overflow === 'hidden' && !allowSoftWrap) {
+  if (
+    textOverflow === 'ellipsis' &&
+    (overflow === 'hidden' || overflow === 'clip') &&
+    !allowSoftWrap
+  ) {
     return [1, HorizontalEllipsis]
   }
 

@@ -28,6 +28,39 @@ describe('Overflow', () => {
     expect(toImage(svg, 100)).toMatchImageSnapshot()
   })
 
+  it('should clip overflow when overflow is clip', async () => {
+    const svg = await satori(
+      <div
+        style={{
+          width: 60,
+          height: 60,
+          backgroundColor: 'white',
+          overflow: 'clip',
+          position: 'relative',
+        }}
+      >
+        <div
+          style={{
+            position: 'absolute',
+            width: 100,
+            height: 100,
+            backgroundColor: 'red',
+            top: 0,
+            left: 0,
+          }}
+        />
+      </div>,
+      {
+        width: 100,
+        height: 100,
+        fonts,
+      }
+    )
+
+    expect(svg).toContain('clipPath')
+    expect(toImage(svg, 100)).toMatchImageSnapshot()
+  })
+
   it('should work with nested border, border-radius, padding', async () => {
     const svg = await satori(
       <div
@@ -114,6 +147,26 @@ describe('Overflow', () => {
       { width: 450, height: 450, fonts, embedFont: true }
     )
     expect(toImage(svg, 450)).toMatchImageSnapshot()
+  })
+
+  it('should support ellipsis when overflow is clip', async () => {
+    const svg = await satori(
+      <div
+        style={{
+          display: 'flex',
+          width: 220,
+          backgroundColor: 'white',
+          fontSize: 28,
+          whiteSpace: 'nowrap',
+          overflow: 'clip',
+          textOverflow: 'ellipsis',
+        }}
+      >
+        {'LuciNyan 1 2 345 6'}
+      </div>,
+      { width: 220, height: 80, fonts, embedFont: true }
+    )
+    expect(toImage(svg, 220)).toMatchImageSnapshot()
   })
 
   it("should not work when overflow is not 'hidden' and overflow property should not be inherited", async () => {

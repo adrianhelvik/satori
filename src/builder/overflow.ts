@@ -41,9 +41,12 @@ export default function overflow(
         )
       : ''
 
-  const overflowHidden = style.overflow === 'hidden'
-  const overflowXHidden = overflowHidden || style.overflowX === 'hidden'
-  const overflowYHidden = overflowHidden || style.overflowY === 'hidden'
+  const overflowHidden =
+    style.overflow === 'hidden' || style.overflow === 'clip'
+  const overflowXHidden =
+    overflowHidden || style.overflowX === 'hidden' || style.overflowX === 'clip'
+  const overflowYHidden =
+    overflowHidden || style.overflowY === 'hidden' || style.overflowY === 'clip'
 
   if (!overflowXHidden && !overflowYHidden && !src) {
     overflowClipPath = ''

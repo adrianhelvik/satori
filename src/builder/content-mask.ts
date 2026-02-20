@@ -53,13 +53,16 @@ export default function contentMask(
     buildXMLString('rect', {
       ...contentArea,
       fill: '#fff',
-      // add transformation matrix to mask if overflow is hidden AND a
+      // add transformation matrix to mask if overflow clips content AND a
       // transformation style is defined, otherwise children will be clipped
       // incorrectly
       transform:
         (style.overflow === 'hidden' ||
+          style.overflow === 'clip' ||
           style.overflowX === 'hidden' ||
-          style.overflowY === 'hidden') &&
+          style.overflowX === 'clip' ||
+          style.overflowY === 'hidden' ||
+          style.overflowY === 'clip') &&
         style.transform &&
         matrix
           ? matrix

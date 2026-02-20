@@ -6,7 +6,7 @@
 - `position`: `relative`, `absolute`, `static`
 - `top`, `right`, `bottom`, `left`, `inset`
 - `z-index`
-- `overflow`, `overflow-x`, `overflow-y`: `visible`, `hidden`
+- `overflow`, `overflow-x`, `overflow-y`: `visible`, `hidden`, `clip` (clip approximated as hidden)
 - `visibility`: `visible`, `hidden`
 - `box-sizing`: `border-box`, `content-box`
 - Flexbox: `flex-direction`, `flex-wrap`, `flex-grow`, `flex-shrink`, `flex-basis`, `flex`, `align-items`, `align-self`, `align-content`, `justify-content`, `gap`, `row-gap`, `column-gap`
@@ -35,6 +35,8 @@
 | Property | Feasibility | Notes |
 |----------|-------------|-------|
 | `overflow-clip-margin` | Hard | Would need clip-path offset calculations |
+
+> `overflow: clip` is supported and currently uses the same clipping behavior as `hidden` in static SVG output.
 
 ### Visibility & ordering
 
