@@ -186,6 +186,23 @@ export default async function* buildTextNodes(
     engine = font.getEngine(resolvedFontSize, lineHeight, textStyle, locale)
   }
 
+  const normalizedUnderlinePosition = String(
+    textStyle.textUnderlinePosition || 'auto'
+  ).toLowerCase()
+  const prefersFontUnderlinePosition = normalizedUnderlinePosition
+    .split(/\s+/)
+    .includes('from-font')
+  const underlineOffsetFromFont = prefersFontUnderlinePosition
+    ? engine.underlineOffset()
+    : undefined
+  const decorationStyle =
+    typeof underlineOffsetFromFont === 'number'
+      ? {
+          ...textStyle,
+          _textUnderlineOffsetFromFont: underlineOffsetFromFont,
+        }
+      : textStyle
+
   function isImage(s: string): boolean {
     return !!(graphemeImages && graphemeImages[s])
   }
@@ -1015,7 +1032,7 @@ export default async function* buildTextNodes(
             matrix,
             glyphBoxes,
           },
-          textStyle
+          decorationStyle
         )
       })
       .join('')

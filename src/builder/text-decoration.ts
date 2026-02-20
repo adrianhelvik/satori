@@ -91,6 +91,10 @@ export default function buildDecoration(
   const textUnderlinePosition = String(
     style.textUnderlinePosition || 'auto'
   ).toLowerCase()
+  const textUnderlinePositionFromFont =
+    typeof style._textUnderlineOffsetFromFont === 'number'
+      ? style._textUnderlineOffsetFromFont
+      : undefined
 
   // The UA should use such font-based information when choosing auto line thicknesses wherever appropriate.
   // https://drafts.csswg.org/css-text-decor-4/#text-decoration-thickness
@@ -116,6 +120,7 @@ export default function buildDecoration(
       height,
       underlineOffset,
       underlinePosition: textUnderlinePosition,
+      underlinePositionFromFont: textUnderlinePositionFromFont,
       clipPathId,
       matrix,
       glyphBoxes,
@@ -137,6 +142,7 @@ function buildDecorationLine(
     height,
     underlineOffset,
     underlinePosition,
+    underlinePositionFromFont,
     clipPathId,
     matrix,
     glyphBoxes,
@@ -151,6 +157,7 @@ function buildDecorationLine(
     height: number
     underlineOffset: number
     underlinePosition: string
+    underlinePositionFromFont?: number
     clipPathId?: string
     matrix?: string
     glyphBoxes?: GlyphBox[]
@@ -159,14 +166,22 @@ function buildDecorationLine(
     textDecorationSkipInk: string
   }
 ): string {
-  const hasUnderPosition = underlinePosition.split(/\s+/).includes('under')
+  const underlinePositionTokens = underlinePosition.split(/\s+/)
+  const hasUnderPosition = underlinePositionTokens.includes('under')
+  const hasFromFontPosition = underlinePositionTokens.includes('from-font')
   const underlinePositionOffset = hasUnderPosition ? Math.max(height, 1) : 0
+  const baseline = top + ascender
+  const autoUnderlineY = top + ascender * 1.1
+  const fromFontUnderlineY =
+    hasFromFontPosition && typeof underlinePositionFromFont === 'number'
+      ? baseline + underlinePositionFromFont
+      : autoUnderlineY
 
   const y =
     line === 'line-through'
       ? top + ascender * 0.7
       : line === 'underline'
-      ? top + ascender * 1.1 + underlineOffset + underlinePositionOffset
+      ? fromFontUnderlineY + underlineOffset + underlinePositionOffset
       : line === 'overline'
       ? top + ascender * 0.1
       : top
@@ -182,8 +197,6 @@ function buildDecorationLine(
     line === 'underline' &&
     (textDecorationSkipInk || 'auto') !== 'none' &&
     glyphBoxes?.length
-
-  const baseline = top + ascender
 
   const segments = applySkipInk
     ? buildSkipInkSegments(left, left + width, glyphBoxes, y, height, baseline)

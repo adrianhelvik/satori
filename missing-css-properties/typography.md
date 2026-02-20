@@ -14,7 +14,7 @@
 - `white-space` (normal, pre, pre-wrap, pre-line, nowrap)
 - `word-break` (normal, break-all, break-word, keep-all)
 - `overflow-wrap` / `word-wrap`
-- `text-decoration-line` (`underline`, `line-through`, `overline`), `text-decoration-style` (solid, dashed, dotted, double, wavy), `text-decoration-color`, `text-decoration-skip-ink`, `text-decoration-thickness`, `text-underline-offset`
+- `text-decoration-line` (`underline`, `line-through`, `overline`), `text-decoration-style` (solid, dashed, dotted, double, wavy), `text-decoration-color`, `text-decoration-skip-ink`, `text-decoration-thickness`, `text-underline-offset`, `text-underline-position` (`under`, `from-font`, partial)
 - `text-shadow`
 - `-webkit-text-stroke`, `-webkit-line-clamp`
 
@@ -61,7 +61,7 @@
 
 | Property | Feasibility | Notes |
 |----------|-------------|-------|
-| `text-underline-position` | **Supported (partial)** | Supports `under`; other detailed modes remain approximate. |
+| `text-underline-position` | **Supported (partial)** | Supports `under` and `from-font`; side-specific and writing-mode-dependent modes remain approximate. |
 
 ### Text emphasis
 
