@@ -88,6 +88,57 @@ describe('Visual Extras', () => {
     })
   })
 
+  describe('isolation', () => {
+    it('should apply isolation:isolate for blend containment', async () => {
+      const svg = await satori(
+        <div
+          style={{
+            display: 'flex',
+            width: 120,
+            height: 120,
+            backgroundColor: 'yellow',
+            position: 'relative',
+          }}
+        >
+          <div
+            style={{
+              width: 120,
+              height: 120,
+              backgroundColor: 'blue',
+              position: 'absolute',
+              left: 0,
+              top: 0,
+            }}
+          />
+          <div
+            style={{
+              width: 70,
+              height: 70,
+              display: 'flex',
+              backgroundColor: 'white',
+              position: 'absolute',
+              left: 25,
+              top: 25,
+              isolation: 'isolate',
+            }}
+          >
+            <div
+              style={{
+                width: 70,
+                height: 70,
+                backgroundColor: 'red',
+                mixBlendMode: 'multiply',
+              }}
+            />
+          </div>
+        </div>,
+        { width: 120, height: 120, fonts }
+      )
+      expect(svg).toContain('isolation:isolate')
+      expect(toImage(svg, 120)).toMatchImageSnapshot()
+    })
+  })
+
   describe('transform: matrix()', () => {
     it('should support CSS matrix() transform', async () => {
       const svg = await satori(

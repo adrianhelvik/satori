@@ -141,6 +141,7 @@ export default async function rect(
     backgroundClip,
     filter: cssFilter,
     mixBlendMode,
+    isolation,
     imageRendering,
     imageOrientation,
   } = style
@@ -407,14 +408,21 @@ export default async function rect(
     return (defs ? buildXMLString('defs', {}, defs) : '') + clip
   }
 
+  const compositingStyles = [
+    mixBlendMode && mixBlendMode !== 'normal'
+      ? `mix-blend-mode:${mixBlendMode}`
+      : '',
+    isolation && isolation !== 'auto' ? `isolation:${isolation}` : '',
+  ]
+    .filter(Boolean)
+    .join(';')
+
   return (
     (defs ? buildXMLString('defs', {}, defs) : '') +
     (shadow ? shadow[0] : '') +
     (imageBorderRadius ? imageBorderRadius[0] : '') +
     clip +
-    (mixBlendMode && mixBlendMode !== 'normal'
-      ? `<g style="mix-blend-mode:${mixBlendMode}">`
-      : '') +
+    (compositingStyles ? `<g style="${compositingStyles}">` : '') +
     (opacity !== 1 ? `<g opacity="${opacity}">` : '') +
     (style.transform && (currentClipPath || maskId)
       ? `<g${currentClipPath ? ` clip-path="${currentClipPath}"` : ''}${
@@ -424,7 +432,7 @@ export default async function rect(
     (backgroundShapes || shape) +
     (style.transform && (currentClipPath || maskId) ? '</g>' : '') +
     (opacity !== 1 ? `</g>` : '') +
-    (mixBlendMode && mixBlendMode !== 'normal' ? '</g>' : '') +
+    (compositingStyles ? '</g>' : '') +
     (shadow ? shadow[1] : '') +
     outlineShape +
     extra

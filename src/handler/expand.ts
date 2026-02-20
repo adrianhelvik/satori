@@ -352,6 +352,7 @@ function handleSpecialCase(
 
   // mix-blend-mode, image-rendering: pass through to SVG attributes
   if (name === 'mixBlendMode') return { mixBlendMode: value }
+  if (name === 'isolation') return { isolation: value }
   if (name === 'imageRendering') return { imageRendering: value }
   if (name === 'imageOrientation') return { imageOrientation: value }
 
