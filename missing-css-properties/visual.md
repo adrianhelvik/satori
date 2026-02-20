@@ -4,6 +4,7 @@
 
 - `background-color`, `background-image` (linear/radial/repeating gradients, url), `background-position`, `background-size`, `background-repeat`, `background-clip` (border-box, text), `background-attachment`, `background-origin`
 - `background-position-x`, `background-position-y`
+- `background-blend-mode` (partial; exact for solid-color layers)
 - `box-shadow` (including inset, spread radius)
 - `opacity`
 - `filter`
@@ -21,7 +22,7 @@
 
 | Property | Feasibility | Notes |
 |----------|-------------|-------|
-| `background-blend-mode` | Hard | Blending between background layers — would need compositing in the gradient/image builder |
+| `background-blend-mode` | **Supported (partial)** | Exact compositing for solid-color layers (including flat gradients/colors). Non-uniform/image layers fall back to approximate behavior. |
 
 ### Backdrop
 
@@ -33,7 +34,7 @@
 
 | Property | Feasibility | Notes |
 |----------|-------------|-------|
-| `background-blend-mode` | Hard | See blending section above |
+| `background-blend-mode` | **Supported (partial)** | See blending section above |
 
 ### Mask (missing sub-properties)
 

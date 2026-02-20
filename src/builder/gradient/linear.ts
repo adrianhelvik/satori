@@ -1,5 +1,5 @@
 import { parseLinearGradient, ColorStop } from 'css-gradient-parser'
-import { normalizeStops } from './utils.js'
+import { normalizeStops, resolveSolidColorFromStops } from './utils.js'
 import { buildXMLString, calcDegree, lengthToNumber } from '../../utils.js'
 
 export function buildLinearGradient(
@@ -105,7 +105,7 @@ export function buildLinearGradient(
         fill: `url(#${gradientId})`,
       })
   )
-  return [patternId, defs]
+  return [patternId, defs, undefined, resolveSolidColorFromStops(stops)]
 }
 
 function resolveRepeatingCycle(stops: ColorStop[], length: number) {

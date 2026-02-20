@@ -88,6 +88,64 @@ describe('Visual Extras', () => {
     })
   })
 
+  describe('background-blend-mode', () => {
+    it('should blend a background layer with background-color', async () => {
+      const svg = await satori(
+        <div
+          style={{
+            display: 'flex',
+            width: 100,
+            height: 100,
+            backgroundImage:
+              'linear-gradient(rgb(255,0,0), rgb(255,0,0)), linear-gradient(rgb(0,0,255), rgb(0,0,255))',
+            backgroundBlendMode: 'multiply',
+          }}
+        />,
+        { width: 100, height: 100, fonts }
+      )
+      expect(svg).toContain('fill="rgba(0,0,0,1)"')
+      expect(toImage(svg, 100)).toMatchImageSnapshot()
+    })
+
+    it('should map multiple background-blend-mode values per layer', async () => {
+      const svg = await satori(
+        <div
+          style={{
+            display: 'flex',
+            width: 100,
+            height: 100,
+            backgroundColor: 'black',
+            backgroundImage:
+              'linear-gradient(rgb(255,0,0), rgb(255,0,0)), linear-gradient(rgb(0,0,255), rgb(0,0,255))',
+            backgroundBlendMode: 'screen, normal',
+          }}
+        />,
+        { width: 100, height: 100, fonts }
+      )
+      expect(svg).toContain('fill="rgba(255,0,255,1)"')
+      expect(toImage(svg, 100)).toMatchImageSnapshot()
+    })
+
+    it('should reuse blend modes when layer counts do not match', async () => {
+      const svg = await satori(
+        <div
+          style={{
+            display: 'flex',
+            width: 100,
+            height: 100,
+            backgroundColor: 'black',
+            backgroundImage:
+              'linear-gradient(rgb(255,0,0), rgb(255,0,0)), linear-gradient(rgb(0,255,0), rgb(0,255,0)), linear-gradient(rgb(0,0,255), rgb(0,0,255))',
+            backgroundBlendMode: 'screen, multiply',
+          }}
+        />,
+        { width: 100, height: 100, fonts }
+      )
+      expect(svg).toContain('fill="rgba(255,0,0,1)"')
+      expect(toImage(svg, 100)).toMatchImageSnapshot()
+    })
+  })
+
   describe('isolation', () => {
     it('should apply isolation:isolate for blend containment', async () => {
       const svg = await satori(

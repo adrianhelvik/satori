@@ -8,6 +8,27 @@ export interface Stop {
   opacity?: number
 }
 
+export function resolveSolidColorFromStops(stops: Stop[]): string | undefined {
+  if (!stops.length) return
+
+  const firstParsed = cssColorParse(stops[0].color)
+  if (!firstParsed) return
+
+  const [r, g, b] = firstParsed.values
+  const firstOpacity = stops[0].opacity ?? firstParsed.alpha ?? 1
+
+  for (let i = 1; i < stops.length; i++) {
+    const parsed = cssColorParse(stops[i].color)
+    if (!parsed) return
+    const [sr, sg, sb] = parsed.values
+    const opacity = stops[i].opacity ?? parsed.alpha ?? 1
+    if (sr !== r || sg !== g || sb !== b) return
+    if (Math.abs(opacity - firstOpacity) > 1e-6) return
+  }
+
+  return `rgba(${r},${g},${b},${firstOpacity})`
+}
+
 export function normalizeStops(
   totalLength: number,
   colorStops: ColorStop[],

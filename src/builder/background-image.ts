@@ -17,6 +17,8 @@ interface Background {
   repeat: string
 }
 
+export type BackgroundImageBuildResult = [string, string, string?, string?]
+
 function toAbsoluteValue(v: string | number, base: number) {
   if (typeof v === 'string' && v.endsWith('%')) {
     return (base * parseFloat(v)) / 100
@@ -71,7 +73,7 @@ export default async function backgroundImage(
   imageRendering?: string,
   imageOrientation?: string,
   maskMode?: string
-): Promise<string[]> {
+): Promise<BackgroundImageBuildResult> {
   // Default to `repeat`.
   repeat = repeat || 'repeat'
   from = from || 'background'
@@ -219,6 +221,8 @@ export default async function backgroundImage(
           fill: color,
         })
       ),
+      undefined,
+      color,
     ]
   }
 

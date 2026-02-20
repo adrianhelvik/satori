@@ -9,6 +9,161 @@ import { buildXMLString } from '../utils.js'
 import border, { getBorderClipPath } from './border.js'
 import { genClipPath } from './clip-path.js'
 import buildMaskImage from './mask-image.js'
+import cssColorParse from 'parse-css-color'
+
+type RGBAColor = {
+  r: number
+  g: number
+  b: number
+  a: number
+}
+
+const supportedBackgroundBlendModes = new Set([
+  'normal',
+  'multiply',
+  'screen',
+  'overlay',
+  'darken',
+  'lighten',
+  'color-dodge',
+  'color-burn',
+  'hard-light',
+  'soft-light',
+  'difference',
+  'exclusion',
+  'hue',
+  'saturation',
+  'color',
+  'luminosity',
+  'plus-lighter',
+])
+
+function parseBackgroundBlendModes(value: unknown): string[] {
+  if (typeof value !== 'string' || !value.trim()) return []
+  return value
+    .split(',')
+    .map((mode) => mode.trim().toLowerCase())
+    .filter(Boolean)
+    .map((mode) => (supportedBackgroundBlendModes.has(mode) ? mode : 'normal'))
+}
+
+function resolveBackgroundBlendMode(
+  modes: string[],
+  layerIndex: number
+): string {
+  if (!modes.length) return 'normal'
+  return modes[layerIndex % modes.length]
+}
+
+function clamp01(value: number): number {
+  return Math.max(0, Math.min(1, value))
+}
+
+function parseRGBAColor(value: string | undefined): RGBAColor | null {
+  if (!value) return null
+  const parsed = cssColorParse(value)
+  if (!parsed) return null
+  const [r, g, b] = parsed.values
+  return {
+    r: clamp01(r / 255),
+    g: clamp01(g / 255),
+    b: clamp01(b / 255),
+    a: clamp01(parsed.alpha ?? 1),
+  }
+}
+
+function serializeRGBAColor(color: RGBAColor): string {
+  const r = Math.round(clamp01(color.r) * 255)
+  const g = Math.round(clamp01(color.g) * 255)
+  const b = Math.round(clamp01(color.b) * 255)
+  const a = clamp01(color.a)
+  return `rgba(${r},${g},${b},${a})`
+}
+
+function blendChannel(mode: string, backdrop: number, source: number): number {
+  switch (mode) {
+    case 'multiply':
+      return backdrop * source
+    case 'screen':
+      return backdrop + source - backdrop * source
+    case 'overlay':
+      return backdrop <= 0.5
+        ? 2 * backdrop * source
+        : 1 - 2 * (1 - backdrop) * (1 - source)
+    case 'darken':
+      return Math.min(backdrop, source)
+    case 'lighten':
+      return Math.max(backdrop, source)
+    case 'difference':
+      return Math.abs(backdrop - source)
+    case 'exclusion':
+      return backdrop + source - 2 * backdrop * source
+    case 'hard-light':
+      return source <= 0.5
+        ? 2 * backdrop * source
+        : 1 - 2 * (1 - backdrop) * (1 - source)
+    case 'normal':
+    default:
+      return source
+  }
+}
+
+function blendSolidColor(
+  backdrop: RGBAColor,
+  source: RGBAColor,
+  mode: string
+): RGBAColor {
+  const ab = clamp01(backdrop.a)
+  const as = clamp01(source.a)
+  const outA = as + ab * (1 - as)
+  if (outA === 0) return { r: 0, g: 0, b: 0, a: 0 }
+
+  const br = blendChannel(mode, backdrop.r, source.r)
+  const bg = blendChannel(mode, backdrop.g, source.g)
+  const bb = blendChannel(mode, backdrop.b, source.b)
+
+  const outR =
+    (as * (1 - ab) * source.r + as * ab * br + (1 - as) * ab * backdrop.r) /
+    outA
+  const outG =
+    (as * (1 - ab) * source.g + as * ab * bg + (1 - as) * ab * backdrop.g) /
+    outA
+  const outB =
+    (as * (1 - ab) * source.b + as * ab * bb + (1 - as) * ab * backdrop.b) /
+    outA
+
+  return {
+    r: clamp01(outR),
+    g: clamp01(outG),
+    b: clamp01(outB),
+    a: clamp01(outA),
+  }
+}
+
+function resolveSolidBackgroundBlend(
+  layers: { solidColor?: string; blendMode?: string }[]
+): string | null {
+  if (!layers.length) return null
+  if (layers.some((layer) => !layer.solidColor)) return null
+
+  let blended = parseRGBAColor(layers[0].solidColor)
+  if (!blended) return null
+
+  for (let i = 1; i < layers.length; i++) {
+    const next = parseRGBAColor(layers[i].solidColor)
+    if (!next) return null
+
+    blended = blendSolidColor(
+      blended,
+      next,
+      layers[i].blendMode && layers[i].blendMode !== 'normal'
+        ? layers[i].blendMode
+        : 'normal'
+    )
+  }
+
+  return serializeRGBAColor(blended)
+}
 
 export default async function rect(
   {
@@ -41,12 +196,19 @@ export default async function rect(
   let type: 'rect' | 'path' = 'rect'
   let matrix = ''
   let defs = ''
-  let fills: string[] = []
+  const fillLayers: {
+    fill: string
+    blendMode?: string
+    solidColor?: string
+  }[] = []
   let opacity = 1
   let extra = ''
 
   if (style.backgroundColor) {
-    fills.push(style.backgroundColor as string)
+    fillLayers.push({
+      fill: style.backgroundColor as string,
+      solidColor: style.backgroundColor as string,
+    })
   }
 
   if (style.opacity !== undefined) {
@@ -69,7 +231,13 @@ export default async function rect(
 
   let backgroundShapes = ''
   if (style.backgroundImage) {
-    const backgrounds: string[][] = []
+    const backgrounds: {
+      patternId: string
+      defs: string
+      shape?: string
+      solidColor?: string
+      sourceIndex: number
+    }[] = []
 
     for (
       let index = 0;
@@ -87,15 +255,34 @@ export default async function rect(
       )
       if (image) {
         // Background images that come first in the array are rendered last.
-        backgrounds.unshift(image)
+        backgrounds.unshift({
+          patternId: image[0],
+          defs: image[1],
+          shape: image[2],
+          solidColor: image[3],
+          sourceIndex: index,
+        })
       }
     }
 
+    const backgroundBlendModes = parseBackgroundBlendModes(
+      style.backgroundBlendMode
+    )
+
     for (const background of backgrounds) {
-      fills.push(`url(#${background[0]})`)
-      defs += background[1]
-      if (background[2]) {
-        backgroundShapes += background[2]
+      fillLayers.push({
+        fill: background.solidColor || `url(#${background.patternId})`,
+        blendMode: resolveBackgroundBlendMode(
+          backgroundBlendModes,
+          background.sourceIndex
+        ),
+        solidColor: background.solidColor,
+      })
+      if (!background.solidColor) {
+        defs += background.defs
+      }
+      if (background.shape) {
+        backgroundShapes += background.shape
       }
     }
   }
@@ -164,9 +351,20 @@ export default async function rect(
   // Each background generates a new rectangle.
   // @TODO: Not sure if this is the best way to do it, maybe <pattern> with
   // multiple <image>s is better.
-  let shape = fills
-    .map((fill) =>
-      buildXMLString(type, {
+  const blendedSolidFill = resolveSolidBackgroundBlend(fillLayers)
+  if (blendedSolidFill) {
+    fillLayers.splice(0, fillLayers.length, {
+      fill: blendedSolidFill,
+      solidColor: blendedSolidFill,
+    })
+  }
+
+  const hasBackgroundBlendMode = fillLayers.some(
+    ({ blendMode }) => blendMode && blendMode !== 'normal'
+  )
+  const backgroundLayerShape = fillLayers
+    .map(({ fill, blendMode }) => {
+      const layerShape = buildXMLString(type, {
         x: left,
         y: top,
         width,
@@ -178,8 +376,18 @@ export default async function rect(
         style: cssFilter ? `filter:${cssFilter}` : undefined,
         mask: style.transform ? undefined : maskId,
       })
-    )
+
+      if (!blendMode || blendMode === 'normal') {
+        return layerShape
+      }
+
+      return `<g style="mix-blend-mode:${blendMode}">${layerShape}</g>`
+    })
     .join('')
+  let shape =
+    hasBackgroundBlendMode && backgroundLayerShape
+      ? `<g style="isolation:isolate">${backgroundLayerShape}</g>`
+      : backgroundLayerShape
 
   const borderClip = getBorderClipPath(
     {

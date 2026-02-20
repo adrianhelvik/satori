@@ -5,7 +5,7 @@ import {
   ColorStop,
 } from 'css-gradient-parser'
 import { buildXMLString, lengthToNumber } from '../../utils.js'
-import { normalizeStops } from './utils.js'
+import { normalizeStops, resolveSolidColorFromStops } from './utils.js'
 
 export function buildRadialGradient(
   {
@@ -155,7 +155,7 @@ export function buildRadialGradient(
       })
   )
 
-  const result = [patternId, defs]
+  const result = [patternId, defs, undefined, resolveSolidColorFromStops(stops)]
   return result
 }
 
