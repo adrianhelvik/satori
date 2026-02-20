@@ -20,7 +20,8 @@ export function buildLinearGradient(
   dimensions: number[],
   offsets: number[],
   inheritableStyle: Record<string, number | string>,
-  from?: 'background' | 'mask'
+  from?: 'background' | 'mask',
+  maskMode?: string
 ) {
   const parsed = parseLinearGradient(image)
   const [imageWidth, imageHeight] = dimensions
@@ -60,7 +61,8 @@ export function buildLinearGradient(
     parsed.stops,
     inheritableStyle,
     repeating,
-    from
+    from,
+    maskMode
   )
 
   const gradientId = `satori_bi${id}`

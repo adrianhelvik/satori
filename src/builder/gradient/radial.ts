@@ -25,7 +25,8 @@ export function buildRadialGradient(
   dimensions: number[],
   offsets: number[],
   inheritableStyle: Record<string, number | string>,
-  from?: 'background' | 'mask'
+  from?: 'background' | 'mask',
+  maskMode?: string
 ) {
   const {
     shape,
@@ -62,7 +63,8 @@ export function buildRadialGradient(
     colorStops,
     inheritableStyle,
     repeating,
-    from
+    from,
+    maskMode
   )
 
   const gradientId = `satori_radial_${id}`

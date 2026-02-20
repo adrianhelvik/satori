@@ -69,7 +69,8 @@ export default async function backgroundImage(
   inheritableStyle: Record<string, number | string>,
   from?: 'background' | 'mask',
   imageRendering?: string,
-  imageOrientation?: string
+  imageOrientation?: string,
+  maskMode?: string
 ): Promise<string[]> {
   // Default to `repeat`.
   repeat = repeat || 'repeat'
@@ -101,7 +102,8 @@ export default async function backgroundImage(
       dimensions,
       offsets,
       inheritableStyle,
-      from
+      from,
+      maskMode
     )
   }
 
@@ -115,7 +117,8 @@ export default async function backgroundImage(
       dimensions,
       offsets,
       inheritableStyle,
-      from
+      from,
+      maskMode
     )
   }
 
@@ -138,31 +141,55 @@ export default async function backgroundImage(
         ? imageHeight || dimensionsWithoutFallback[1]
         : dimensionsWithoutFallback[1] || imageHeight
 
-    return [
-      `satori_bi${id}`,
-      buildXMLString(
-        'pattern',
-        {
-          id: `satori_bi${id}`,
-          patternContentUnits: 'userSpaceOnUse',
-          patternUnits: 'userSpaceOnUse',
-          x: offsets[0] + left,
-          y: offsets[1] + top,
-          width: repeatX ? resolvedWidth : '100%',
-          height: repeatY ? resolvedHeight : '100%',
-        },
-        buildXMLString('image', {
-          x: 0,
-          y: 0,
-          width: resolvedWidth,
-          height: resolvedHeight,
-          'image-rendering': imageRendering || undefined,
-          'image-orientation': imageOrientation || undefined,
-          preserveAspectRatio: 'none',
-          href: src,
-        })
-      ),
-    ]
+    const normalizedMaskMode = String(maskMode || '')
+      .trim()
+      .toLowerCase()
+    const useAlphaMaskColors =
+      from === 'mask' &&
+      (!normalizedMaskMode ||
+        normalizedMaskMode === 'alpha' ||
+        normalizedMaskMode === 'match-source')
+
+    const alphaFilterId = useAlphaMaskColors ? `satori_mask_af-${id}` : ''
+    const alphaFilterDef = useAlphaMaskColors
+      ? buildXMLString(
+          'filter',
+          {
+            id: alphaFilterId,
+            'color-interpolation-filters': 'sRGB',
+          },
+          buildXMLString('feColorMatrix', {
+            type: 'matrix',
+            values: '0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 1 0',
+          })
+        )
+      : ''
+
+    const patternDef = buildXMLString(
+      'pattern',
+      {
+        id: `satori_bi${id}`,
+        patternContentUnits: 'userSpaceOnUse',
+        patternUnits: 'userSpaceOnUse',
+        x: offsets[0] + left,
+        y: offsets[1] + top,
+        width: repeatX ? resolvedWidth : '100%',
+        height: repeatY ? resolvedHeight : '100%',
+      },
+      buildXMLString('image', {
+        x: 0,
+        y: 0,
+        width: resolvedWidth,
+        height: resolvedHeight,
+        'image-rendering': imageRendering || undefined,
+        'image-orientation': imageOrientation || undefined,
+        preserveAspectRatio: 'none',
+        filter: alphaFilterId ? `url(#${alphaFilterId})` : undefined,
+        href: src,
+      })
+    )
+
+    return [`satori_bi${id}`, alphaFilterDef + patternDef]
   }
 
   if (cssColorParse(image)) {

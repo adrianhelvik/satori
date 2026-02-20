@@ -59,6 +59,8 @@ function resolveMaskType(
   const firstMode = (masks[0]?.mode || '').trim()
   // `mask-mode: alpha` can be mapped directly to SVG `mask-type`.
   if (firstMode === 'alpha') return 'alpha'
+  if (firstMode === 'luminance') return 'luminance'
+  if (firstMode === 'match-source') return 'alpha'
 }
 
 export default async function buildMaskImage(
@@ -93,7 +95,8 @@ export default async function buildMaskImage(
       inheritedStyle,
       'mask',
       style.imageRendering as string | undefined,
-      style.imageOrientation as string | undefined
+      style.imageOrientation as string | undefined,
+      m.mode
     )
 
     mask +=

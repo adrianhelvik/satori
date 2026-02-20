@@ -11,7 +11,7 @@
 - `isolation`
 - `color`
 - `mask-image`, `mask-position`, `mask-size`, `mask-repeat`
-- `mask-origin`, `mask-clip`, `mask-type`, `mask-mode: alpha`
+- `mask-origin`, `mask-clip`, `mask-type`, `mask-mode` (`alpha`, `luminance`, `match-source` approximations)
 - `image-rendering`, `image-orientation` (passed through to SVG image nodes)
 - `clip-path`
 
@@ -39,7 +39,7 @@
 
 | Property | Feasibility | Notes |
 |----------|-------------|-------|
-| `mask-mode` | Feasible | `alpha` is supported. `luminance` / `match-source` layer-accurate behavior remains. |
+| `mask-mode` | **Supported (approx.)** | Supports `alpha`, `luminance`, and `match-source` (mapped to alpha semantics for image/gradient masks). Per-layer mixed-mode behavior remains approximate due single SVG mask pipeline. |
 | `mask-composite` | Feasible | SVG compositing operators |
 | `mask-border` | Hard | Border-image-style masking |
 | `mask-border-source` | Hard | |

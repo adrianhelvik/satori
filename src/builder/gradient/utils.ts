@@ -13,7 +13,8 @@ export function normalizeStops(
   colorStops: ColorStop[],
   inheritedStyle: Record<string, string | number>,
   repeating: boolean,
-  from?: 'background' | 'mask'
+  from?: 'background' | 'mask',
+  maskMode?: string
 ) {
   // Resolve the color stops based on the spec:
   // https://drafts.csswg.org/css-images/#color-stop-syntax
@@ -104,15 +105,25 @@ export function normalizeStops(
   }
 
   if (from === 'mask') {
-    return stops.map((stop) => {
-      const color = cssColorParse(stop.color)
-      if (!color) return stop
-      if (color.alpha === 0) {
-        return { ...stop, color: `rgba(0, 0, 0, 1)` }
-      } else {
-        return { ...stop, color: `rgba(255, 255, 255, ${color.alpha})` }
-      }
-    })
+    const normalizedMaskMode = String(maskMode || '')
+      .trim()
+      .toLowerCase()
+    const isAlphaMaskMode =
+      !normalizedMaskMode ||
+      normalizedMaskMode === 'alpha' ||
+      normalizedMaskMode === 'match-source'
+
+    if (isAlphaMaskMode) {
+      return stops.map((stop) => {
+        const color = cssColorParse(stop.color)
+        if (!color) return stop
+        if (color.alpha === 0) {
+          return { ...stop, color: `rgba(0, 0, 0, 1)` }
+        } else {
+          return { ...stop, color: `rgba(255, 255, 255, ${color.alpha})` }
+        }
+      })
+    }
   }
 
   // Split alpha into a separate opacity field so SVG can interpolate
