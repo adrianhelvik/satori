@@ -5,12 +5,13 @@ import radius, { getBorderRadiusClipPath } from './border-radius.js'
 import { boxShadow } from './shadow.js'
 import transform from './transform.js'
 import overflow from './overflow.js'
-import { buildXMLString } from '../utils.js'
+import { buildXMLString, lengthToNumber } from '../utils.js'
 import border, { getBorderClipPath } from './border.js'
 import { genClipPath } from './clip-path.js'
 import buildMaskImage from './mask-image.js'
 import { resolveSvgImageRendering } from './image-rendering.js'
 import cssColorParse from 'parse-css-color'
+import CssDimension from '../vendor/parse-css-dimension/index.js'
 
 type RGBAColor = {
   r: number
@@ -25,6 +26,17 @@ export interface BlendPrimitive {
   width: number
   height: number
   color: string
+}
+
+interface ObjectPositionAxis {
+  type: 'ratio' | 'length'
+  value: number
+  fromEnd?: boolean
+}
+
+interface ResolvedObjectPosition {
+  x: ObjectPositionAxis
+  y: ObjectPositionAxis
 }
 
 const supportedBackgroundBlendModes = new Set([
@@ -172,6 +184,300 @@ function serializeRGBAColor(color: RGBAColor): string {
   const b = Math.round(clamp01(color.b) * 255)
   const a = clamp01(color.a)
   return `rgba(${r},${g},${b},${a})`
+}
+
+function parseObjectPositionLength(
+  token: string,
+  baseFontSize: number,
+  inheritedStyle: Record<string, number | string | object>
+): number | undefined {
+  try {
+    const parsed = new CssDimension(token)
+    if (parsed.type === 'number') return parsed.value
+    if (parsed.type !== 'length') return
+
+    const resolved = lengthToNumber(
+      `${parsed.value}${parsed.unit}`,
+      baseFontSize,
+      baseFontSize,
+      inheritedStyle as Record<string, number | string>,
+      false
+    )
+    if (typeof resolved === 'number') return resolved
+    if (parsed.unit === 'px') return parsed.value
+  } catch {
+    return
+  }
+}
+
+function parseObjectPositionCoordinate(
+  token: string,
+  baseFontSize: number,
+  inheritedStyle: Record<string, number | string | object>
+): ObjectPositionAxis | undefined {
+  try {
+    const parsed = new CssDimension(token)
+    if (parsed.type === 'percentage') {
+      return {
+        type: 'ratio',
+        value: parsed.value / 100,
+      }
+    }
+  } catch {
+    return
+  }
+
+  const length = parseObjectPositionLength(token, baseFontSize, inheritedStyle)
+  if (typeof length === 'number') {
+    return {
+      type: 'length',
+      value: length,
+    }
+  }
+}
+
+function parseObjectPosition(
+  position: unknown,
+  baseFontSize: number,
+  inheritedStyle: Record<string, number | string | object>
+): ResolvedObjectPosition {
+  const defaults: ResolvedObjectPosition = {
+    x: { type: 'ratio', value: 0.5 },
+    y: { type: 'ratio', value: 0.5 },
+  }
+
+  const raw = String(position || '')
+    .trim()
+    .toLowerCase()
+  if (!raw) return defaults
+  const parts = raw.split(/\s+/).filter(Boolean)
+  if (!parts.length) return defaults
+
+  const horizontalKeywordRatio: Record<string, number> = {
+    left: 0,
+    center: 0.5,
+    right: 1,
+  }
+  const verticalKeywordRatio: Record<string, number> = {
+    top: 0,
+    center: 0.5,
+    bottom: 1,
+  }
+
+  const isHorizontalKeyword = (token: string) =>
+    typeof horizontalKeywordRatio[token] === 'number'
+  const isVerticalKeyword = (token: string) =>
+    typeof verticalKeywordRatio[token] === 'number'
+  const isCenter = (token: string) => token === 'center'
+
+  if (parts.length === 1) {
+    const [token] = parts
+    if (isHorizontalKeyword(token)) {
+      return {
+        x: { type: 'ratio', value: horizontalKeywordRatio[token] },
+        y: defaults.y,
+      }
+    }
+    if (isVerticalKeyword(token)) {
+      return {
+        x: defaults.x,
+        y: { type: 'ratio', value: verticalKeywordRatio[token] },
+      }
+    }
+    const coordinate = parseObjectPositionCoordinate(
+      token,
+      baseFontSize,
+      inheritedStyle
+    )
+    if (coordinate) {
+      return {
+        x: coordinate,
+        y: defaults.y,
+      }
+    }
+    return defaults
+  }
+
+  const first = parts[0]
+  const second = parts[1]
+
+  if (isHorizontalKeyword(first) && isVerticalKeyword(second)) {
+    return {
+      x: { type: 'ratio', value: horizontalKeywordRatio[first] },
+      y: { type: 'ratio', value: verticalKeywordRatio[second] },
+    }
+  }
+  if (isVerticalKeyword(first) && isHorizontalKeyword(second)) {
+    return {
+      x: { type: 'ratio', value: horizontalKeywordRatio[second] },
+      y: { type: 'ratio', value: verticalKeywordRatio[first] },
+    }
+  }
+
+  if (isHorizontalKeyword(first) && !isHorizontalKeyword(second)) {
+    const coordinate = parseObjectPositionCoordinate(
+      second,
+      baseFontSize,
+      inheritedStyle
+    )
+    if (coordinate) {
+      return {
+        x:
+          coordinate.type === 'length'
+            ? {
+                ...coordinate,
+                fromEnd: first === 'right',
+              }
+            : {
+                type: 'ratio',
+                value: coordinate.value,
+              },
+        y: defaults.y,
+      }
+    }
+  }
+
+  if (isVerticalKeyword(first) && !isVerticalKeyword(second)) {
+    const coordinate = parseObjectPositionCoordinate(
+      second,
+      baseFontSize,
+      inheritedStyle
+    )
+    if (coordinate) {
+      return {
+        x: defaults.x,
+        y:
+          coordinate.type === 'length'
+            ? {
+                ...coordinate,
+                fromEnd: first === 'bottom',
+              }
+            : {
+                type: 'ratio',
+                value: coordinate.value,
+              },
+      }
+    }
+  }
+
+  if (isCenter(first) && isVerticalKeyword(second)) {
+    return {
+      x: defaults.x,
+      y: { type: 'ratio', value: verticalKeywordRatio[second] },
+    }
+  }
+  if (isCenter(first) && isHorizontalKeyword(second)) {
+    return {
+      x: { type: 'ratio', value: horizontalKeywordRatio[second] },
+      y: defaults.y,
+    }
+  }
+  if (isHorizontalKeyword(first) && isCenter(second)) {
+    return {
+      x: { type: 'ratio', value: horizontalKeywordRatio[first] },
+      y: defaults.y,
+    }
+  }
+  if (isVerticalKeyword(first) && isCenter(second)) {
+    return {
+      x: defaults.x,
+      y: { type: 'ratio', value: verticalKeywordRatio[first] },
+    }
+  }
+
+  const firstCoordinate = parseObjectPositionCoordinate(
+    first,
+    baseFontSize,
+    inheritedStyle
+  )
+  const secondCoordinate = parseObjectPositionCoordinate(
+    second,
+    baseFontSize,
+    inheritedStyle
+  )
+  if (firstCoordinate || secondCoordinate) {
+    return {
+      x: firstCoordinate || defaults.x,
+      y: secondCoordinate || defaults.y,
+    }
+  }
+
+  return defaults
+}
+
+function resolveObjectPositionOffset(
+  coordinate: ObjectPositionAxis,
+  containerSize: number,
+  objectSize: number
+): number {
+  const freeSpace = containerSize - objectSize
+  if (coordinate.type === 'ratio') {
+    return freeSpace * coordinate.value
+  }
+  return coordinate.fromEnd ? freeSpace - coordinate.value : coordinate.value
+}
+
+function resolveObjectFitImageSize(
+  fit: string,
+  containerWidth: number,
+  containerHeight: number,
+  intrinsicWidth: number,
+  intrinsicHeight: number
+) {
+  const safeContainerWidth = Math.max(0, containerWidth)
+  const safeContainerHeight = Math.max(0, containerHeight)
+  const safeIntrinsicWidth = intrinsicWidth > 0 ? intrinsicWidth : 1
+  const safeIntrinsicHeight = intrinsicHeight > 0 ? intrinsicHeight : 1
+
+  if (fit === 'fill') {
+    return {
+      width: safeContainerWidth,
+      height: safeContainerHeight,
+    }
+  }
+
+  if (fit === 'none') {
+    return {
+      width: safeIntrinsicWidth,
+      height: safeIntrinsicHeight,
+    }
+  }
+
+  const containScale = Math.min(
+    safeContainerWidth / safeIntrinsicWidth,
+    safeContainerHeight / safeIntrinsicHeight
+  )
+  const coverScale = Math.max(
+    safeContainerWidth / safeIntrinsicWidth,
+    safeContainerHeight / safeIntrinsicHeight
+  )
+
+  if (fit === 'contain') {
+    return {
+      width: safeIntrinsicWidth * containScale,
+      height: safeIntrinsicHeight * containScale,
+    }
+  }
+
+  if (fit === 'cover') {
+    return {
+      width: safeIntrinsicWidth * coverScale,
+      height: safeIntrinsicHeight * coverScale,
+    }
+  }
+
+  if (fit === 'scale-down') {
+    const scaleDownScale = Math.min(1, containScale)
+    return {
+      width: safeIntrinsicWidth * scaleDownScale,
+      height: safeIntrinsicHeight * scaleDownScale,
+    }
+  }
+
+  return {
+    width: safeContainerWidth,
+    height: safeContainerHeight,
+  }
 }
 
 function blendChannel(mode: string, backdrop: number, source: number): number {
@@ -618,52 +924,53 @@ export default async function rect(
       ((style.borderBottomWidth as number) || 0) +
       ((style.paddingBottom as number) || 0)
 
-    let xAlign = 'Mid'
-    let yAlign = 'Mid'
-    const position = (style.objectPosition || 'center')
-      .toString()
+    const contentX = left + offsetLeft
+    const contentY = top + offsetTop
+    const contentWidth = Math.max(0, width - offsetLeft - offsetRight)
+    const contentHeight = Math.max(0, height - offsetTop - offsetBottom)
+    const intrinsicWidth =
+      typeof style.__srcWidth === 'number' && style.__srcWidth > 0
+        ? (style.__srcWidth as number)
+        : contentWidth || 1
+    const intrinsicHeight =
+      typeof style.__srcHeight === 'number' && style.__srcHeight > 0
+        ? (style.__srcHeight as number)
+        : contentHeight || 1
+
+    const normalizedObjectFit = String(style.objectFit || 'fill')
       .trim()
       .toLowerCase()
-    const parts = position.split(/\s+/)
-    if (parts.length === 1) {
-      switch (parts[0]) {
-        case 'left':
-          xAlign = 'Min'
-          yAlign = 'Mid'
-          break
-        case 'right':
-          xAlign = 'Max'
-          yAlign = 'Mid'
-          break
-        case 'top':
-          xAlign = 'Mid'
-          yAlign = 'Min'
-          break
-        case 'bottom':
-          xAlign = 'Mid'
-          yAlign = 'Max'
-          break
-        case 'center':
-          xAlign = 'Mid'
-          yAlign = 'Mid'
-          break
-      }
-    } else if (parts.length === 2) {
-      for (const part of parts) {
-        if (part === 'left') xAlign = 'Min'
-        else if (part === 'right') xAlign = 'Max'
-        else if (part === 'center') xAlign = 'Mid'
-        else if (part === 'top') yAlign = 'Min'
-        else if (part === 'bottom') yAlign = 'Max'
-      }
-    }
-    const alignment = `x${xAlign}Y${yAlign}`
-    const preserveAspectRatio =
-      style.objectFit === 'contain'
-        ? alignment
-        : style.objectFit === 'cover'
-        ? `${alignment} slice`
-        : 'none'
+    const objectPosition = parseObjectPosition(
+      style.objectPosition || '50% 50%',
+      typeof style.fontSize === 'number'
+        ? (style.fontSize as number)
+        : typeof inheritableStyle.fontSize === 'number'
+        ? (inheritableStyle.fontSize as number)
+        : 16,
+      inheritableStyle
+    )
+
+    const imageSize = resolveObjectFitImageSize(
+      normalizedObjectFit,
+      contentWidth,
+      contentHeight,
+      intrinsicWidth,
+      intrinsicHeight
+    )
+    const imageX =
+      contentX +
+      resolveObjectPositionOffset(
+        objectPosition.x,
+        contentWidth,
+        imageSize.width
+      )
+    const imageY =
+      contentY +
+      resolveObjectPositionOffset(
+        objectPosition.y,
+        contentHeight,
+        imageSize.height
+      )
 
     if (style.transform) {
       imageBorderRadius = getBorderRadiusClipPath(
@@ -692,12 +999,12 @@ export default async function rect(
       .join(';')
 
     shape += buildXMLString('image', {
-      x: left + offsetLeft,
-      y: top + offsetTop,
-      width: width - offsetLeft - offsetRight,
-      height: height - offsetTop - offsetBottom,
+      x: imageX,
+      y: imageY,
+      width: imageSize.width,
+      height: imageSize.height,
       href: src,
-      preserveAspectRatio,
+      preserveAspectRatio: 'none',
       transform: matrix ? matrix : undefined,
       style: imageStyle || undefined,
       'clip-path': style.transform

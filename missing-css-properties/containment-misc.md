@@ -29,8 +29,8 @@
 | `appearance` | N/A | Platform-native form control styling |
 | `zoom` | **Supported (approx.)** | Maps to `transform: scale(...)` and does not perform browser-like layout reflow. Combining `zoom` with explicit transforms is only approximate compared with browser coordinate-space behavior. |
 | `aspect-ratio` | **Supported** | Number and fraction syntax (e.g. `1.5`, `16/9`) |
-| `object-fit` | **Supported** | `contain`, `cover`, `none` |
-| `object-position` | **Supported** | Various keyword combinations |
+| `object-fit` | **Supported (partial)** | Supports `fill`, `contain`, `cover`, `none`, and `scale-down` for `<img>`. Behavior is based on intrinsic image dimensions and clipped to the rendered image box. |
+| `object-position` | **Supported (partial)** | Supports keyword alignment plus `%` and length coordinates for common one/two-value syntax (`left/right/top/bottom/center`, `25% 75%`, `10px 20px`, `right 10px`). Full 3/4-value offset grammar remains partial. |
 
 ## SVG presentation properties
 

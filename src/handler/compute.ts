@@ -178,6 +178,8 @@ export default async function compute(
       ? (contentBoxHeight as number) + extraVertical
       : contentBoxHeight
     style.__src = resolvedSrc
+    style.__srcWidth = imageWidth
+    style.__srcHeight = imageHeight
   }
 
   if (type === 'svg') {
