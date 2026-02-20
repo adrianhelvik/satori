@@ -37,6 +37,7 @@ export default defineConfig({
   plugins: [satoriCapturePlugin()],
   test: {
     threads: false,
+    hookTimeout: 120_000,
     setupFiles: ['./test/browser-diff-setup.ts'],
   },
 })

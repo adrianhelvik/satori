@@ -3,7 +3,8 @@ import { chromium, type Browser, type Page } from 'playwright'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { PNG } from 'pngjs'
 import pixelmatch from 'pixelmatch'
-import { join } from 'path'
+import { createHash } from 'crypto'
+import { join, relative } from 'path'
 import { mkdirSync, writeFileSync, readFileSync } from 'fs'
 import { Resvg } from '@resvg/resvg-js'
 
@@ -29,12 +30,22 @@ let page: Page
 
 globalThis.__browserDiffResults = []
 
+const MOCK_PLACEHOLDER_PNG_BASE64 =
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPj/HwADBwIAMCbHYQAAAABJRU5ErkJggg=='
+const MOCK_PLACEHOLDER_PNG_BUFFER = Buffer.from(
+  MOCK_PLACEHOLDER_PNG_BASE64,
+  'base64'
+)
+const MOCK_PLACEHOLDER_SVG =
+  '<svg width="116.15" height="100" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" clip-rule="evenodd" d="M57.5 0L115 100H0L57.5 0z"/></svg>'
+
 function slugify(name: string): string {
-  return name
+  const normalized = name
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/(^-|-$)/g, '')
-    .slice(0, 80)
+  const hash = createHash('sha1').update(name).digest('hex').slice(0, 10)
+  return `${normalized.slice(0, 64)}-${hash}`
 }
 
 function fontsToFontFaceRules(fonts: any[]): string {
@@ -89,6 +100,37 @@ beforeAll(async () => {
   mkdirSync(DIFF_DIR, { recursive: true })
   browser = await chromium.launch()
   page = await browser.newPage()
+
+  // Mirror image.test.tsx fetch mocks so browser-side captures don't depend on
+  // external network availability.
+  await page.route('**://*.placeholder.com/**', async (route) => {
+    const url = route.request().url()
+
+    if (url.includes('wrong-url.placeholder.com')) {
+      await route.abort('failed')
+      return
+    }
+
+    if (url.includes('via.placeholder.com')) {
+      if (/\.svg(?:$|\?)/i.test(url)) {
+        await route.fulfill({
+          status: 200,
+          contentType: 'image/svg+xml',
+          body: MOCK_PLACEHOLDER_SVG,
+        })
+        return
+      }
+
+      await route.fulfill({
+        status: 200,
+        contentType: 'image/png',
+        body: MOCK_PLACEHOLDER_PNG_BUFFER,
+      })
+      return
+    }
+
+    await route.continue()
+  })
 })
 
 afterEach(async (ctx) => {
@@ -98,7 +140,12 @@ afterEach(async (ctx) => {
   const testName = ctx.task.suite?.name
     ? `${ctx.task.suite.name} > ${ctx.task.name}`
     : ctx.task.name
-  const slug = slugify(testName)
+  const testFilePath =
+    ctx.task.file?.filepath || ctx.task.suite?.file?.filepath || ''
+  const displayName = testFilePath
+    ? `${relative(process.cwd(), testFilePath)} :: ${testName}`
+    : testName
+  const slug = slugify(displayName)
 
   for (let i = 0; i < captures.length; i++) {
     const { element, options, svg } = captures[i]
@@ -158,7 +205,7 @@ afterEach(async (ctx) => {
       writeFileSync(satoriPath, satoriPng)
 
       globalThis.__browserDiffResults.push({
-        name: testName,
+        name: displayName,
         diffPercent: Math.round(diffPercent * 100) / 100,
         diffPath,
         satoriPath,
