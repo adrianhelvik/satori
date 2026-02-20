@@ -64,6 +64,8 @@ const supportedBackgroundBlendModes = new Set([
 const supportedMixBlendFallbackModes = new Set([
   'multiply',
   'screen',
+  'overlay',
+  'hard-light',
   'darken',
   'lighten',
   'difference',
@@ -575,12 +577,19 @@ function isOpaqueNeutralBackdrop(
   if (!parsed) return false
   if (Math.abs(parsed.a - 1) > 1e-6) return false
 
+  const near = (value: number, target: number) =>
+    Math.abs(value - target) <= 1 / 255 + 1e-6
+
   if (mode === 'multiply') {
     return (
       Math.abs(parsed.r - 1) < 1e-6 &&
       Math.abs(parsed.g - 1) < 1e-6 &&
       Math.abs(parsed.b - 1) < 1e-6
     )
+  }
+
+  if (mode === 'overlay' || mode === 'hard-light') {
+    return near(parsed.r, 0.5) && near(parsed.g, 0.5) && near(parsed.b, 0.5)
   }
 
   if (mode === 'darken') {
