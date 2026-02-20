@@ -8,7 +8,7 @@
 - `border` (all sides, width/style/color)
 - `border-radius` (all corners, including `x / y` syntax)
 - Border styles: `solid`, `dashed`, `dotted`, `double`, `inset` (approx), `outset` (approx), `groove` (approx), `ridge` (approx)
-- `outline`, `outline-width`, `outline-style`, `outline-color`, `outline-offset` (`solid`, `dashed`, `dotted`, `double`)
+- `outline`, `outline-width`, `outline-style`, `outline-color`, `outline-offset` (`solid`, `dashed`, `dotted`, `double`, `groove`*, `ridge`*, `inset`*, `outset`*)
 - `aspect-ratio`
 - Logical sizing aliases: `inline-size`, `block-size`, `min-inline-size`, `min-block-size`, `max-inline-size`, `max-block-size`
 
@@ -22,6 +22,8 @@
 | `ridge` | **Supported (approx.)** | Accepted syntax, currently rendered using solid-border semantics (no true bevel). |
 
 > `inset`/`outset` use SVG-friendly side shading (top/left vs bottom/right tinting). `groove`/`ridge` are accepted but flattened to solid-border rendering.
+
+> `*` Outline `groove`/`ridge`/`inset`/`outset` values are accepted and currently rendered using solid-outline semantics.
 
 ### Border image
 

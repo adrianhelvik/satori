@@ -402,7 +402,19 @@ function handleSpecialCase(
     const parts = value.toString().trim().split(/\s+/)
     const result: Record<string, string | number> = {}
     for (const part of parts) {
-      if (['solid', 'dashed', 'dotted', 'double', 'none'].includes(part)) {
+      if (
+        [
+          'solid',
+          'dashed',
+          'dotted',
+          'double',
+          'none',
+          'groove',
+          'ridge',
+          'inset',
+          'outset',
+        ].includes(part)
+      ) {
         result.outlineStyle = part
       } else if (/^\d/.test(part) || part === '0') {
         result.outlineWidth = purify('outlineWidth', part)
