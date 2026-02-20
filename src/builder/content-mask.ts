@@ -48,6 +48,8 @@ export default function contentMask(
   }
   const overflowXClip = style.overflow === 'clip' || style.overflowX === 'clip'
   const overflowYClip = style.overflow === 'clip' || style.overflowY === 'clip'
+  const overflowYHidden =
+    style.overflow === 'hidden' || style.overflowY === 'hidden'
   const overflowClipMargin =
     typeof style.overflowClipMargin === 'number'
       ? Math.max(0, style.overflowClipMargin)
@@ -56,6 +58,12 @@ export default function contentMask(
       : 0
 
   const clipRect = { ...contentArea }
+  const OVERFLOW_EXTENT = 1_000_000
+  if (overflowXClip && !overflowYClip && !overflowYHidden) {
+    clipRect.y = -OVERFLOW_EXTENT
+    clipRect.height = OVERFLOW_EXTENT * 2
+  }
+
   if (overflowClipMargin > 0) {
     if (overflowXClip) {
       clipRect.x -= overflowClipMargin

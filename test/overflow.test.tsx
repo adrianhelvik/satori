@@ -146,6 +146,52 @@ describe('Overflow', () => {
     expect(toImage(withMargin, 100)).toEqual(toImage(withoutMargin, 100))
   })
 
+  it('should clip only x-axis when overflowX is clip and overflowY is visible', async () => {
+    const svg = await satori(
+      <div
+        style={{
+          display: 'flex',
+          width: 50,
+          height: 50,
+          overflowX: 'clip',
+          overflowY: 'visible',
+          backgroundColor: 'white',
+        }}
+      >
+        <div style={{ width: 100, height: 100, backgroundColor: 'red' }} />
+      </div>,
+      {
+        width: 100,
+        height: 100,
+        fonts,
+      }
+    )
+    expect(toImage(svg, 100)).toMatchImageSnapshot()
+  })
+
+  it('should clip only y-axis when overflowY is clip and overflowX is visible', async () => {
+    const svg = await satori(
+      <div
+        style={{
+          display: 'flex',
+          width: 50,
+          height: 50,
+          overflowY: 'clip',
+          overflowX: 'visible',
+          backgroundColor: 'white',
+        }}
+      >
+        <div style={{ width: 100, height: 100, backgroundColor: 'blue' }} />
+      </div>,
+      {
+        width: 100,
+        height: 100,
+        fonts,
+      }
+    )
+    expect(toImage(svg, 100)).toMatchImageSnapshot()
+  })
+
   it('should work with nested border, border-radius, padding', async () => {
     const svg = await satori(
       <div

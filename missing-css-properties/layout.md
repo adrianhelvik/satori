@@ -37,7 +37,7 @@
 |----------|-------------|-------|
 | `overflow-clip-margin` | **Supported (partial)** | Supports non-negative length values for rectangular `overflow: clip` clipping. Visual-box keywords and rounded-path precision are approximate. |
 
-> `overflow: clip` is supported and currently uses the same clipping behavior as `hidden` in static SVG output.
+> `overflow: clip` is supported. Shorthand `clip` behaves like hidden clipping. Per-axis behavior follows browser semantics, including asymmetric `overflow-x`/`overflow-y` combinations.
 
 ### Visibility & ordering
 
