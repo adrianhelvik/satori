@@ -10,7 +10,7 @@
 - `mix-blend-mode`
 - `color`
 - `mask-image`, `mask-position`, `mask-size`, `mask-repeat`
-- `mask-clip`, `mask-type`
+- `mask-clip`, `mask-type`, `mask-mode: alpha`
 - `image-rendering`
 - `clip-path`
 
@@ -45,7 +45,7 @@
 
 | Property | Feasibility | Notes |
 |----------|-------------|-------|
-| `mask-mode` | Feasible | Luminance vs. alpha mask — SVG supports both |
+| `mask-mode` | Feasible | `alpha` is supported. `luminance` / `match-source` layer-accurate behavior remains. |
 | `mask-origin` | Feasible | Mask positioning area |
 | `mask-composite` | Feasible | SVG compositing operators |
 | `mask-border` | Hard | Border-image-style masking |
