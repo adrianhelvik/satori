@@ -259,6 +259,27 @@ describe('Mask-*', () => {
     expect(toImage(svg, 100)).toMatchImageSnapshot()
   })
 
+  it('should support mask-origin: content-box', async () => {
+    const svg = await satori(
+      <div
+        style={{
+          width: 100,
+          height: 100,
+          backgroundColor: 'red',
+          border: '10px solid transparent',
+          padding: 10,
+          maskImage: 'linear-gradient(black, black)',
+          maskSize: '20px 20px',
+          maskRepeat: 'no-repeat',
+          maskPosition: '0 0',
+          maskOrigin: 'content-box',
+        }}
+      />,
+      { width: 100, height: 100, fonts }
+    )
+    expect(toImage(svg, 100)).toMatchImageSnapshot()
+  })
+
   it('should support mask-type: alpha', async () => {
     const svg = await satori(
       <div

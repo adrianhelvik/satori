@@ -4,7 +4,7 @@ import type { MaskProperty } from '../parser/mask.js'
 
 const genMaskImageId = (id: string) => `satori_mi-${id}`
 
-function resolveMaskClipBox(
+function resolveMaskBox(
   box: string,
   left: number,
   top: number,
@@ -84,10 +84,11 @@ export default async function buildMaskImage(
 
   for (let i = 0; i < length; i++) {
     const m = maskImage[i]
-    const clipBox = resolveMaskClipBox(m.clip, left, top, width, height, style)
+    const originBox = resolveMaskBox(m.origin, left, top, width, height, style)
+    const clipBox = resolveMaskBox(m.clip, left, top, width, height, style)
 
     const [_id, def] = await buildBackgroundImage(
-      { id: `${miId}-${i}`, left, top, width, height },
+      { id: `${miId}-${i}`, ...originBox },
       m,
       inheritedStyle,
       'mask',
