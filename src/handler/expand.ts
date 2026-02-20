@@ -338,22 +338,26 @@ function handleSpecialCase(
     }
   }
 
-  // place-items → alignItems + justifyItems
+  // place-items → alignItems (+ ignore justify-items in flex-only layout)
   if (name === 'placeItems') {
     const parts = value.toString().trim().split(/\s+/)
     return {
       alignItems: parts[0],
-      justifyItems: parts[1] || parts[0],
     }
   }
 
-  // place-self → alignSelf + justifySelf
+  // place-self → alignSelf (+ ignore justify-self in flex-only layout)
   if (name === 'placeSelf') {
     const parts = value.toString().trim().split(/\s+/)
     return {
       alignSelf: parts[0],
-      justifySelf: parts[1] || parts[0],
     }
+  }
+
+  // Grid-focused properties. Satori uses flex-only layout, so accept and ignore
+  // these for browser parity (no effect on flex formatting).
+  if (name === 'justifyItems' || name === 'justifySelf') {
+    return {}
   }
 
   // overflow-x / overflow-y: store individually, compute.ts will merge

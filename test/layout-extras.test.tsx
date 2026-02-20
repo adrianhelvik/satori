@@ -179,6 +179,40 @@ describe('Layout Extras', () => {
       )
       expect(toImage(svg, 100)).toMatchImageSnapshot()
     })
+
+    it('should ignore place-items justify-items value in flex layout', async () => {
+      const base = await satori(
+        <div
+          style={{
+            width: 100,
+            height: 100,
+            display: 'flex',
+            alignItems: 'flex-start',
+            backgroundColor: 'white',
+          }}
+        >
+          <div style={{ width: 30, height: 30, backgroundColor: 'red' }} />
+        </div>,
+        { width: 100, height: 100, fonts }
+      )
+
+      const withPlaceItems = await satori(
+        <div
+          style={{
+            width: 100,
+            height: 100,
+            display: 'flex',
+            placeItems: 'flex-start end',
+            backgroundColor: 'white',
+          }}
+        >
+          <div style={{ width: 30, height: 30, backgroundColor: 'red' }} />
+        </div>,
+        { width: 100, height: 100, fonts }
+      )
+
+      expect(toImage(withPlaceItems, 100)).toEqual(toImage(base, 100))
+    })
   })
 
   describe('place-self', () => {
@@ -204,6 +238,52 @@ describe('Layout Extras', () => {
         { width: 100, height: 100, fonts }
       )
       expect(toImage(svg, 100)).toMatchImageSnapshot()
+    })
+
+    it('should ignore place-self justify-self value in flex layout', async () => {
+      const base = await satori(
+        <div
+          style={{
+            width: 100,
+            height: 100,
+            display: 'flex',
+            backgroundColor: 'white',
+          }}
+        >
+          <div
+            style={{
+              width: 30,
+              height: 30,
+              alignSelf: 'flex-end',
+              backgroundColor: 'red',
+            }}
+          />
+        </div>,
+        { width: 100, height: 100, fonts }
+      )
+
+      const withPlaceSelf = await satori(
+        <div
+          style={{
+            width: 100,
+            height: 100,
+            display: 'flex',
+            backgroundColor: 'white',
+          }}
+        >
+          <div
+            style={{
+              width: 30,
+              height: 30,
+              placeSelf: 'flex-end center',
+              backgroundColor: 'red',
+            }}
+          />
+        </div>,
+        { width: 100, height: 100, fonts }
+      )
+
+      expect(toImage(withPlaceSelf, 100)).toEqual(toImage(base, 100))
     })
   })
 
