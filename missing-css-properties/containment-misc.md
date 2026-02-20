@@ -30,7 +30,7 @@
 | `zoom` | **Supported (approx.)** | Maps to `transform: scale(...)` and does not perform browser-like layout reflow. Combining `zoom` with explicit transforms is only approximate compared with browser coordinate-space behavior. |
 | `aspect-ratio` | **Supported** | Number and fraction syntax (e.g. `1.5`, `16/9`) |
 | `object-fit` | **Supported (partial)** | Supports `fill`, `contain`, `cover`, `none`, and `scale-down` for `<img>`. Behavior is based on intrinsic image dimensions and clipped to the rendered image box. |
-| `object-position` | **Supported (partial)** | Supports keyword alignment plus `%` and length coordinates for one/two-value syntax and side-offset forms (`left/right/top/bottom/center`, `25% 75%`, `10px 20px`, `right 10px`, `top 20px right`, `right 10px bottom 20px`). Coverage is still approximate for full CSS parsing edge-cases. |
+| `object-position` | **Supported (partial)** | Supports keyword alignment plus `%` and length coordinates for one/two-value syntax and side-offset forms (`left/right/top/bottom/center`, `25% 75%`, `10px 20px`, `right 10px`, `top 20px right`, `right 10px bottom 20px`) and simple `calc(...)` length/percentage coordinates. Coverage is still approximate for full CSS parsing edge-cases. |
 
 ## SVG presentation properties
 

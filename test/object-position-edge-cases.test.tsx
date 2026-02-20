@@ -63,4 +63,16 @@ describe('Object Position Edge Cases', () => {
   it('should support object-position center top', async () => {
     expect(await render('center top')).toMatchImageSnapshot()
   })
+
+  it('should support object-position with calc coordinates', async () => {
+    expect(
+      await render('calc(100% - 10px) calc(100% - 5px)')
+    ).toMatchImageSnapshot()
+  })
+
+  it('should support object-position with side-based calc offsets', async () => {
+    expect(
+      await render('right calc(25% + 2px) bottom calc(10% + 3px)')
+    ).toMatchImageSnapshot()
+  })
 })

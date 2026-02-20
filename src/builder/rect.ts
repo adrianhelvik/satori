@@ -29,8 +29,9 @@ export interface BlendPrimitive {
 }
 
 interface ObjectPositionAxis {
-  type: 'ratio' | 'length'
+  type: 'ratio' | 'length' | 'calc'
   value: number
+  offset?: number
   fromEnd?: boolean
 }
 
@@ -228,8 +229,11 @@ function parseObjectPositionCoordinate(
   baseFontSize: number,
   inheritedStyle: Record<string, number | string | object>
 ): ObjectPositionAxis | undefined {
+  const raw = token.trim()
+  const normalized = raw.toLowerCase()
+
   try {
-    const parsed = new CssDimension(token)
+    const parsed = new CssDimension(raw)
     if (parsed.type === 'percentage') {
       return {
         type: 'ratio',
@@ -240,7 +244,58 @@ function parseObjectPositionCoordinate(
     return
   }
 
-  const length = parseObjectPositionLength(token, baseFontSize, inheritedStyle)
+  if (normalized.startsWith('calc(') && normalized.endsWith(')')) {
+    const expression = raw.slice(5, -1).trim()
+    if (!expression) return
+
+    const terms = expression.match(/[+-]?\s*[^+-]+/g)
+    if (!terms || !terms.length) return
+
+    let ratio = 0
+    let offset = 0
+
+    for (const term of terms) {
+      const normalizedTerm = term.trim()
+      if (!normalizedTerm) continue
+
+      let sign = 1
+      let valueToken = normalizedTerm
+      if (valueToken.startsWith('+')) {
+        valueToken = valueToken.slice(1).trim()
+      } else if (valueToken.startsWith('-')) {
+        sign = -1
+        valueToken = valueToken.slice(1).trim()
+      }
+
+      if (!valueToken) return
+
+      try {
+        const parsedTerm = new CssDimension(valueToken)
+        if (parsedTerm.type === 'percentage') {
+          ratio += (sign * parsedTerm.value) / 100
+          continue
+        }
+      } catch {
+        return
+      }
+
+      const lengthTerm = parseObjectPositionLength(
+        valueToken,
+        baseFontSize,
+        inheritedStyle
+      )
+      if (typeof lengthTerm !== 'number') return
+      offset += sign * lengthTerm
+    }
+
+    return {
+      type: 'calc',
+      value: ratio,
+      offset,
+    }
+  }
+
+  const length = parseObjectPositionLength(raw, baseFontSize, inheritedStyle)
   if (typeof length === 'number') {
     return {
       type: 'length',
@@ -283,6 +338,15 @@ function buildObjectPositionAxisFromKeyword(
       }
     }
 
+    if (offset.type === 'calc') {
+      return {
+        type: 'calc',
+        value: offset.value,
+        offset: offset.offset,
+        fromEnd: keyword === 'right',
+      }
+    }
+
     return {
       type: 'length',
       value: offset.value,
@@ -304,6 +368,15 @@ function buildObjectPositionAxisFromKeyword(
     return {
       type: 'ratio',
       value: offset.value,
+      fromEnd: keyword === 'bottom',
+    }
+  }
+
+  if (offset.type === 'calc') {
+    return {
+      type: 'calc',
+      value: offset.value,
+      offset: offset.offset,
       fromEnd: keyword === 'bottom',
     }
   }
@@ -417,6 +490,10 @@ function resolveObjectPositionOffset(
   if (coordinate.type === 'ratio') {
     const ratio = coordinate.fromEnd ? 1 - coordinate.value : coordinate.value
     return freeSpace * ratio
+  }
+  if (coordinate.type === 'calc') {
+    const startOffset = freeSpace * coordinate.value + (coordinate.offset || 0)
+    return coordinate.fromEnd ? freeSpace - startOffset : startOffset
   }
   return coordinate.fromEnd ? freeSpace - coordinate.value : coordinate.value
 }
