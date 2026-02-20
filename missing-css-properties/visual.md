@@ -8,6 +8,7 @@
 - `opacity`
 - `filter`
 - `mix-blend-mode`
+- `isolation`
 - `color`
 - `mask-image`, `mask-position`, `mask-size`, `mask-repeat`
 - `mask-origin`, `mask-clip`, `mask-type`, `mask-mode: alpha`
@@ -21,7 +22,6 @@
 | Property | Feasibility | Notes |
 |----------|-------------|-------|
 | `background-blend-mode` | Hard | Blending between background layers — would need compositing in the gradient/image builder |
-| `isolation` | Hard | Creates a new stacking context for blend mode containment |
 
 ### Backdrop
 
