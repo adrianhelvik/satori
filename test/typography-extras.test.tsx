@@ -53,12 +53,13 @@ describe('Typography Extras', () => {
             width: 200,
             height: 100,
             backgroundColor: 'white',
+            fontFamily: 'Playfair Display',
             fontSize: 14,
+            whiteSpace: 'pre-line',
             textIndent: 40,
           }}
         >
-          This is a paragraph of text that should have its first line indented
-          by 40 pixels from the left edge.
+          {'This is the first line.\nThis second line should not be indented.'}
         </div>,
         { width: 200, height: 100, fonts }
       )
@@ -72,6 +73,7 @@ describe('Typography Extras', () => {
             width: 180,
             height: 60,
             backgroundColor: 'white',
+            fontFamily: 'Playfair Display',
             fontSize: 20,
             textIndent: '40px',
           }}
@@ -90,6 +92,7 @@ describe('Typography Extras', () => {
             width: 180,
             height: 60,
             backgroundColor: 'white',
+            fontFamily: 'Playfair Display',
             fontSize: 20,
             textIndent: '25%',
           }}
