@@ -10,8 +10,8 @@
 - `mix-blend-mode`
 - `color`
 - `mask-image`, `mask-position`, `mask-size`, `mask-repeat`
-- `mask-clip`, `mask-type`, `mask-mode: alpha`
-- `image-rendering`
+- `mask-origin`, `mask-clip`, `mask-type`, `mask-mode: alpha`
+- `image-rendering`, `image-orientation` (passed through to SVG image nodes)
 - `clip-path`
 
 ## Missing properties
@@ -35,18 +35,11 @@
 |----------|-------------|-------|
 | `background-blend-mode` | Hard | See blending section above |
 
-### Images
-
-| Property | Feasibility | Notes |
-|----------|-------------|-------|
-| `image-orientation` | Feasible | EXIF orientation correction |
-
 ### Mask (missing sub-properties)
 
 | Property | Feasibility | Notes |
 |----------|-------------|-------|
 | `mask-mode` | Feasible | `alpha` is supported. `luminance` / `match-source` layer-accurate behavior remains. |
-| `mask-origin` | Feasible | Mask positioning area |
 | `mask-composite` | Feasible | SVG compositing operators |
 | `mask-border` | Hard | Border-image-style masking |
 | `mask-border-source` | Hard | |
