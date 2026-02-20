@@ -7,7 +7,7 @@
 - `padding` (all sides + shorthand)
 - `border` (all sides, width/style/color)
 - `border-radius` (all corners, including `x / y` syntax)
-- Border styles: `solid`, `dashed`, `dotted`, `double`
+- Border styles: `solid`, `dashed`, `dotted`, `double`, `inset` (approx), `outset` (approx)
 - `outline`, `outline-width`, `outline-style`, `outline-color`, `outline-offset`
 - `aspect-ratio`
 - Logical sizing aliases: `inline-size`, `block-size`, `min-inline-size`, `min-block-size`, `max-inline-size`, `max-block-size`
@@ -20,8 +20,8 @@
 |-------|-------------|-------|
 | `groove` | Hard | Requires simulated 3D shading |
 | `ridge` | Hard | Same |
-| `inset` | Hard | Same |
-| `outset` | Hard | Same |
+
+> `inset` and `outset` are supported with SVG-friendly shading approximations (top/left vs bottom/right color tinting).
 
 ### Border image
 

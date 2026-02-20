@@ -596,6 +596,8 @@ function handleSpecialCase(
           dashed: 'dashed',
           dotted: 'dotted',
           double: 'double',
+          inset: 'inset',
+          outset: 'outset',
         },
         'solid',
         name + 'Style'

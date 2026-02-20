@@ -1,5 +1,71 @@
 import { buildXMLString } from '../utils.js'
 import radius from './border-radius.js'
+import cssColorParse from 'parse-css-color'
+
+type BorderSide = 'Top' | 'Right' | 'Bottom' | 'Left'
+
+function clampByte(value: number): number {
+  return Math.max(0, Math.min(255, Math.round(value)))
+}
+
+function mixChannel(channel: number, target: number, ratio: number): number {
+  return clampByte(channel + (target - channel) * ratio)
+}
+
+function shadeBorderColor(
+  color: string,
+  tone: 'light' | 'dark',
+  ratio = tone === 'light' ? 0 : 0.5
+): string {
+  const parsed = cssColorParse(color)
+  if (!parsed) return color
+
+  const [r, g, b] = parsed.values
+  const alpha = parsed.alpha ?? 1
+  const target = tone === 'light' ? 255 : 0
+
+  return `rgba(${mixChannel(r, target, ratio)},${mixChannel(
+    g,
+    target,
+    ratio
+  )},${mixChannel(b, target, ratio)},${alpha})`
+}
+
+function normalizeInsetOutsetBorders(
+  style: Record<string, number | string>,
+  asContentMask: boolean
+): Record<string, number | string> {
+  if (asContentMask) return style
+
+  const normalized = { ...style }
+  const sides: BorderSide[] = ['Top', 'Right', 'Bottom', 'Left']
+
+  for (const side of sides) {
+    const styleKey = `border${side}Style`
+    const colorKey = `border${side}Color`
+    const borderStyle = String(normalized[styleKey] || '')
+
+    if (borderStyle !== 'inset' && borderStyle !== 'outset') continue
+
+    const topOrLeft = side === 'Top' || side === 'Left'
+    const tone =
+      borderStyle === 'inset'
+        ? topOrLeft
+          ? 'dark'
+          : 'light'
+        : topOrLeft
+        ? 'light'
+        : 'dark'
+
+    normalized[styleKey] = 'solid'
+    const borderColor = normalized[colorKey]
+    if (typeof borderColor === 'string') {
+      normalized[colorKey] = shadeBorderColor(borderColor, tone)
+    }
+  }
+
+  return normalized
+}
 
 function getBorderStrokeProps(
   w: number,
@@ -183,12 +249,13 @@ export default function border(
   },
   style: Record<string, number | string>
 ) {
+  const normalizedStyle = normalizeInsetOutsetBorders(style, !!asContentMask)
   const directions = ['borderTop', 'borderRight', 'borderBottom', 'borderLeft']
 
   // No border
   if (
     !asContentMask &&
-    !directions.some((direction) => style[direction + 'Width'])
+    !directions.some((direction) => normalizedStyle[direction + 'Width'])
   )
     return ''
 
@@ -200,7 +267,7 @@ export default function border(
     compareBorderDirections(
       directions[start],
       directions[(start + 3) % 4],
-      style
+      normalizedStyle
     )
   ) {
     start = (start + 3) % 4
@@ -217,17 +284,17 @@ export default function border(
 
     partialSides[i] = true
     currentStyle = [
-      style[d + 'Width'],
-      style[d + 'Style'],
-      style[d + 'Color'],
+      normalizedStyle[d + 'Width'],
+      normalizedStyle[d + 'Style'],
+      normalizedStyle[d + 'Color'],
       d,
     ]
 
-    if (!compareBorderDirections(d, nd, style)) {
+    if (!compareBorderDirections(d, nd, normalizedStyle)) {
       const w =
         (currentStyle[0] || 0) +
         (asContentMask && !maskBorderOnly
-          ? style[d.replace('border', 'padding')] || 0
+          ? normalizedStyle[d.replace('border', 'padding')] || 0
           : 0)
       if (w) {
         fullBorder += buildBorderPath(
@@ -236,7 +303,7 @@ export default function border(
           asContentMask,
           props,
           { left, top, width, height },
-          style,
+          normalizedStyle,
           partialSides
         )
       }
@@ -248,7 +315,7 @@ export default function border(
     const w =
       (currentStyle[0] || 0) +
       (asContentMask && !maskBorderOnly
-        ? style[currentStyle[3].replace('border', 'padding')] || 0
+        ? normalizedStyle[currentStyle[3].replace('border', 'padding')] || 0
         : 0)
     if (w) {
       fullBorder += buildBorderPath(
@@ -257,7 +324,7 @@ export default function border(
         asContentMask,
         props,
         { left, top, width, height },
-        style,
+        normalizedStyle,
         partialSides
       )
     }

@@ -105,4 +105,38 @@ describe('Border Styles', () => {
       expect(toImage(svg, 100)).toMatchImageSnapshot()
     })
   })
+
+  describe('inset/outset', () => {
+    it('should render inset border shading', async () => {
+      const svg = await satori(
+        <div
+          style={{
+            width: 80,
+            height: 80,
+            border: '6px inset red',
+            backgroundColor: 'white',
+          }}
+        />,
+        { width: 100, height: 100, fonts }
+      )
+      expect(svg).toContain('rgba(')
+      expect(toImage(svg, 100)).toMatchImageSnapshot()
+    })
+
+    it('should render outset border shading', async () => {
+      const svg = await satori(
+        <div
+          style={{
+            width: 80,
+            height: 80,
+            border: '6px outset red',
+            backgroundColor: 'white',
+          }}
+        />,
+        { width: 100, height: 100, fonts }
+      )
+      expect(svg).toContain('rgba(')
+      expect(toImage(svg, 100)).toMatchImageSnapshot()
+    })
+  })
 })
