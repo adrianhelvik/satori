@@ -41,7 +41,7 @@
 | Property | Feasibility | Notes |
 |----------|-------------|-------|
 | `mask-mode` | **Supported (approx.)** | Supports `alpha`, `luminance`, and `match-source` (mapped to alpha semantics for image/gradient masks). Per-layer mixed-mode behavior remains approximate due single SVG mask pipeline. |
-| `mask-composite` | **Supported (partial)** | `intersect` is supported for layered masks. Other operators currently fall back to additive composition. |
+| `mask-composite` | **Supported (partial)** | Supports `add`, `intersect`, `subtract`, `exclude` for layered masks. Compositing remains approximate for complex multi-layer/mixed-mode pipelines. |
 | `mask-border` | Hard | Border-image-style masking |
 | `mask-border-source` | Hard | |
 | `mask-border-slice` | Hard | |

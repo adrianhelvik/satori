@@ -379,4 +379,40 @@ describe('Mask-*', () => {
     )
     expect(toImage(svg, 100)).toMatchImageSnapshot()
   })
+
+  it('should support mask-composite: subtract', async () => {
+    const svg = await satori(
+      <div
+        style={{
+          width: 100,
+          height: 100,
+          backgroundColor: 'red',
+          maskImage:
+            'linear-gradient(to right, black 50%, transparent 50%), linear-gradient(to bottom, black 50%, transparent 50%)',
+          maskMode: 'alpha, alpha',
+          maskComposite: 'subtract',
+        }}
+      />,
+      { width: 100, height: 100, fonts }
+    )
+    expect(toImage(svg, 100)).toMatchImageSnapshot()
+  })
+
+  it('should support mask-composite: exclude', async () => {
+    const svg = await satori(
+      <div
+        style={{
+          width: 100,
+          height: 100,
+          backgroundColor: 'red',
+          maskImage:
+            'linear-gradient(to right, black 50%, transparent 50%), linear-gradient(to bottom, black 50%, transparent 50%)',
+          maskMode: 'alpha, alpha',
+          maskComposite: 'exclude',
+        }}
+      />,
+      { width: 100, height: 100, fonts }
+    )
+    expect(toImage(svg, 100)).toMatchImageSnapshot()
+  })
 })

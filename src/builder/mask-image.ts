@@ -19,6 +19,64 @@ function normalizeMaskComposite(value: string | undefined): string {
   return 'add'
 }
 
+function buildInvertedMask(
+  {
+    maskId,
+    id,
+    left,
+    top,
+    width,
+    height,
+  }: {
+    maskId: string
+    id: string
+    left: number
+    top: number
+    width: number
+    height: number
+  },
+  defs: string
+): [string, string] {
+  const filterId = `${id}-inv-filter`
+  const inverseMaskId = `${id}-inv-mask`
+
+  defs += buildXMLString(
+    'filter',
+    {
+      id: filterId,
+      x: left,
+      y: top,
+      width,
+      height,
+      filterUnits: 'userSpaceOnUse',
+      'color-interpolation-filters': 'sRGB',
+    },
+    buildXMLString('feColorMatrix', {
+      type: 'matrix',
+      values: '-1 0 0 0 1 0 -1 0 0 1 0 0 -1 0 1 0 0 0 -1 1',
+    })
+  )
+
+  defs += buildXMLString(
+    'mask',
+    { id: inverseMaskId, 'mask-type': 'alpha' },
+    buildXMLString(
+      'g',
+      { filter: `url(#${filterId})` },
+      buildXMLString('rect', {
+        x: left,
+        y: top,
+        width,
+        height,
+        fill: '#fff',
+        mask: `url(#${maskId})`,
+      })
+    )
+  )
+
+  return [inverseMaskId, defs]
+}
+
 function resolveMaskBox(
   box: string,
   left: number,
@@ -149,7 +207,88 @@ export default async function buildMaskImage(
       continue
     }
 
-    // Fallback for unsupported operators: additive composition.
+    if (composite === 'subtract') {
+      const prevMaskId = `${miId}-acc-${i}-prev`
+      defs += buildXMLString(
+        'mask',
+        { id: prevMaskId, 'mask-type': 'alpha' },
+        composedMaskShape
+      )
+      const [inversePrevMaskId, defsWithInverse] = buildInvertedMask(
+        {
+          maskId: prevMaskId,
+          id: `${miId}-acc-${i}-prev`,
+          left,
+          top,
+          width,
+          height,
+        },
+        defs
+      )
+      defs = defsWithInverse
+
+      composedMaskShape = buildXMLString(
+        'g',
+        { mask: `url(#${inversePrevMaskId})` },
+        layerShape
+      )
+      continue
+    }
+
+    if (composite === 'exclude') {
+      const prevMaskId = `${miId}-acc-${i}-prev`
+      const currentMaskId = `${miId}-acc-${i}-current`
+      defs += buildXMLString(
+        'mask',
+        { id: prevMaskId, 'mask-type': 'alpha' },
+        composedMaskShape
+      )
+      defs += buildXMLString(
+        'mask',
+        { id: currentMaskId, 'mask-type': 'alpha' },
+        layerShape
+      )
+
+      let inversePrevMaskId = ''
+      let inverseCurrentMaskId = ''
+      ;[inversePrevMaskId, defs] = buildInvertedMask(
+        {
+          maskId: prevMaskId,
+          id: `${miId}-acc-${i}-prev`,
+          left,
+          top,
+          width,
+          height,
+        },
+        defs
+      )
+      ;[inverseCurrentMaskId, defs] = buildInvertedMask(
+        {
+          maskId: currentMaskId,
+          id: `${miId}-acc-${i}-current`,
+          left,
+          top,
+          width,
+          height,
+        },
+        defs
+      )
+
+      composedMaskShape =
+        buildXMLString(
+          'g',
+          { mask: `url(#${inversePrevMaskId})` },
+          layerShape
+        ) +
+        buildXMLString(
+          'g',
+          { mask: `url(#${inverseCurrentMaskId})` },
+          composedMaskShape
+        )
+      continue
+    }
+
+    // Additive composition.
     composedMaskShape += layerShape
   }
 
