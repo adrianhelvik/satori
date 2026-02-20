@@ -23,7 +23,7 @@
 | Property | Feasibility | Notes |
 |----------|-------------|-------|
 | `background-blend-mode` | **Supported (partial)** | Exact compositing for solid-color layers (including flat gradients/colors). Non-uniform/image layers fall back to approximate behavior. |
-| `mix-blend-mode` | **Supported (partial)** | Native SVG blend support is renderer-dependent. Satori includes a geometric fallback for common solid-rect `multiply`/`screen` overlaps on neutral parent backdrops (`white` for `multiply`, `black` for `screen`). |
+| `mix-blend-mode` | **Supported (partial)** | Native SVG blend support is renderer-dependent. Satori includes a geometric fallback for simple solid-rect overlaps on neutral parent backdrops for `multiply`, `screen`, `darken`, `lighten`, `difference`, and `exclusion`. |
 
 ### Backdrop
 

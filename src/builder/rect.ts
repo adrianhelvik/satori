@@ -61,6 +61,15 @@ const supportedBackgroundBlendModes = new Set([
   'plus-lighter',
 ])
 
+const supportedMixBlendFallbackModes = new Set([
+  'multiply',
+  'screen',
+  'darken',
+  'lighten',
+  'difference',
+  'exclusion',
+])
+
 function parseBackgroundBlendModes(value: unknown): string[] {
   if (typeof value !== 'string' || !value.trim()) return []
   return value
@@ -574,7 +583,20 @@ function isOpaqueNeutralBackdrop(
     )
   }
 
-  if (mode === 'screen') {
+  if (mode === 'darken') {
+    return (
+      Math.abs(parsed.r - 1) < 1e-6 &&
+      Math.abs(parsed.g - 1) < 1e-6 &&
+      Math.abs(parsed.b - 1) < 1e-6
+    )
+  }
+
+  if (
+    mode === 'screen' ||
+    mode === 'lighten' ||
+    mode === 'difference' ||
+    mode === 'exclusion'
+  ) {
     return (
       Math.abs(parsed.r) < 1e-6 &&
       Math.abs(parsed.g) < 1e-6 &&
@@ -1257,8 +1279,7 @@ export default async function rect(
 
   const blendFallbackOverlays =
     hasSimpleSolidRect &&
-    (normalizedMixBlendMode === 'multiply' ||
-      normalizedMixBlendMode === 'screen')
+    supportedMixBlendFallbackModes.has(normalizedMixBlendMode)
       ? resolveRectBlendFallbackOverlays(
           normalizedMixBlendMode,
           fillLayers[0].solidColor,
