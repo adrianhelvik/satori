@@ -1,5 +1,6 @@
 import { buildXMLString, lengthToNumber } from '../utils.js'
 import type { GlyphBox } from '../font.js'
+import type { SerializedStyle } from '../handler/expand.js'
 
 function buildSkipInkSegments(
   start: number,
@@ -59,7 +60,7 @@ function buildSkipInkSegments(
 function resolveLengthOrPercentage(
   value: unknown,
   fontSize: number,
-  style: Record<string, any>
+  style: SerializedStyle
 ): number | undefined {
   if (typeof value === 'number' && Number.isFinite(value)) return value
   if (typeof value !== 'string') return
@@ -69,13 +70,7 @@ function resolveLengthOrPercentage(
     return
   }
 
-  const resolved = lengthToNumber(
-    normalized,
-    fontSize,
-    fontSize,
-    style as Record<string, string | number | object>,
-    true
-  )
+  const resolved = lengthToNumber(normalized, fontSize, fontSize, style, true)
   return typeof resolved === 'number' && Number.isFinite(resolved)
     ? resolved
     : undefined
@@ -99,17 +94,28 @@ export default function buildDecoration(
     matrix?: string
     glyphBoxes?: GlyphBox[]
   },
-  style: Record<string, any>
+  style: SerializedStyle
 ) {
-  const {
-    textDecorationColor,
-    textDecorationStyle,
-    textDecorationLine,
-    textDecorationSkipInk,
-    fontSize,
-    color,
-  } = style
-  if (!textDecorationLine || textDecorationLine === 'none') return ''
+  const textDecorationLine =
+    typeof style.textDecorationLine === 'string'
+      ? style.textDecorationLine
+      : 'none'
+  if (textDecorationLine === 'none') return ''
+
+  const textDecorationColor =
+    typeof style.textDecorationColor === 'string'
+      ? style.textDecorationColor
+      : undefined
+  const textDecorationStyle =
+    typeof style.textDecorationStyle === 'string'
+      ? style.textDecorationStyle
+      : 'solid'
+  const textDecorationSkipInk =
+    typeof style.textDecorationSkipInk === 'string'
+      ? style.textDecorationSkipInk
+      : 'auto'
+  const color = typeof style.color === 'string' ? style.color : 'currentColor'
+  const fontSize = typeof style.fontSize === 'number' ? style.fontSize : 16
 
   const textDecorationThickness = style.textDecorationThickness
   const textDecorationThicknessFromFont =

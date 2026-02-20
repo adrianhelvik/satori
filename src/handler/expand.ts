@@ -875,9 +875,27 @@ type MainStyle = {
   textDecorationSkipInk: 'auto' | 'none' | 'all'
 }
 
-type OtherStyle = Record<PropertyKey, string | number | object | undefined>
+export type BackgroundClipPathRef = { value: string }
 
-export type SerializedStyle = Partial<MainStyle> & OtherStyle
+type InternalStyle = {
+  _viewportWidth: number
+  _viewportHeight: number
+  _inheritedClipPathId: string
+  _inheritedMaskId: string
+  _inheritedBackgroundClipTextPath: BackgroundClipPathRef
+  _inheritedBackgroundClipTextHasBackground: 'true'
+  _parentBackgroundColor: string
+  _textUnderlineOffsetFromFont: number
+  _textDecorationThicknessFromFont: number
+  __src: string
+  __srcWidth: number
+  __srcHeight: number
+}
+
+type StyleValue = string | number | object | undefined
+
+export type SerializedStyle = Partial<MainStyle & InternalStyle> &
+  Record<PropertyKey, StyleValue>
 
 const allInheritedProps = new Set([
   'color',

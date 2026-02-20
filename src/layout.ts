@@ -400,14 +400,16 @@ export default async function* layout(
     newInheritableStyle._inheritedMaskId = `satori_mi-${id}`
   }
 
-  if (computedStyle.backgroundColor) {
+  if (typeof computedStyle.backgroundColor === 'string') {
     newInheritableStyle._parentBackgroundColor = computedStyle.backgroundColor
   }
 
   // If the element has `background-clip: text` set, we need to create a clip
   // path and use it in all its children.
   if (computedStyle.backgroundClip === 'text') {
-    const mutateRefValue = { value: '' } as any
+    const mutateRefValue: NonNullable<
+      SerializedStyle['_inheritedBackgroundClipTextPath']
+    > = { value: '' }
     newInheritableStyle._inheritedBackgroundClipTextPath = mutateRefValue
     computedStyle._inheritedBackgroundClipTextPath = mutateRefValue
 
@@ -553,14 +555,15 @@ export default async function* layout(
   })
 
   // Generate the rendered markup for the current node.
-  const parentBackgroundColor = inheritedStyle._parentBackgroundColor as
-    | string
-    | undefined
+  const parentBackgroundColor = inheritedStyle._parentBackgroundColor
   const parentLayout = parent.getComputedLayout()
   const parentTransform = inheritedStyle.transform as TransformInput | undefined
 
   if (type === 'img') {
-    const src = computedStyle.__src as string
+    const src = computedStyle.__src
+    if (typeof src !== 'string') {
+      throw new Error('Image source is missing after image resolution.')
+    }
     baseRenderResult = await rect(
       {
         id,
@@ -678,7 +681,7 @@ export default async function* layout(
           ? `url(#${computedStyle._inheritedClipPathId})`
           : undefined,
       },
-      (computedStyle._inheritedBackgroundClipTextPath as any).value
+      computedStyle._inheritedBackgroundClipTextPath.value
     )
   }
 

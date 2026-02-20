@@ -14,6 +14,7 @@ import {
 } from '../utils.js'
 import { getYoga, TYoga, YogaNode } from '../yoga.js'
 import buildText, { container } from '../builder/text.js'
+import type { TransformInput } from '../builder/transform.js'
 import { buildDropShadow } from '../builder/shadow.js'
 import buildDecoration from '../builder/text-decoration.js'
 import type { GlyphBox } from '../font.js'
@@ -647,8 +648,8 @@ export default async function* buildTextNodes(
   let result = ''
   let backgroundClipDef = ''
 
-  const clipPathId = inheritedStyle._inheritedClipPathId as string | undefined
-  const overflowMaskId = inheritedStyle._inheritedMaskId as number | undefined
+  const clipPathId = inheritedStyle._inheritedClipPathId
+  const overflowMaskId = inheritedStyle._inheritedMaskId
 
   const {
     left: containerLeft,
@@ -675,7 +676,7 @@ export default async function* buildTextNodes(
       width: containerWidth,
       height: containerHeight,
       isInheritingTransform,
-      parentTransform: inheritedStyle.transform as any,
+      parentTransform: inheritedStyle.transform as TransformInput | undefined,
       parentTransformSize: {
         width: parent.getComputedWidth(),
         height: parent.getComputedHeight(),
@@ -1112,9 +1113,8 @@ export default async function* buildTextNodes(
   }
 
   // Attach information to the parent node.
-  if (backgroundClipDef) {
-    ;(parentStyle._inheritedBackgroundClipTextPath as any).value +=
-      backgroundClipDef
+  if (backgroundClipDef && parentStyle._inheritedBackgroundClipTextPath) {
+    parentStyle._inheritedBackgroundClipTextPath.value += backgroundClipDef
   }
 
   // visibility: hidden — layout is computed but no visual output is emitted.
