@@ -5,6 +5,7 @@ const list = new Set([
   'font',
   'fontFamily',
   'fontSize',
+  'fontSizeAdjust',
   'fontStyle',
   'fontWeight',
   'letterSpacing',

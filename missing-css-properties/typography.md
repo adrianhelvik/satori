@@ -3,6 +3,7 @@
 ## What Satori supports
 
 - `font-family`, `font-size`, `font-weight`, `font-style`
+- `font-size-adjust` (numeric / `from-font`, approximate)
 - `line-height`, `letter-spacing`, `tab-size`
 - `word-spacing`, `text-indent`
 - `text-align` (start, end, left, right, center, justify)
@@ -35,7 +36,7 @@
 | `font-optical-sizing` | Hard | Requires variable font `opsz` axis support |
 | `font-kerning` | Hard | opentype.js can read kern tables but Satori doesn't apply them during layout |
 | `font-stretch` | Hard | Requires width-variant font matching |
-| `font-size-adjust` | Feasible | Could normalize x-height across fonts using opentype.js metrics |
+| `font-size-adjust` | **Supported (approx.)** | Numeric and `from-font` values are applied using primary font x-height metrics. Per-glyph fallback-font adjustment is not fully modeled. |
 | `font-synthesis` | N/A | Browser-level bold/italic synthesis — Satori uses actual font files |
 | `font-synthesis-weight` | N/A | Same |
 | `font-synthesis-style` | N/A | Same |

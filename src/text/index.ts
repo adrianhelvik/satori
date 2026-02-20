@@ -43,6 +43,47 @@ function isOpaqueWhite(color: string): boolean {
   return r === 255 && g === 255 && b === 255 && (a === undefined || a === 1)
 }
 
+function resolveFontSizeAdjustTarget(
+  value: number | string | undefined,
+  fontAspect: number | undefined
+): number | undefined {
+  if (typeof value === 'number') {
+    return value > 0 ? value : undefined
+  }
+
+  if (!isString(value)) return
+  const normalized = value.trim().toLowerCase()
+  if (!normalized || normalized === 'none') return
+
+  if (normalized === 'from-font') {
+    return fontAspect && fontAspect > 0 ? fontAspect : undefined
+  }
+
+  const parsed = parseFloat(normalized.split(/\s+/)[0])
+  if (isFinite(parsed) && parsed > 0) {
+    return parsed
+  }
+}
+
+function resolveAdjustedFontSize(
+  fontSize: number,
+  fontSizeAdjust: number | string | undefined,
+  fontAspect: number | undefined
+) {
+  const targetAspect = resolveFontSizeAdjustTarget(fontSizeAdjust, fontAspect)
+  if (
+    !targetAspect ||
+    !fontAspect ||
+    fontAspect <= 0 ||
+    !isFinite(targetAspect) ||
+    !isFinite(fontAspect)
+  ) {
+    return fontSize
+  }
+
+  return fontSize * (targetAspect / fontAspect)
+}
+
 export default async function* buildTextNodes(
   content: string,
   context: LayoutContext
@@ -79,6 +120,20 @@ export default async function* buildTextNodes(
     flexShrink,
   } = parentStyle
 
+  const fontAspect = font.getFontAspect(parentStyle, locale)
+  const resolvedFontSize = resolveAdjustedFontSize(
+    fontSize,
+    parentStyle.fontSizeAdjust as number | string | undefined,
+    fontAspect
+  )
+  const textStyle =
+    resolvedFontSize === fontSize
+      ? parentStyle
+      : {
+          ...parentStyle,
+          fontSize: resolvedFontSize,
+        }
+
   const {
     words,
     requiredBreaks,
@@ -99,7 +154,7 @@ export default async function* buildTextNodes(
 
   // Get the correct font according to the container style.
   // https://www.w3.org/TR/CSS2/visudet.html
-  let engine = font.getEngine(fontSize, lineHeight, parentStyle, locale)
+  let engine = font.getEngine(resolvedFontSize, lineHeight, textStyle, locale)
 
   // Yield segments that are missing a font.
   const wordsMissingFont = canLoadAdditionalAssets
@@ -117,7 +172,7 @@ export default async function* buildTextNodes(
 
   if (wordsMissingFont.length) {
     // Reload the engine with additional fonts.
-    engine = font.getEngine(fontSize, lineHeight, parentStyle, locale)
+    engine = font.getEngine(resolvedFontSize, lineHeight, textStyle, locale)
   }
 
   function isImage(s: string): boolean {
@@ -131,14 +186,14 @@ export default async function* buildTextNodes(
     engine,
     isImage,
     {
-      fontSize,
+      fontSize: resolvedFontSize,
       letterSpacing,
       wordSpacing: wordSpacingValue,
     }
   )
 
   const tabWidth = isString(tabSize)
-    ? lengthToNumber(tabSize, fontSize, 1, parentStyle)
+    ? lengthToNumber(tabSize, resolvedFontSize, 1, parentStyle)
     : measureGrapheme(Space) * tabSize
 
   const calc = (
@@ -350,7 +405,7 @@ export default async function* buildTextNodes(
           let _isImage = false
 
           if (isImage(_text)) {
-            _width = fontSize
+            _width = resolvedFontSize
             _isImage = true
           } else {
             _width = measureGrapheme(_text)
@@ -602,7 +657,7 @@ export default async function* buildTextNodes(
       const baseline = top + offset + baselineDelta + baselineOfWord
       return {
         underlineY: baseline + baselineOfWord * 0.1,
-        strokeWidth: Math.max(1, fontSize * 0.1),
+        strokeWidth: Math.max(1, resolvedFontSize * 0.1),
       }
     }
 
@@ -734,7 +789,7 @@ export default async function* buildTextNodes(
       const svg = engine.getSVG(
         finalizedSegment.replace(/(\t)+/g, ''),
         {
-          fontSize,
+          fontSize: resolvedFontSize,
           left: left + finalizedLeftOffset,
           // Since we need to pass the baseline position, add the ascender to the top.
           top: top + topOffset + baselineOfWord + baselineDelta,
@@ -791,7 +846,7 @@ export default async function* buildTextNodes(
         const svg = engine.getSVG(
           text.replace(/(\t)+/g, ''),
           {
-            fontSize,
+            fontSize: resolvedFontSize,
             left: left + leftOffset,
             top: top + topOffset,
             letterSpacing,
@@ -826,7 +881,7 @@ export default async function* buildTextNodes(
           debug,
           shape: !!_inheritedBackgroundClipTextPath,
         },
-        parentStyle
+        textStyle
       )
       result += t
       backgroundClipDef += shape
@@ -853,7 +908,7 @@ export default async function* buildTextNodes(
             matrix,
             glyphBoxes,
           },
-          parentStyle
+          textStyle
         )
       })
       .join('')

@@ -395,6 +395,158 @@ export default class FontLoader {
     }
   }
 
+  private resolveFontCandidates(
+    {
+      fontFamily = 'sans-serif',
+      fontWeight = 400,
+      fontStyle = 'normal',
+    }: {
+      fontFamily?: string | string[]
+      fontWeight?: FontWeight
+      fontStyle?: FontStyle
+    },
+    locale: Locale | undefined
+  ) {
+    const normalizedFamilies = (
+      Array.isArray(fontFamily) ? fontFamily : [fontFamily]
+    ).map((name) => name.toLowerCase())
+    const matchedFonts: opentype.Font[] = []
+
+    normalizedFamilies.forEach((face) => {
+      const getNormal = this.get({
+        name: face,
+        weight: fontWeight,
+        style: fontStyle,
+      })
+      if (getNormal) {
+        matchedFonts.push(getNormal)
+        return
+      }
+
+      const getUnknown = this.get({
+        name: face + '_unknown',
+        weight: fontWeight,
+        style: fontStyle,
+      })
+
+      if (getUnknown) {
+        matchedFonts.push(getUnknown)
+      }
+    })
+
+    const keys = Array.from(this.fonts.keys())
+    const specifiedLangFonts: opentype.Font[] = []
+    const nonSpecifiedLangFonts: opentype.Font[] = []
+    const additionalFonts: opentype.Font[] = []
+
+    for (const name of keys) {
+      if (normalizedFamilies.includes(name)) continue
+      if (locale) {
+        const lang = getLangFromFontName(name)
+        if (lang) {
+          if (lang === locale) {
+            const resolved = this.get({
+              name,
+              weight: fontWeight,
+              style: fontStyle,
+            })
+            if (resolved) {
+              specifiedLangFonts.push(resolved)
+            }
+          } else {
+            const resolved = this.get({
+              name,
+              weight: fontWeight,
+              style: fontStyle,
+            })
+            if (resolved) {
+              nonSpecifiedLangFonts.push(resolved)
+            }
+          }
+        } else {
+          const resolved = this.get({
+            name,
+            weight: fontWeight,
+            style: fontStyle,
+          })
+          if (resolved) {
+            additionalFonts.push(resolved)
+          }
+        }
+      } else {
+        const resolved = this.get({
+          name,
+          weight: fontWeight,
+          style: fontStyle,
+        })
+        if (resolved) {
+          additionalFonts.push(resolved)
+        }
+      }
+    }
+
+    return {
+      matchedFonts,
+      additionalFonts,
+      specifiedLangFonts,
+      nonSpecifiedLangFonts,
+    }
+  }
+
+  private getFontAspectValue(resolvedFont?: opentype.Font): number | undefined {
+    if (!resolvedFont || !resolvedFont.unitsPerEm) return
+
+    const os2XHeight = Number(resolvedFont.tables?.os2?.sxHeight || 0)
+    if (os2XHeight > 0) {
+      return os2XHeight / resolvedFont.unitsPerEm
+    }
+
+    const xGlyph = resolvedFont.charToGlyph('x')
+    if (xGlyph && typeof xGlyph.yMax === 'number' && xGlyph.yMax > 0) {
+      return xGlyph.yMax / resolvedFont.unitsPerEm
+    }
+  }
+
+  public getFontAspect(
+    {
+      fontFamily = 'sans-serif',
+      fontWeight = 400,
+      fontStyle = 'normal',
+    }: {
+      fontFamily?: string | string[]
+      fontWeight?: FontWeight
+      fontStyle?: FontStyle
+    },
+    locale: Locale | undefined
+  ): number | undefined {
+    if (!this.fonts.size) {
+      return
+    }
+
+    const {
+      matchedFonts,
+      additionalFonts,
+      specifiedLangFonts,
+      nonSpecifiedLangFonts,
+    } = this.resolveFontCandidates(
+      {
+        fontFamily,
+        fontWeight,
+        fontStyle,
+      },
+      locale
+    )
+
+    const primaryFont = [
+      ...matchedFonts,
+      ...additionalFonts,
+      ...specifiedLangFonts,
+      ...nonSpecifiedLangFonts,
+    ][0]
+
+    return this.getFontAspectValue(primaryFont)
+  }
+
   public getEngine(
     fontSize = 16,
     lineHeight: number | string = 'normal',
@@ -415,79 +567,25 @@ export default class FontLoader {
       )
     }
 
-    fontFamily = (Array.isArray(fontFamily) ? fontFamily : [fontFamily]).map(
-      (name) => name.toLowerCase()
+    const {
+      matchedFonts: fonts,
+      additionalFonts,
+      specifiedLangFonts,
+      nonSpecifiedLangFonts,
+    } = this.resolveFontCandidates(
+      {
+        fontFamily,
+        fontWeight,
+        fontStyle,
+      },
+      locale
     )
-    const fonts = []
-    fontFamily.forEach((face) => {
-      const getNormal = this.get({
-        name: face,
-        weight: fontWeight,
-        style: fontStyle,
-      })
-      if (getNormal) {
-        fonts.push(getNormal)
-        return
-      }
-
-      const getUnknown = this.get({
-        name: face + '_unknown',
-        weight: fontWeight,
-        style: fontStyle,
-      })
-
-      if (getUnknown) {
-        fonts.push(getUnknown)
-        return
-      }
-    })
-
-    // Add additional fonts as the fallback.
-    const keys = Array.from(this.fonts.keys())
-    const specifiedLangFonts = []
-    const nonSpecifiedLangFonts = []
-    const additionalFonts = []
-    for (const name of keys) {
-      if (fontFamily.includes(name)) continue
-      if (locale) {
-        const lang = getLangFromFontName(name)
-        if (lang) {
-          if (lang === locale) {
-            specifiedLangFonts.push(
-              this.get({
-                name,
-                weight: fontWeight,
-                style: fontStyle,
-              })
-            )
-          } else {
-            nonSpecifiedLangFonts.push(
-              this.get({
-                name,
-                weight: fontWeight,
-                style: fontStyle,
-              })
-            )
-          }
-        } else {
-          additionalFonts.push(
-            this.get({
-              name,
-              weight: fontWeight,
-              style: fontStyle,
-            })
-          )
-        }
-      } else {
-        additionalFonts.push(
-          this.get({
-            name,
-            weight: fontWeight,
-            style: fontStyle,
-          })
-        )
-      }
-    }
+    const defaultResolvedFont =
+      fonts[0] ||
+      additionalFonts[0] ||
+      specifiedLangFonts[0] ||
+      nonSpecifiedLangFonts[0] ||
+      this.defaultFont
 
     const cachedFontResolver = new Map<number, opentype.Font | undefined>()
     const resolveFont = (word: string, fallback = true) => {
@@ -567,7 +665,9 @@ export default class FontLoader {
       },
       baseline: (
         s?: string,
-        resolvedFont = typeof s === 'undefined' ? fonts[0] : resolveFont(s)
+        resolvedFont = typeof s === 'undefined'
+          ? defaultResolvedFont
+          : resolveFont(s)
       ) => {
         const asc = ascender(resolvedFont)
         const desc = descender(resolvedFont)
@@ -577,7 +677,9 @@ export default class FontLoader {
       },
       height: (
         s?: string,
-        resolvedFont = typeof s === 'undefined' ? fonts[0] : resolveFont(s)
+        resolvedFont = typeof s === 'undefined'
+          ? defaultResolvedFont
+          : resolveFont(s)
       ) => {
         return height(resolvedFont)
       },
