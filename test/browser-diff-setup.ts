@@ -71,13 +71,23 @@ function buildHtmlDocument(
   html: string,
   width: number,
   height: number,
-  fontFaceRules: string
+  fontFaceRules: string,
+  defaultFontFamily?: string
 ): string {
+  const escapedDefaultFontFamily = defaultFontFamily
+    ? `'${defaultFontFamily.replace(/\\/g, '\\\\').replace(/'/g, "\\'")}'`
+    : ''
+
   return `<!DOCTYPE html>
 <html><head><style>
 ${fontFaceRules}
 * { margin: 0; padding: 0; box-sizing: border-box; }
-body { width: ${width}px; height: ${height}px; overflow: hidden; }
+body {
+  width: ${width}px;
+  height: ${height}px;
+  overflow: hidden;
+  ${escapedDefaultFontFamily ? `font-family: ${escapedDefaultFontFamily};` : ''}
+}
 </style></head>
 <body>${html}</body></html>`
 }
@@ -158,7 +168,17 @@ afterEach(async (ctx) => {
       // Render element to HTML
       const html = renderToStaticMarkup(element)
       const fontFaceRules = fontsToFontFaceRules(options.fonts || [])
-      const doc = buildHtmlDocument(html, w, h, fontFaceRules)
+      const defaultFontFamily =
+        Array.isArray(options.fonts) && options.fonts[0]?.name
+          ? String(options.fonts[0].name)
+          : undefined
+      const doc = buildHtmlDocument(
+        html,
+        w,
+        h,
+        fontFaceRules,
+        defaultFontFamily
+      )
 
       // Browser screenshot
       await page.setViewportSize({ width: w, height: h })
