@@ -121,6 +121,7 @@ describe('Color Models', () => {
           fonts,
         }
       )
+      expect(svg).not.toContain('fill="rgba(186,22,26,1)"')
       expect(toImage(svg, 100)).toMatchImageSnapshot()
     })
 
@@ -143,6 +144,7 @@ describe('Color Models', () => {
           fonts,
         }
       )
+      expect(svg).not.toContain('fill="rgba(186,22,26,0.5)"')
       expect(toImage(svg, 100)).toMatchImageSnapshot()
     })
 

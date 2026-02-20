@@ -55,15 +55,83 @@ function resolveBackgroundBlendMode(
   return modes[layerIndex % modes.length]
 }
 
+function normalizeBackgroundToken(
+  value: string | undefined,
+  fallback: string
+): string {
+  return (value || fallback).trim().toLowerCase().replace(/\s+/g, ' ')
+}
+
+function isSolidBlendEligibleBackgroundLayer(layer: {
+  repeat?: string
+  size?: string
+  position?: string
+}): boolean {
+  const repeat = normalizeBackgroundToken(layer.repeat, 'repeat')
+  const size = normalizeBackgroundToken(layer.size, 'auto')
+  const position = normalizeBackgroundToken(layer.position, '0% 0%')
+
+  const repeatDefault = repeat === 'repeat' || repeat === 'repeat repeat'
+  const sizeDefault = size === 'auto' || size === 'auto auto'
+  const positionDefault =
+    position === '0% 0%' ||
+    position === '0px 0px' ||
+    position === 'left top' ||
+    position === 'top left'
+
+  return repeatDefault && sizeDefault && positionDefault
+}
+
 function clamp01(value: number): number {
   return Math.max(0, Math.min(1, value))
+}
+
+function hslToRgb(h: number, s: number, l: number): [number, number, number] {
+  const hue = ((h % 360) + 360) % 360
+  const saturation = clamp01(s / 100)
+  const lightness = clamp01(l / 100)
+  const chroma = (1 - Math.abs(2 * lightness - 1)) * saturation
+  const x = chroma * (1 - Math.abs(((hue / 60) % 2) - 1))
+  const m = lightness - chroma / 2
+
+  let rPrime = 0
+  let gPrime = 0
+  let bPrime = 0
+  if (hue < 60) {
+    rPrime = chroma
+    gPrime = x
+  } else if (hue < 120) {
+    rPrime = x
+    gPrime = chroma
+  } else if (hue < 180) {
+    gPrime = chroma
+    bPrime = x
+  } else if (hue < 240) {
+    gPrime = x
+    bPrime = chroma
+  } else if (hue < 300) {
+    rPrime = x
+    bPrime = chroma
+  } else {
+    rPrime = chroma
+    bPrime = x
+  }
+
+  return [
+    Math.round((rPrime + m) * 255),
+    Math.round((gPrime + m) * 255),
+    Math.round((bPrime + m) * 255),
+  ]
 }
 
 function parseRGBAColor(value: string | undefined): RGBAColor | null {
   if (!value) return null
   const parsed = cssColorParse(value)
   if (!parsed) return null
-  const [r, g, b] = parsed.values
+  const [r, g, b] =
+    parsed.type === 'hsl'
+      ? hslToRgb(parsed.values[0], parsed.values[1], parsed.values[2])
+      : parsed.values
   return {
     r: clamp01(r / 255),
     g: clamp01(g / 255),
@@ -235,6 +303,13 @@ export default async function rect(
   }
 
   let backgroundShapes = ''
+  const backgroundBlendModes = parseBackgroundBlendModes(
+    style.backgroundBlendMode
+  )
+  const hasRequestedBackgroundBlendMode = backgroundBlendModes.some(
+    (mode) => mode !== 'normal'
+  )
+
   if (style.backgroundImage) {
     const backgrounds: {
       patternId: string
@@ -242,6 +317,9 @@ export default async function rect(
       shape?: string
       solidColor?: string
       sourceIndex: number
+      repeat?: string
+      size?: string
+      position?: string
     }[] = []
 
     for (
@@ -266,24 +344,33 @@ export default async function rect(
           shape: image[2],
           solidColor: image[3],
           sourceIndex: index,
+          repeat: background.repeat,
+          size: background.size,
+          position: background.position,
         })
       }
     }
 
-    const backgroundBlendModes = parseBackgroundBlendModes(
-      style.backgroundBlendMode
-    )
-
     for (const background of backgrounds) {
+      const blendMode = resolveBackgroundBlendMode(
+        backgroundBlendModes,
+        background.sourceIndex
+      )
+      const canUseSolidLayerForBlend =
+        hasRequestedBackgroundBlendMode &&
+        !!background.solidColor &&
+        isSolidBlendEligibleBackgroundLayer(background)
+
       fillLayers.push({
-        fill: background.solidColor || `url(#${background.patternId})`,
-        blendMode: resolveBackgroundBlendMode(
-          backgroundBlendModes,
-          background.sourceIndex
-        ),
-        solidColor: background.solidColor,
+        fill: canUseSolidLayerForBlend
+          ? (background.solidColor as string)
+          : `url(#${background.patternId})`,
+        blendMode,
+        solidColor: canUseSolidLayerForBlend
+          ? background.solidColor
+          : undefined,
       })
-      if (!background.solidColor) {
+      if (!canUseSolidLayerForBlend) {
         defs += background.defs
       }
       if (background.shape) {
@@ -356,17 +443,18 @@ export default async function rect(
   // Each background generates a new rectangle.
   // @TODO: Not sure if this is the best way to do it, maybe <pattern> with
   // multiple <image>s is better.
-  const blendedSolidFill = resolveSolidBackgroundBlend(fillLayers)
-  if (blendedSolidFill) {
-    fillLayers.splice(0, fillLayers.length, {
-      fill: blendedSolidFill,
-      solidColor: blendedSolidFill,
-    })
-  }
-
   const hasBackgroundBlendMode = fillLayers.some(
     ({ blendMode }) => blendMode && blendMode !== 'normal'
   )
+  if (hasBackgroundBlendMode) {
+    const blendedSolidFill = resolveSolidBackgroundBlend(fillLayers)
+    if (blendedSolidFill) {
+      fillLayers.splice(0, fillLayers.length, {
+        fill: blendedSolidFill,
+        solidColor: blendedSolidFill,
+      })
+    }
+  }
   const backgroundLayerShape = fillLayers
     .map(({ fill, blendMode }) => {
       const layerShape = buildXMLString(type, {
