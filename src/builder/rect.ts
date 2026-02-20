@@ -62,6 +62,20 @@ const supportedBackgroundBlendModes = new Set([
   'plus-lighter',
 ])
 
+const supportedSolidBackgroundBlendModes = new Set([
+  'normal',
+  'multiply',
+  'screen',
+  'overlay',
+  'darken',
+  'lighten',
+  'difference',
+  'exclusion',
+  'hard-light',
+  'color-dodge',
+  'color-burn',
+])
+
 const supportedMixBlendFallbackModes = new Set([
   'multiply',
   'screen',
@@ -590,6 +604,14 @@ function blendChannel(mode: string, backdrop: number, source: number): number {
       return backdrop * source
     case 'screen':
       return backdrop + source - backdrop * source
+    case 'color-dodge':
+      if (backdrop <= 0) return 0
+      if (source >= 1) return 1
+      return Math.min(1, backdrop / (1 - source))
+    case 'color-burn':
+      if (backdrop >= 1) return 1
+      if (source <= 0) return 0
+      return 1 - Math.min(1, (1 - backdrop) / source)
     case 'overlay':
       return backdrop <= 0.5
         ? 2 * backdrop * source
@@ -657,13 +679,15 @@ function resolveSolidBackgroundBlend(
     const next = parseRGBAColor(layers[i].solidColor)
     if (!next) return null
 
-    blended = blendSolidColor(
-      blended,
-      next,
+    const blendMode =
       layers[i].blendMode && layers[i].blendMode !== 'normal'
         ? layers[i].blendMode
         : 'normal'
-    )
+    if (!supportedSolidBackgroundBlendModes.has(blendMode)) {
+      return null
+    }
+
+    blended = blendSolidColor(blended, next, blendMode)
   }
 
   return serializeRGBAColor(blended)

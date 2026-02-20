@@ -372,6 +372,60 @@ describe('Visual Extras', () => {
       expect(svg).toContain('fill="rgba(255,0,0,1)"')
       expect(toImage(svg, 100)).toMatchImageSnapshot()
     })
+
+    it('should support color-dodge for solid background layers', async () => {
+      const svg = await satori(
+        <div
+          style={{
+            display: 'flex',
+            width: 100,
+            height: 100,
+            backgroundImage:
+              'linear-gradient(rgb(255,0,0), rgb(255,0,0)), linear-gradient(rgb(0,0,255), rgb(0,0,255))',
+            backgroundBlendMode: 'color-dodge',
+          }}
+        />,
+        { width: 100, height: 100, fonts }
+      )
+      expect(svg).toContain('fill="rgba(0,0,255,1)"')
+      expect(toImage(svg, 100)).toMatchImageSnapshot()
+    })
+
+    it('should support color-burn for solid background layers', async () => {
+      const svg = await satori(
+        <div
+          style={{
+            display: 'flex',
+            width: 100,
+            height: 100,
+            backgroundImage:
+              'linear-gradient(rgb(255,0,0), rgb(255,0,0)), linear-gradient(rgb(0,0,255), rgb(0,0,255))',
+            backgroundBlendMode: 'color-burn',
+          }}
+        />,
+        { width: 100, height: 100, fonts }
+      )
+      expect(svg).toContain('fill="rgba(0,0,255,1)"')
+      expect(toImage(svg, 100)).toMatchImageSnapshot()
+    })
+
+    it('should support plus-lighter for solid background layers', async () => {
+      const svg = await satori(
+        <div
+          style={{
+            display: 'flex',
+            width: 100,
+            height: 100,
+            backgroundImage:
+              'linear-gradient(rgb(255,0,0), rgb(255,0,0)), linear-gradient(rgb(0,0,255), rgb(0,0,255))',
+            backgroundBlendMode: 'plus-lighter',
+          }}
+        />,
+        { width: 100, height: 100, fonts }
+      )
+      expect(svg).toContain('mix-blend-mode:plus-lighter')
+      expect(toImage(svg, 100)).toMatchImageSnapshot()
+    })
   })
 
   describe('isolation', () => {
