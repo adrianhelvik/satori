@@ -19,6 +19,14 @@ type RGBAColor = {
   a: number
 }
 
+export interface BlendPrimitive {
+  left: number
+  top: number
+  width: number
+  height: number
+  color: string
+}
+
 const supportedBackgroundBlendModes = new Set([
   'normal',
   'multiply',
@@ -251,6 +259,81 @@ function resolveSolidBackgroundBlend(
   return serializeRGBAColor(blended)
 }
 
+function isOpaqueNeutralBackdrop(
+  color: string | undefined,
+  mode: string
+): boolean {
+  const parsed = parseRGBAColor(color)
+  if (!parsed) return false
+  if (Math.abs(parsed.a - 1) > 1e-6) return false
+
+  if (mode === 'multiply') {
+    return (
+      Math.abs(parsed.r - 1) < 1e-6 &&
+      Math.abs(parsed.g - 1) < 1e-6 &&
+      Math.abs(parsed.b - 1) < 1e-6
+    )
+  }
+
+  if (mode === 'screen') {
+    return (
+      Math.abs(parsed.r) < 1e-6 &&
+      Math.abs(parsed.g) < 1e-6 &&
+      Math.abs(parsed.b) < 1e-6
+    )
+  }
+
+  return false
+}
+
+function resolveRectBlendFallbackOverlays(
+  mode: string,
+  sourceColor: string | undefined,
+  sourceRect: { left: number; top: number; width: number; height: number },
+  backdrops: BlendPrimitive[],
+  parentBackgroundColor: string | undefined
+): string {
+  if (!isOpaqueNeutralBackdrop(parentBackgroundColor, mode)) return ''
+
+  const source = parseRGBAColor(sourceColor)
+  if (!source || Math.abs(source.a - 1) > 1e-6) return ''
+
+  const overlays: string[] = []
+  for (const backdrop of backdrops) {
+    const backdropColor = parseRGBAColor(backdrop.color)
+    if (!backdropColor || Math.abs(backdropColor.a - 1) > 1e-6) continue
+
+    const intersectLeft = Math.max(sourceRect.left, backdrop.left)
+    const intersectTop = Math.max(sourceRect.top, backdrop.top)
+    const intersectRight = Math.min(
+      sourceRect.left + sourceRect.width,
+      backdrop.left + backdrop.width
+    )
+    const intersectBottom = Math.min(
+      sourceRect.top + sourceRect.height,
+      backdrop.top + backdrop.height
+    )
+    const intersectWidth = intersectRight - intersectLeft
+    const intersectHeight = intersectBottom - intersectTop
+    if (intersectWidth <= 0 || intersectHeight <= 0) continue
+
+    const fill = serializeRGBAColor(
+      blendSolidColor(backdropColor, source, mode)
+    )
+    overlays.push(
+      buildXMLString('rect', {
+        x: intersectLeft,
+        y: intersectTop,
+        width: intersectWidth,
+        height: intersectHeight,
+        fill,
+      })
+    )
+  }
+
+  return overlays.join('')
+}
+
 export default async function rect(
   {
     id,
@@ -272,7 +355,9 @@ export default async function rect(
     debug?: boolean
   },
   style: Record<string, number | string | object>,
-  inheritableStyle: Record<string, number | string | object>
+  inheritableStyle: Record<string, number | string | object>,
+  siblingBlendBackdrops: BlendPrimitive[] = [],
+  parentBackgroundColor?: string
 ) {
   if (style.display === 'none') return ''
   const primitiveStyle = style as Record<string, string | number>
@@ -850,10 +935,46 @@ export default async function rect(
     return (defs ? buildXMLString('defs', {}, defs) : '') + clip
   }
 
+  const normalizedMixBlendMode =
+    typeof mixBlendMode === 'string' ? mixBlendMode.trim().toLowerCase() : ''
+  const hasSimpleSolidRect =
+    !isImage &&
+    type === 'rect' &&
+    !path &&
+    !matrix &&
+    !cssFilter &&
+    !style.transform &&
+    !backgroundShapes &&
+    !currentClipPath &&
+    !maskId &&
+    fillLayers.length === 1 &&
+    !!fillLayers[0].solidColor &&
+    !style.backgroundImage &&
+    !style.borderLeftWidth &&
+    !style.borderTopWidth &&
+    !style.borderRightWidth &&
+    !style.borderBottomWidth
+
+  const blendFallbackOverlays =
+    hasSimpleSolidRect &&
+    (normalizedMixBlendMode === 'multiply' ||
+      normalizedMixBlendMode === 'screen')
+      ? resolveRectBlendFallbackOverlays(
+          normalizedMixBlendMode,
+          fillLayers[0].solidColor,
+          { left, top, width, height },
+          siblingBlendBackdrops,
+          parentBackgroundColor
+        )
+      : ''
+
+  const shouldApplyNativeMixBlend =
+    mixBlendMode &&
+    mixBlendMode !== 'normal' &&
+    blendFallbackOverlays.length === 0
+
   const compositingStyles = [
-    mixBlendMode && mixBlendMode !== 'normal'
-      ? `mix-blend-mode:${mixBlendMode}`
-      : '',
+    shouldApplyNativeMixBlend ? `mix-blend-mode:${mixBlendMode}` : '',
     isolation && isolation !== 'auto' ? `isolation:${isolation}` : '',
   ]
     .filter(Boolean)
@@ -872,6 +993,7 @@ export default async function rect(
         }>`
       : '') +
     (backgroundShapes || shape) +
+    blendFallbackOverlays +
     (style.transform && (currentClipPath || maskId) ? '</g>' : '') +
     (opacity !== 1 ? `</g>` : '') +
     (compositingStyles ? '</g>' : '') +

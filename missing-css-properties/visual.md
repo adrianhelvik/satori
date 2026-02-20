@@ -8,7 +8,7 @@
 - `box-shadow` (including inset, spread radius)
 - `opacity`
 - `filter`
-- `mix-blend-mode`
+- `mix-blend-mode` (partial; native SVG support varies by renderer, with a solid-rect fallback for common `multiply`/`screen` overlap cases)
 - `isolation`
 - `color`
 - `mask-image`, `mask-position`, `mask-size`, `mask-repeat`
@@ -23,6 +23,7 @@
 | Property | Feasibility | Notes |
 |----------|-------------|-------|
 | `background-blend-mode` | **Supported (partial)** | Exact compositing for solid-color layers (including flat gradients/colors). Non-uniform/image layers fall back to approximate behavior. |
+| `mix-blend-mode` | **Supported (partial)** | Native SVG blend support is renderer-dependent. Satori includes a geometric fallback for common solid-rect `multiply`/`screen` overlaps on neutral parent backdrops (`white` for `multiply`, `black` for `screen`). |
 
 ### Backdrop
 

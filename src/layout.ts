@@ -17,9 +17,10 @@ import { SVGNodeToImage } from './handler/preprocess.js'
 import computeStyle from './handler/compute.js'
 import FontLoader from './font.js'
 import buildTextNodes from './text/index.js'
-import rect from './builder/rect.js'
+import rect, { type BlendPrimitive } from './builder/rect.js'
 import { Locale, normalizeLocale } from './language.js'
 import { SerializedStyle } from './handler/expand.js'
+import cssColorParse from 'parse-css-color'
 
 interface ListItemContext {
   listType: 'ul' | 'ol'
@@ -44,6 +45,13 @@ export interface LayoutContext {
   getTwStyles: (tw: string, style: any) => any
   onNodeDetected?: (node: SatoriNode) => void
   listItemContext?: ListItemContext
+  childRenderMeta?: ChildRenderMeta
+}
+
+interface ChildRenderMeta {
+  node?: YogaNode
+  type?: string
+  style?: SerializedStyle
 }
 
 export interface SatoriNode {
@@ -63,6 +71,61 @@ interface ChildSortMeta {
   order: number
   zIndex: number
   originalIndex: number
+}
+
+function resolveBlendPrimitive(
+  meta: ChildRenderMeta | undefined,
+  parentLeft: number,
+  parentTop: number
+): BlendPrimitive | null {
+  if (!meta?.node || !meta?.style) return null
+  if (meta.type !== 'div') return null
+
+  const {
+    mixBlendMode,
+    transform,
+    backgroundImage,
+    clipPath,
+    maskImage,
+    filter,
+    opacity,
+    backgroundColor,
+    borderLeftWidth,
+    borderTopWidth,
+    borderRightWidth,
+    borderBottomWidth,
+  } = meta.style
+
+  if (mixBlendMode && mixBlendMode !== 'normal') return null
+  if (transform) return null
+  if (backgroundImage) return null
+  if (clipPath && clipPath !== 'none') return null
+  if (maskImage && maskImage !== 'none') return null
+  if (filter && filter !== 'none') return null
+  if (typeof opacity === 'number' && opacity < 1) return null
+  if (
+    (borderLeftWidth as number) > 0 ||
+    (borderTopWidth as number) > 0 ||
+    (borderRightWidth as number) > 0 ||
+    (borderBottomWidth as number) > 0
+  ) {
+    return null
+  }
+
+  if (typeof backgroundColor !== 'string') return null
+  const parsed = cssColorParse(backgroundColor)
+  if (!parsed || (parsed.alpha ?? 1) < 1) return null
+
+  const { left, top, width, height } = meta.node.getComputedLayout()
+  if (width <= 0 || height <= 0) return null
+
+  return {
+    left: parentLeft + left,
+    top: parentTop + top,
+    width,
+    height,
+    color: backgroundColor,
+  }
 }
 
 function parseStyleNumber(value: unknown, fallback = 0): number {
@@ -291,7 +354,7 @@ export default async function* layout(
 ): AsyncGenerator<
   { word: string; locale?: string }[],
   string,
-  [number, number]
+  [number, number, BlendPrimitive[]?]
 > {
   const Yoga = await getYoga()
   const {
@@ -306,6 +369,7 @@ export default async function* layout(
     canLoadAdditionalAssets,
     getTwStyles,
     listItemContext,
+    childRenderMeta,
   } = context
 
   // 1. Pre-process the node.
@@ -380,6 +444,12 @@ export default async function* layout(
     style,
     props
   )
+
+  if (childRenderMeta) {
+    childRenderMeta.node = node
+    childRenderMeta.style = computedStyle
+    childRenderMeta.type = type
+  }
   // Post-process styles to attach inheritable properties for Satori.
 
   // If the element is inheriting the parent `transform`, or applying its own.
@@ -407,6 +477,10 @@ export default async function* layout(
 
   if (computedStyle.maskImage) {
     newInheritableStyle._inheritedMaskId = `satori_mi-${id}`
+  }
+
+  if (computedStyle.backgroundColor) {
+    newInheritableStyle._parentBackgroundColor = computedStyle.backgroundColor
   }
 
   // If the element has `background-clip: text` set, we need to create a clip
@@ -472,6 +546,7 @@ export default async function* layout(
     iter: ReturnType<typeof layout>
     orderIndex: number
     zIndex: number
+    renderMeta: ChildRenderMeta
   }[] = []
 
   let i = 0
@@ -502,6 +577,7 @@ export default async function* layout(
         styleImage: listStyleImage,
       }
     }
+    const renderMeta: ChildRenderMeta = {}
     const iter = layout(child, {
       id: id + '-' + i++,
       parentStyle: computedStyle,
@@ -517,19 +593,20 @@ export default async function* layout(
       getTwStyles,
       onNodeDetected: context.onNodeDetected,
       listItemContext: childListItemContext,
+      childRenderMeta: renderMeta,
     })
     if (canLoadAdditionalAssets) {
       segmentsMissingFont.push(...(((await iter.next()).value as any) || []))
     } else {
       await iter.next()
     }
-    iterators.push({ iter, orderIndex, zIndex })
+    iterators.push({ iter, orderIndex, zIndex, renderMeta })
   }
   yield segmentsMissingFont
   for (const { iter } of iterators) await iter.next()
 
   // 3. Post-process the node.
-  const [x, y] = yield
+  const [x, y, siblingBlendBackdrops = []] = yield
   let { left, top, width, height } = node.getComputedLayout()
   // Attach offset to the current node.
   left += x
@@ -555,6 +632,10 @@ export default async function* layout(
   })
 
   // Generate the rendered markup for the current node.
+  const parentBackgroundColor = inheritedStyle._parentBackgroundColor as
+    | string
+    | undefined
+
   if (type === 'img') {
     const src = computedStyle.__src as string
     baseRenderResult = await rect(
@@ -569,7 +650,9 @@ export default async function* layout(
         debug,
       },
       computedStyle,
-      newInheritableStyle
+      newInheritableStyle,
+      siblingBlendBackdrops,
+      parentBackgroundColor
     )
   } else if (type === 'svg') {
     // When entering a <svg> node, we need to convert it to a <img> with the
@@ -588,7 +671,9 @@ export default async function* layout(
         debug,
       },
       computedStyle,
-      newInheritableStyle
+      newInheritableStyle,
+      siblingBlendBackdrops,
+      parentBackgroundColor
     )
   } else {
     const display = String(style?.display || computedStyle.display || '')
@@ -615,7 +700,9 @@ export default async function* layout(
     baseRenderResult = await rect(
       { id, left, top, width, height, isInheritingTransform, debug },
       computedStyle,
-      newInheritableStyle
+      newInheritableStyle,
+      siblingBlendBackdrops,
+      parentBackgroundColor
     )
   }
 
@@ -623,8 +710,15 @@ export default async function* layout(
   const paintIterators = [...iterators].sort(
     (a, b) => a.zIndex - b.zIndex || a.orderIndex - b.orderIndex
   )
-  for (const { iter } of paintIterators) {
-    childrenRenderResult += (await iter.next([left, top])).value
+  const paintedBlendPrimitives: BlendPrimitive[] = []
+  for (const { iter, renderMeta } of paintIterators) {
+    childrenRenderResult += (
+      await iter.next([left, top, paintedBlendPrimitives])
+    ).value
+    const primitive = resolveBlendPrimitive(renderMeta, left, top)
+    if (primitive) {
+      paintedBlendPrimitives.push(primitive)
+    }
   }
 
   // An extra pass to generate the special background-clip shape collected from
