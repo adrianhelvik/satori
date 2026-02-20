@@ -48,12 +48,17 @@ function resolveMaskClipBox(
 }
 
 function resolveMaskType(
-  style: Record<string, string | number>
+  style: Record<string, string | number>,
+  masks: MaskProperty[]
 ): 'alpha' | 'luminance' | undefined {
   const explicitType = String(style.maskType || '').trim()
   if (explicitType === 'alpha' || explicitType === 'luminance') {
     return explicitType
   }
+
+  const firstMode = (masks[0]?.mode || '').trim()
+  // `mask-mode: alpha` can be mapped directly to SVG `mask-type`.
+  if (firstMode === 'alpha') return 'alpha'
 }
 
 export default async function buildMaskImage(
@@ -74,7 +79,7 @@ export default async function buildMaskImage(
   if (!length) return ['', '']
   const miId = genMaskImageId(id)
 
-  const maskType = resolveMaskType(style)
+  const maskType = resolveMaskType(style, maskImage)
   let mask = ''
 
   for (let i = 0; i < length; i++) {

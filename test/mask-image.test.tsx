@@ -274,4 +274,20 @@ describe('Mask-*', () => {
     )
     expect(toImage(svg, 100)).toMatchImageSnapshot()
   })
+
+  it('should support mask-mode: alpha', async () => {
+    const svg = await satori(
+      <div
+        style={{
+          width: 100,
+          height: 100,
+          backgroundColor: 'red',
+          maskImage: 'linear-gradient(to right, black, white)',
+          maskMode: 'alpha',
+        }}
+      />,
+      { width: 100, height: 100, fonts }
+    )
+    expect(toImage(svg, 100)).toMatchImageSnapshot()
+  })
 })
