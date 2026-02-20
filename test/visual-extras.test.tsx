@@ -314,6 +314,44 @@ describe('Visual Extras', () => {
       )
       expect(toImage(svg, 100)).toMatchImageSnapshot()
     })
+
+    it('should apply mix-blend-mode plus-lighter', async () => {
+      const svg = await satori(
+        <div
+          style={{
+            display: 'flex',
+            width: 100,
+            height: 100,
+            backgroundColor: 'black',
+            position: 'relative',
+          }}
+        >
+          <div
+            style={{
+              width: 60,
+              height: 60,
+              backgroundColor: 'red',
+              position: 'absolute',
+              top: 10,
+              left: 10,
+            }}
+          />
+          <div
+            style={{
+              width: 60,
+              height: 60,
+              backgroundColor: 'green',
+              position: 'absolute',
+              top: 30,
+              left: 30,
+              mixBlendMode: 'plus-lighter',
+            }}
+          />
+        </div>,
+        { width: 100, height: 100, fonts }
+      )
+      expect(toImage(svg, 100)).toMatchImageSnapshot()
+    })
   })
 
   describe('background-blend-mode', () => {

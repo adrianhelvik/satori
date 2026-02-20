@@ -85,6 +85,7 @@ const supportedMixBlendFallbackModes = new Set([
   'lighten',
   'difference',
   'exclusion',
+  'plus-lighter',
 ])
 
 function parseBackgroundBlendModes(value: unknown): string[] {
@@ -612,6 +613,8 @@ function blendChannel(mode: string, backdrop: number, source: number): number {
       if (backdrop >= 1) return 1
       if (source <= 0) return 0
       return 1 - Math.min(1, (1 - backdrop) / source)
+    case 'plus-lighter':
+      return Math.min(1, backdrop + source)
     case 'overlay':
       return backdrop <= 0.5
         ? 2 * backdrop * source
@@ -728,7 +731,8 @@ function isOpaqueNeutralBackdrop(
     mode === 'screen' ||
     mode === 'lighten' ||
     mode === 'difference' ||
-    mode === 'exclusion'
+    mode === 'exclusion' ||
+    mode === 'plus-lighter'
   ) {
     return (
       Math.abs(parsed.r) < 1e-6 &&
