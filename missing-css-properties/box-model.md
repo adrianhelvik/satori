@@ -8,7 +8,7 @@
 - `border` (all sides, width/style/color)
 - `border-radius` (all corners, including `x / y` syntax)
 - Border styles: `solid`, `dashed`, `dotted`, `double`, `inset` (approx), `outset` (approx), `groove` (approx), `ridge` (approx)
-- `outline`, `outline-width`, `outline-style`, `outline-color`, `outline-offset`
+- `outline`, `outline-width`, `outline-style`, `outline-color`, `outline-offset` (`solid`, `dashed`, `dotted`, `double`)
 - `aspect-ratio`
 - Logical sizing aliases: `inline-size`, `block-size`, `min-inline-size`, `min-block-size`, `max-inline-size`, `max-block-size`
 

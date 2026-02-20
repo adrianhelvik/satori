@@ -550,40 +550,59 @@ export default async function rect(
       'black') as string
     const outlineStyle = style.outlineStyle as string
 
-    // Outline is drawn outside the border box, offset by outlineOffset.
-    const expand = outlineWidth / 2 + outlineOffset
-    const outlinePath = radius(
-      {
-        left: left - expand,
-        top: top - expand,
-        width: width + expand * 2,
-        height: height + expand * 2,
-      },
-      style as Record<string, number>
-    )
+    const makeOutlineLine = (
+      expand: number,
+      strokeWidth: number,
+      strokeProps: Record<string, string | undefined> = {}
+    ) => {
+      const outlinePath = radius(
+        {
+          left: left - expand,
+          top: top - expand,
+          width: width + expand * 2,
+          height: height + expand * 2,
+        },
+        style as Record<string, number>
+      )
 
-    const outlineStrokeProps: Record<string, string | undefined> = {}
-    if (outlineStyle === 'dashed') {
-      outlineStrokeProps['stroke-dasharray'] =
-        outlineWidth * 2 + ' ' + outlineWidth
-    } else if (outlineStyle === 'dotted') {
-      outlineStrokeProps['stroke-dasharray'] = '0 ' + outlineWidth * 2
-      outlineStrokeProps['stroke-linecap'] = 'round'
+      return buildXMLString(outlinePath ? 'path' : 'rect', {
+        x: outlinePath ? undefined : left - expand,
+        y: outlinePath ? undefined : top - expand,
+        width: outlinePath ? undefined : width + expand * 2,
+        height: outlinePath ? undefined : height + expand * 2,
+        d: outlinePath || undefined,
+        fill: 'none',
+        stroke: outlineColor,
+        'stroke-width': strokeWidth,
+        ...strokeProps,
+        transform: matrix ? matrix : undefined,
+        'clip-path': clipPathId ? `url(#${clipPathId})` : undefined,
+      })
     }
 
-    outlineShape = buildXMLString(outlinePath ? 'path' : 'rect', {
-      x: outlinePath ? undefined : left - expand,
-      y: outlinePath ? undefined : top - expand,
-      width: outlinePath ? undefined : width + expand * 2,
-      height: outlinePath ? undefined : height + expand * 2,
-      d: outlinePath || undefined,
-      fill: 'none',
-      stroke: outlineColor,
-      'stroke-width': outlineWidth,
-      ...outlineStrokeProps,
-      transform: matrix ? matrix : undefined,
-      'clip-path': clipPathId ? `url(#${clipPathId})` : undefined,
-    })
+    if (outlineStyle === 'double' && outlineWidth >= 3) {
+      const lineWidth = Math.max(1, Math.round(outlineWidth / 3))
+      const gap = Math.max(1, outlineWidth - lineWidth * 2)
+      const nearExpand = outlineOffset + lineWidth / 2
+      const farExpand = outlineOffset + lineWidth + gap + lineWidth / 2
+
+      outlineShape =
+        makeOutlineLine(nearExpand, lineWidth) +
+        makeOutlineLine(farExpand, lineWidth)
+    } else {
+      // Outline is drawn outside the border box, offset by outlineOffset.
+      const expand = outlineWidth / 2 + outlineOffset
+      const outlineStrokeProps: Record<string, string | undefined> = {}
+      if (outlineStyle === 'dashed') {
+        outlineStrokeProps['stroke-dasharray'] =
+          outlineWidth * 2 + ' ' + outlineWidth
+      } else if (outlineStyle === 'dotted') {
+        outlineStrokeProps['stroke-dasharray'] = '0 ' + outlineWidth * 2
+        outlineStrokeProps['stroke-linecap'] = 'round'
+      }
+
+      outlineShape = makeOutlineLine(expand, outlineWidth, outlineStrokeProps)
+    }
   }
 
   // box-shadow.
