@@ -26,7 +26,7 @@ Satori does not support table layout or multi-column layout. List markers are su
 | `counter-increment` | Hard | Same |
 | `counter-set` | Hard | Same |
 
-> Marker rendering is implemented as prepended list-item content. Marker box width/gap/size currently use font-size-based heuristics (not browser text-metric measurement), so spacing is approximate. CSS counters (`counter-*`) remain unsupported.
+> Marker rendering is implemented as prepended list-item content. Text marker width uses font metric measurement, while marker gap/icon sizing remain SVG-friendly approximations. CSS counters (`counter-*`) remain unsupported.
 
 ## Multi-column layout
 

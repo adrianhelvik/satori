@@ -53,6 +53,42 @@ describe('list-style', () => {
     expect(toImage(svg, 260)).toMatchImageSnapshot()
   })
 
+  it('should size outside text markers using marker text metrics', async () => {
+    const nodes = []
+    await satori(
+      <ol
+        style={{
+          width: 280,
+          height: 220,
+          backgroundColor: 'white',
+          fontSize: 18,
+          listStyleType: 'decimal',
+          listStylePosition: 'outside',
+          paddingLeft: 32,
+          margin: 0,
+        }}
+      >
+        {Array.from({ length: 10 }, (_, i) => (
+          <li key={i}>x</li>
+        ))}
+      </ol>,
+      {
+        width: 280,
+        height: 220,
+        fonts,
+        onNodeDetected: (node) => {
+          nodes.push(node)
+        },
+      }
+    )
+
+    const markerNodes = nodes.filter(
+      (node) => node.key === '__satori-list-marker'
+    )
+    expect(markerNodes).toHaveLength(10)
+    expect(markerNodes[9].width).toBeGreaterThan(markerNodes[8].width)
+  })
+
   it('should support list-style shorthand', async () => {
     const svg = await satori(
       <ul

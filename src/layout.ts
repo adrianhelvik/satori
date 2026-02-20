@@ -189,13 +189,20 @@ function getListMarkerText(
 function buildListItemChildren(
   children: ReactNode,
   marker: { text: string | null; image: string | null; position: string },
-  fontSize: number
+  fontSize: number,
+  markerTextWidth?: number
 ): ReactNode[] {
   const markerGap = Math.max(4, Math.round(fontSize * 0.25))
   const markerBoxWidth =
     marker.position === 'inside'
       ? undefined
-      : Math.max(12, Math.round(fontSize * 1.25))
+      : marker.image !== null
+      ? Math.max(12, Math.round(fontSize * 1.25))
+      : Math.max(
+          12,
+          Math.ceil(markerTextWidth || 0) +
+            Math.max(2, Math.round(fontSize * 0.15))
+        )
   const markerSize = Math.max(8, Math.round(fontSize * 0.75))
 
   const markerWrapper: Record<string, string | number> = {
@@ -246,6 +253,36 @@ function buildListItemChildren(
   )
 
   return [markerNode, contentNode]
+}
+
+function measureListMarkerTextWidth(
+  markerText: string | null,
+  fontSize: number,
+  style: SerializedStyle,
+  font: FontLoader,
+  locale: Locale | undefined
+): number | undefined {
+  if (!markerText) return undefined
+
+  try {
+    const engine = font.getEngine(
+      fontSize,
+      (style.lineHeight as number | string | undefined) || 'normal',
+      {
+        fontFamily: style.fontFamily as string | string[] | undefined,
+        fontWeight: style.fontWeight as any,
+        fontStyle: style.fontStyle as any,
+      },
+      locale
+    )
+    return engine.measure(markerText, {
+      fontSize,
+      letterSpacing: parseStyleNumber(style.letterSpacing, 0),
+      kerning: style.fontKerning !== 'none',
+    })
+  } catch {
+    return undefined
+  }
 }
 
 export default async function* layout(
@@ -405,6 +442,13 @@ export default async function* layout(
         computedStyle.fontSize,
         parseStyleNumber(inheritedStyle.fontSize, 16)
       )
+      const markerTextWidth = measureListMarkerTextWidth(
+        markerText,
+        markerFontSize,
+        computedStyle,
+        font,
+        newLocale
+      )
       children = buildListItemChildren(
         children,
         {
@@ -412,7 +456,8 @@ export default async function* layout(
           image: listStyleImage,
           position: listStylePosition.trim().toLowerCase(),
         },
-        markerFontSize
+        markerFontSize,
+        markerTextWidth
       )
     }
   }
