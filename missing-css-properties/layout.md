@@ -5,11 +5,13 @@
 - `display`: `flex`, `block`, `none`, `contents`, `-webkit-box`
 - `position`: `relative`, `absolute`, `static`
 - `top`, `right`, `bottom`, `left`, `inset`
+- `z-index`
 - `overflow`, `overflow-x`, `overflow-y`: `visible`, `hidden`
 - `visibility`: `visible`, `hidden`
 - `box-sizing`: `border-box`, `content-box`
 - Flexbox: `flex-direction`, `flex-wrap`, `flex-grow`, `flex-shrink`, `flex-basis`, `flex`, `align-items`, `align-self`, `align-content`, `justify-content`, `gap`, `row-gap`, `column-gap`
 - Alignment shorthands: `place-content`, `place-items`, `place-self`
+- `order`
 
 ## Missing properties
 
@@ -25,7 +27,6 @@
 |----------|-------------|-------|
 | `position: fixed` | N/A | No viewport scrolling in static SVG |
 | `position: sticky` | N/A | Requires scroll context |
-| `z-index` | Feasible | Yoga doesn't handle stacking, but SVG paint order could be reordered post-layout. |
 
 ### Overflow
 
@@ -38,7 +39,6 @@
 | Property | Feasibility | Notes |
 |----------|-------------|-------|
 | `isolation` | Hard | Would need stacking context tracking |
-| `order` | Feasible | Yoga supports `order` — just not wired up |
 
 ### Writing modes & direction
 
