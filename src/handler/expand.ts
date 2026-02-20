@@ -769,6 +769,122 @@ type OtherStyle = Exclude<Record<PropertyKey, string | number>, keyof MainStyle>
 
 export type SerializedStyle = Partial<MainStyle & OtherStyle>
 
+const allInheritedProps = new Set([
+  'color',
+  'fontFamily',
+  'fontSize',
+  'fontStyle',
+  'fontWeight',
+  'fontSizeAdjust',
+  'letterSpacing',
+  'lineHeight',
+  'textAlign',
+  'textAlignLast',
+  'textTransform',
+  'textShadowOffset',
+  'textShadowColor',
+  'textShadowRadius',
+  'WebkitTextStrokeWidth',
+  'WebkitTextStrokeColor',
+  'textDecorationLine',
+  'textDecorationStyle',
+  'textDecorationColor',
+  'textDecorationSkipInk',
+  'textUnderlinePosition',
+  'whiteSpace',
+  'wordBreak',
+  'overflowWrap',
+  'tabSize',
+  'visibility',
+  'wordSpacing',
+  'textIndent',
+])
+
+const allModes = new Set([
+  'initial',
+  'inherit',
+  'unset',
+  'revert',
+  'revert-layer',
+])
+
+function getAllInitialStyle(): SerializedStyle {
+  return {
+    color: 'black',
+    fontFamily: ['serif'],
+    fontSize: 16,
+    fontStyle: 'normal',
+    fontWeight: 'normal',
+    fontSizeAdjust: 'none',
+    lineHeight: 'normal',
+    letterSpacing: 0,
+    textAlign: 'start',
+    textAlignLast: 'auto',
+    textTransform: 'none',
+    whiteSpace: 'normal',
+    wordBreak: 'normal',
+    overflowWrap: 'normal',
+    tabSize: 8,
+    wordSpacing: 0,
+    textIndent: 0,
+    visibility: 'visible',
+    opacity: 1,
+    filter: 'none',
+    textDecorationLine: 'none',
+    textDecorationStyle: 'solid',
+    textDecorationSkipInk: 'auto',
+    textUnderlinePosition: 'auto',
+    backgroundColor: 'transparent',
+    backgroundRepeat: 'repeat',
+    backgroundPosition: '0% 0%',
+    backgroundSize: 'auto',
+    backgroundClip: 'border-box',
+    backgroundOrigin: 'padding-box',
+    mixBlendMode: 'normal',
+    isolation: 'auto',
+    maskImage: 'none',
+  }
+}
+
+function applyAllReset(
+  serializedStyle: SerializedStyle,
+  inheritedStyle: SerializedStyle,
+  value: string | number
+) {
+  const mode = String(value).trim().toLowerCase()
+  if (!allModes.has(mode)) {
+    throw new Error('Invalid `all` value.')
+  }
+
+  for (const prop in serializedStyle) {
+    if (!prop.startsWith('_')) {
+      delete serializedStyle[prop]
+    }
+  }
+
+  const initialStyle = getAllInitialStyle()
+  Object.assign(serializedStyle, initialStyle)
+
+  if (mode === 'initial' || mode === 'revert' || mode === 'revert-layer') {
+    return
+  }
+
+  if (mode === 'inherit') {
+    for (const prop in inheritedStyle) {
+      if (!prop.startsWith('_')) {
+        serializedStyle[prop] = inheritedStyle[prop]
+      }
+    }
+    return
+  }
+
+  for (const prop of allInheritedProps) {
+    if (typeof inheritedStyle[prop] !== 'undefined') {
+      serializedStyle[prop] = inheritedStyle[prop]
+    }
+  }
+}
+
 export default function expand(
   style: Record<string, string | number> | undefined,
   inheritedStyle: SerializedStyle
@@ -798,6 +914,11 @@ export default function expand(
       const value = preprocess(style[prop], currentColor)
 
       try {
+        if (name === 'all') {
+          applyAllReset(serializedStyle, inheritedStyle, value)
+          continue
+        }
+
         const resolvedStyle =
           handleSpecialCase(name, value, currentColor) ||
           handleFallbackColor(

@@ -25,7 +25,7 @@
 
 | Property | Feasibility | Notes |
 |----------|-------------|-------|
-| `all` | Feasible | Resets all properties — could be implemented as expanding to all supported defaults |
+| `all` | **Supported (approx.)** | Supports `initial`, `unset`, `inherit` (plus `revert` aliases) via reset/rehydration of Satori-managed style properties. Does not fully emulate full-browser cascade/layer semantics. |
 | `appearance` | N/A | Platform-native form control styling |
 | `zoom` | **Supported (approx.)** | Maps to `transform: scale(...)` with top-left anchoring for zoom-only cases. Does not fully emulate browser layout reflow semantics. |
 | `aspect-ratio` | **Supported** | Number and fraction syntax (e.g. `1.5`, `16/9`) |
