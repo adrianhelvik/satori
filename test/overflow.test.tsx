@@ -61,6 +61,91 @@ describe('Overflow', () => {
     expect(toImage(svg, 100)).toMatchImageSnapshot()
   })
 
+  it('should extend clipping edge with overflow-clip-margin', async () => {
+    const baseNodeStyle = {
+      width: 60,
+      height: 60,
+      backgroundColor: 'white',
+      overflow: 'clip' as const,
+      position: 'relative' as const,
+    }
+    const child = (
+      <div
+        style={{
+          position: 'absolute',
+          width: 80,
+          height: 20,
+          backgroundColor: 'red',
+          left: -10,
+          top: 20,
+        }}
+      />
+    )
+
+    const withoutMargin = await satori(
+      <div style={baseNodeStyle}>{child}</div>,
+      {
+        width: 100,
+        height: 100,
+        fonts,
+      }
+    )
+
+    const withMargin = await satori(
+      <div style={{ ...baseNodeStyle, overflowClipMargin: 10 }}>{child}</div>,
+      {
+        width: 100,
+        height: 100,
+        fonts,
+      }
+    )
+
+    expect(toImage(withMargin, 100)).not.toEqual(toImage(withoutMargin, 100))
+    expect(toImage(withMargin, 100)).toMatchImageSnapshot()
+  })
+
+  it('should ignore overflow-clip-margin when overflow is hidden', async () => {
+    const baseNodeStyle = {
+      width: 60,
+      height: 60,
+      backgroundColor: 'white',
+      overflow: 'hidden' as const,
+      position: 'relative' as const,
+    }
+    const child = (
+      <div
+        style={{
+          position: 'absolute',
+          width: 80,
+          height: 20,
+          backgroundColor: 'blue',
+          left: -10,
+          top: 20,
+        }}
+      />
+    )
+
+    const withoutMargin = await satori(
+      <div style={baseNodeStyle}>{child}</div>,
+      {
+        width: 100,
+        height: 100,
+        fonts,
+      }
+    )
+
+    const withMargin = await satori(
+      <div style={{ ...baseNodeStyle, overflowClipMargin: 10 }}>{child}</div>,
+      {
+        width: 100,
+        height: 100,
+        fonts,
+      }
+    )
+
+    expect(toImage(withMargin, 100)).toEqual(toImage(withoutMargin, 100))
+  })
+
   it('should work with nested border, border-radius, padding', async () => {
     const svg = await satori(
       <div

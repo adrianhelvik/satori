@@ -47,6 +47,14 @@ export default function overflow(
     overflowHidden || style.overflowX === 'hidden' || style.overflowX === 'clip'
   const overflowYHidden =
     overflowHidden || style.overflowY === 'hidden' || style.overflowY === 'clip'
+  const overflowXClip = style.overflow === 'clip' || style.overflowX === 'clip'
+  const overflowYClip = style.overflow === 'clip' || style.overflowY === 'clip'
+  const overflowClipMargin =
+    typeof style.overflowClipMargin === 'number'
+      ? Math.max(0, style.overflowClipMargin)
+      : typeof style.overflowClipMargin === 'string'
+      ? Math.max(0, Number(style.overflowClipMargin) || 0)
+      : 0
 
   if (!overflowXHidden && !overflowYHidden && !src) {
     overflowClipPath = ''
@@ -69,6 +77,18 @@ export default function overflow(
       // Clip Y but allow X to overflow
       clipX = -OVERFLOW_EXTENT
       clipWidth = OVERFLOW_EXTENT * 2
+    }
+
+    // `overflow-clip-margin` only affects axes clipped by `overflow: clip`.
+    if (overflowClipMargin > 0 && !path && !src) {
+      if (overflowXClip) {
+        clipX -= overflowClipMargin
+        clipWidth += overflowClipMargin * 2
+      }
+      if (overflowYClip) {
+        clipY -= overflowClipMargin
+        clipHeight += overflowClipMargin * 2
+      }
     }
 
     const hasOverflow = overflowXHidden || overflowYHidden

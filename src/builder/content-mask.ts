@@ -46,12 +46,32 @@ export default function contentMask(
     width: width - offsetLeft - offsetRight,
     height: height - offsetTop - offsetBottom,
   }
+  const overflowXClip = style.overflow === 'clip' || style.overflowX === 'clip'
+  const overflowYClip = style.overflow === 'clip' || style.overflowY === 'clip'
+  const overflowClipMargin =
+    typeof style.overflowClipMargin === 'number'
+      ? Math.max(0, style.overflowClipMargin)
+      : typeof style.overflowClipMargin === 'string'
+      ? Math.max(0, Number(style.overflowClipMargin) || 0)
+      : 0
+
+  const clipRect = { ...contentArea }
+  if (overflowClipMargin > 0) {
+    if (overflowXClip) {
+      clipRect.x -= overflowClipMargin
+      clipRect.width += overflowClipMargin * 2
+    }
+    if (overflowYClip) {
+      clipRect.y -= overflowClipMargin
+      clipRect.height += overflowClipMargin * 2
+    }
+  }
 
   const _contentMask = buildXMLString(
     'mask',
     { id },
     buildXMLString('rect', {
-      ...contentArea,
+      ...clipRect,
       fill: '#fff',
       // add transformation matrix to mask if overflow clips content AND a
       // transformation style is defined, otherwise children will be clipped

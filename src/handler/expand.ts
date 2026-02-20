@@ -359,6 +359,36 @@ function handleSpecialCase(
   // overflow-x / overflow-y: store individually, compute.ts will merge
   if (name === 'overflowX') return { overflowX: value }
   if (name === 'overflowY') return { overflowY: value }
+  if (name === 'overflowClipMargin') {
+    const raw = String(value).trim()
+    if (!raw) return { overflowClipMargin: 0 }
+
+    const parts = raw.split(/\s+/)
+    let marginValue: string | number | undefined
+    for (const part of parts) {
+      if (
+        part === 'content-box' ||
+        part === 'padding-box' ||
+        part === 'border-box'
+      ) {
+        continue
+      }
+      marginValue = part
+      break
+    }
+
+    if (typeof marginValue === 'undefined') {
+      return { overflowClipMargin: 0 }
+    }
+
+    const purified = purify(name, marginValue)
+    const numeric = Number.parseFloat(String(purified))
+    if (!Number.isNaN(numeric) && numeric < 0) {
+      throw new Error('`overflowClipMargin` must be non-negative.')
+    }
+
+    return { overflowClipMargin: purified }
+  }
 
   // outline shorthand: <width> <style> <color>
   if (name === 'outline') {

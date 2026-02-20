@@ -6,7 +6,8 @@
 - `position`: `relative`, `absolute`, `static`
 - `top`, `right`, `bottom`, `left`, `inset`
 - `z-index`
-- `overflow`, `overflow-x`, `overflow-y`: `visible`, `hidden`, `clip` (clip approximated as hidden)
+- `overflow`, `overflow-x`, `overflow-y`: `visible`, `hidden`, `clip`
+- `overflow-clip-margin` (partial; non-negative length for rectangular clip paths)
 - `visibility`: `visible`, `hidden`
 - `box-sizing`: `border-box`, `content-box`
 - Flexbox: `flex-direction`, `flex-wrap`, `flex-grow`, `flex-shrink`, `flex-basis`, `flex`, `align-items`, `align-self`, `align-content`, `justify-content`, `gap`, `row-gap`, `column-gap`
@@ -34,7 +35,7 @@
 
 | Property | Feasibility | Notes |
 |----------|-------------|-------|
-| `overflow-clip-margin` | Hard | Would need clip-path offset calculations |
+| `overflow-clip-margin` | **Supported (partial)** | Supports non-negative length values for rectangular `overflow: clip` clipping. Visual-box keywords and rounded-path precision are approximate. |
 
 > `overflow: clip` is supported and currently uses the same clipping behavior as `hidden` in static SVG output.
 
