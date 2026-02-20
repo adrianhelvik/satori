@@ -157,6 +157,8 @@ export default async function* layout(
   // path and use it in all its children.
   if (
     computedStyle.overflow === 'hidden' ||
+    computedStyle.overflowX === 'hidden' ||
+    computedStyle.overflowY === 'hidden' ||
     (computedStyle.clipPath && computedStyle.clipPath !== 'none')
   ) {
     newInheritableStyle._inheritedClipPathId = `satori_cp-${id}`

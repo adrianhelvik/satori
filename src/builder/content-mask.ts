@@ -57,7 +57,11 @@ export default function contentMask(
       // transformation style is defined, otherwise children will be clipped
       // incorrectly
       transform:
-        style.overflow === 'hidden' && style.transform && matrix
+        (style.overflow === 'hidden' ||
+          style.overflowX === 'hidden' ||
+          style.overflowY === 'hidden') &&
+        style.transform &&
+        matrix
           ? matrix
           : undefined,
       mask: style._inheritedMaskId

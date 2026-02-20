@@ -243,7 +243,22 @@ export default async function compute(
       'justifyContent'
     )
   )
-  // @TODO: node.setAspectRatio
+  if (typeof style.aspectRatio !== 'undefined') {
+    const ar = style.aspectRatio
+    if (ar !== 'auto') {
+      if (typeof ar === 'number') {
+        node.setAspectRatio(ar)
+      } else if (typeof ar === 'string') {
+        // Support "16/9" or "16 / 9" syntax
+        const parts = ar.split('/').map((s) => parseFloat(s.trim()))
+        if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
+          node.setAspectRatio(parts[0] / parts[1])
+        } else if (parts.length === 1 && !isNaN(parts[0])) {
+          node.setAspectRatio(parts[0])
+        }
+      }
+    }
+  }
 
   node.setFlexDirection(
     v(
@@ -306,9 +321,16 @@ export default async function compute(
     node.setMinWidth(asPointPercentageLength(style.minWidth, 'minWidth'))
   }
 
+  // Merge overflow-x/overflow-y into overflow: hidden if either axis is hidden.
+  const effectiveOverflow =
+    style.overflow ||
+    (style.overflowX === 'hidden' || style.overflowY === 'hidden'
+      ? 'hidden'
+      : undefined)
+
   node.setOverflow(
     v(
-      style.overflow,
+      effectiveOverflow,
       {
         visible: Yoga.OVERFLOW_VISIBLE,
         hidden: Yoga.OVERFLOW_HIDDEN,
@@ -317,6 +339,12 @@ export default async function compute(
       'overflow'
     )
   )
+
+  // Normalize per-axis overflow values so downstream code has a single source
+  // of truth. If only the shorthand `overflow` was set, fan it out; if neither
+  // shorthand nor per-axis was set, default to 'visible'.
+  if (!style.overflowX) style.overflowX = style.overflow || 'visible'
+  if (!style.overflowY) style.overflowY = style.overflow || 'visible'
 
   node.setMargin(
     Yoga.EDGE_TOP,
