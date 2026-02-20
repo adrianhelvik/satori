@@ -82,10 +82,12 @@ function buildHtmlDocument(
 <html><head><style>
 ${fontFaceRules}
 * { margin: 0; padding: 0; box-sizing: border-box; }
+html { background: transparent; }
 body {
   width: ${width}px;
   height: ${height}px;
   overflow: hidden;
+  background: transparent;
   ${escapedDefaultFontFamily ? `font-family: ${escapedDefaultFontFamily};` : ''}
 }
 </style></head>
@@ -186,6 +188,7 @@ afterEach(async (ctx) => {
       const browserPng = await page.screenshot({
         type: 'png',
         clip: { x: 0, y: 0, width: w, height: h },
+        omitBackground: true,
       })
 
       // Satori PNG
