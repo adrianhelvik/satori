@@ -658,7 +658,7 @@ export default async function* layout(
     // When entering a <svg> node, we need to convert it to a <img> with the
     // SVG data URL embedded.
     const currentColor = computedStyle.color
-    const src = await SVGNodeToImage(element, currentColor)
+    const src = await SVGNodeToImage(element, currentColor, width, height)
     baseRenderResult = await rect(
       {
         id,

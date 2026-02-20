@@ -184,7 +184,9 @@ export async function preProcessNode(node: ReactNode) {
 
 export async function SVGNodeToImage(
   node: ReactElement,
-  inheritedColor: string
+  inheritedColor: string,
+  renderedWidth?: number,
+  renderedHeight?: number
 ): Promise<string> {
   let {
     viewBox,
@@ -205,13 +207,39 @@ export async function SVGNodeToImage(
   const currentColor = style?.color || inheritedColor
   const viewBoxSize = parseViewBox(viewBox)
 
-  // ratio = height / width
-  const ratio = viewBoxSize ? viewBoxSize[3] / viewBoxSize[2] : null
-  width = width || (ratio && height) ? height / ratio : null
-  height = height || (ratio && width) ? width * ratio : null
+  const hasRenderedSize =
+    typeof renderedWidth === 'number' &&
+    Number.isFinite(renderedWidth) &&
+    typeof renderedHeight === 'number' &&
+    Number.isFinite(renderedHeight)
 
-  restProps.width = width
-  restProps.height = height
+  if (hasRenderedSize) {
+    width = renderedWidth
+    height = renderedHeight
+  } else {
+    // ratio = height / width
+    const ratio = viewBoxSize ? viewBoxSize[3] / viewBoxSize[2] : null
+    const hasRatio =
+      typeof ratio === 'number' && Number.isFinite(ratio) && ratio > 0
+
+    if (
+      hasRatio &&
+      typeof width === 'undefined' &&
+      typeof height === 'number'
+    ) {
+      width = height / ratio
+    } else if (
+      hasRatio &&
+      typeof height === 'undefined' &&
+      typeof width === 'number'
+    ) {
+      height = width * ratio
+    }
+  }
+
+  if (typeof width !== 'undefined' && width !== null) restProps.width = width
+  if (typeof height !== 'undefined' && height !== null)
+    restProps.height = height
   if (viewBox) restProps.viewBox = viewBox
 
   return `data:image/svg+xml;utf8,${`<svg ${Object.entries(restProps)

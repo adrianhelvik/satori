@@ -186,53 +186,40 @@ export default async function compute(
     const viewBox = props.viewBox || props.viewbox
     const viewBoxSize = parseViewBox(viewBox)
     const ratio = viewBoxSize ? viewBoxSize[3] / viewBoxSize[2] : null
+    const hasIntrinsicRatio =
+      typeof ratio === 'number' && Number.isFinite(ratio) && ratio > 0
 
-    let { width, height } = props
-    if (typeof width === 'undefined' && height) {
-      if (ratio == null) {
-        width = 0
-      } else if (typeof height === 'string' && height.endsWith('%')) {
-        width = parseInt(height) / ratio + '%'
-      } else {
-        height = lengthToNumber(
-          height,
-          inheritedStyle.fontSize,
-          1,
-          inheritedStyle
-        )
-        width = height / ratio
-      }
-    } else if (typeof height === 'undefined' && width) {
-      if (ratio == null) {
-        width = 0
-      } else if (typeof width === 'string' && width.endsWith('%')) {
-        height = parseInt(width) * ratio + '%'
-      } else {
-        width = lengthToNumber(
-          width,
-          inheritedStyle.fontSize,
-          1,
-          inheritedStyle
-        )
-        height = width * ratio
-      }
-    } else {
-      if (typeof width !== 'undefined') {
-        width =
-          lengthToNumber(width, inheritedStyle.fontSize, 1, inheritedStyle) ||
-          width
-      }
-      if (typeof height !== 'undefined') {
-        height =
-          lengthToNumber(height, inheritedStyle.fontSize, 1, inheritedStyle) ||
-          height
-      }
-      width ||= viewBoxSize?.[2]
-      height ||= viewBoxSize?.[3]
+    const normalizeSvgSize = (value: unknown): string | number | undefined => {
+      if (typeof value === 'undefined') return undefined
+      if (typeof value !== 'string' && typeof value !== 'number')
+        return undefined
+
+      return (
+        lengthToNumber(value, inheritedStyle.fontSize, 1, inheritedStyle) ||
+        value
+      )
     }
 
-    if (!style.width && width) style.width = width
-    if (!style.height && height) style.height = height
+    let width = normalizeSvgSize(props.width)
+    let height = normalizeSvgSize(props.height)
+
+    if (typeof width === 'undefined' && typeof height === 'undefined') {
+      width = viewBoxSize?.[2]
+      height = viewBoxSize?.[3]
+    } else if (
+      hasIntrinsicRatio &&
+      typeof style.aspectRatio === 'undefined' &&
+      (typeof width === 'undefined' || typeof height === 'undefined')
+    ) {
+      style.aspectRatio = 1 / ratio
+    }
+
+    if (typeof style.width === 'undefined' && typeof width !== 'undefined') {
+      style.width = width
+    }
+    if (typeof style.height === 'undefined' && typeof height !== 'undefined') {
+      style.height = height
+    }
   }
 
   // Set properties for Yoga.
