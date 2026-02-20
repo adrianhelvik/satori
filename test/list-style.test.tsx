@@ -156,4 +156,76 @@ describe('list-style', () => {
     expect(svg).toContain('data:image/png;base64')
     expect(toImage(svg, 240)).toMatchImageSnapshot()
   })
+
+  it('should support quoted string listStyleType markers', async () => {
+    const svg = await satori(
+      <ul
+        style={{
+          width: 260,
+          height: 140,
+          backgroundColor: 'white',
+          fontSize: 18,
+          listStyleType: '"→"',
+          margin: 0,
+        }}
+      >
+        <li>Arrow marker one</li>
+        <li>Arrow marker two</li>
+      </ul>,
+      { width: 260, height: 140, fonts, embedFont: false }
+    )
+
+    expect(svg).toContain('→')
+    expect(toImage(svg, 260)).toMatchImageSnapshot()
+  })
+
+  it('should support quoted string markers in list-style shorthand', async () => {
+    const svg = await satori(
+      <ul
+        style={{
+          width: 260,
+          height: 140,
+          backgroundColor: 'white',
+          fontSize: 18,
+          listStyle: '"※" inside',
+          margin: 0,
+        }}
+      >
+        <li>Inside marker one</li>
+        <li>Inside marker two</li>
+      </ul>,
+      { width: 260, height: 140, fonts, embedFont: false }
+    )
+
+    expect(svg).toContain('※')
+    expect(toImage(svg, 260)).toMatchImageSnapshot()
+  })
+
+  it('should support disclosure listStyleType values', async () => {
+    const svg = await satori(
+      <div
+        style={{
+          width: 280,
+          height: 140,
+          display: 'flex',
+          gap: 20,
+          backgroundColor: 'white',
+          fontSize: 18,
+          margin: 0,
+        }}
+      >
+        <ul style={{ margin: 0, listStyleType: 'disclosure-open' }}>
+          <li>Open item</li>
+        </ul>
+        <ul style={{ margin: 0, listStyleType: 'disclosure-closed' }}>
+          <li>Closed item</li>
+        </ul>
+      </div>,
+      { width: 280, height: 140, fonts, embedFont: false }
+    )
+
+    expect(svg).toContain('▾')
+    expect(svg).toContain('▸')
+    expect(toImage(svg, 280)).toMatchImageSnapshot()
+  })
 })

@@ -44,8 +44,30 @@ const listStyleTypes = new Set([
   'upper-latin',
   'lower-roman',
   'upper-roman',
+  'disclosure-open',
+  'disclosure-closed',
 ])
 const listStylePositions = new Set(['inside', 'outside'])
+
+function parseListStyleTypeValue(value: string | number): string | undefined {
+  const token = String(value).trim()
+  if (!token) return
+
+  const normalized = token.toLowerCase()
+  if (listStyleTypes.has(normalized)) {
+    return normalized
+  }
+
+  const quote = token[0]
+  if (
+    token.length >= 2 &&
+    (quote === '"' || quote === "'") &&
+    token[token.length - 1] === quote
+  ) {
+    // CSS list-style-type allows string markers (`"→"` / `'§'`).
+    return token
+  }
+}
 
 function parseListStyle(
   value: string | number
@@ -58,7 +80,7 @@ function parseListStyle(
   const input = String(value).trim()
   if (!input) return parsed
 
-  const tokens = input.match(/url\([^)]+\)|\S+/g) || []
+  const tokens = input.match(/url\([^)]+\)|"[^"]*"|'[^']*'|\S+/g) || []
   for (const rawToken of tokens) {
     const token = rawToken.trim()
     const normalized = token.toLowerCase()
@@ -73,8 +95,9 @@ function parseListStyle(
       continue
     }
 
-    if (listStyleTypes.has(normalized)) {
-      parsed.listStyleType = normalized
+    const parsedType = parseListStyleTypeValue(token)
+    if (parsedType) {
+      parsed.listStyleType = parsedType
     }
   }
 
@@ -467,9 +490,9 @@ function handleSpecialCase(
     return parseListStyle(value)
   }
   if (name === 'listStyleType') {
-    const normalized = String(value).trim().toLowerCase()
-    if (listStyleTypes.has(normalized)) {
-      return { listStyleType: normalized }
+    const parsedType = parseListStyleTypeValue(value)
+    if (parsedType) {
+      return { listStyleType: parsedType }
     }
     return
   }
