@@ -15,6 +15,11 @@ import parseTransformOrigin, {
 import { isString, lengthToNumber, v, splitEffects } from '../utils.js'
 import { MaskProperty, parseMask } from '../parser/mask.js'
 import { FontWeight, FontStyle } from '../font.js'
+import {
+  parseListStylePositionValue,
+  parseListStyleShorthand,
+  parseListStyleTypeValue,
+} from './list-style.js'
 
 // https://react-cn.github.io/react/tips/style-props-value-px.html
 const optOutPx = new Set([
@@ -31,80 +36,6 @@ const optOutPx = new Set([
   'aspectRatio',
 ])
 const keepNumber = new Set(['lineHeight'])
-const listStyleTypes = new Set([
-  'none',
-  'disc',
-  'circle',
-  'square',
-  'decimal',
-  'decimal-leading-zero',
-  'lower-alpha',
-  'upper-alpha',
-  'lower-greek',
-  'lower-latin',
-  'upper-latin',
-  'lower-roman',
-  'upper-roman',
-  'disclosure-open',
-  'disclosure-closed',
-])
-const listStylePositions = new Set(['inside', 'outside'])
-
-function parseListStyleTypeValue(value: string | number): string | undefined {
-  const token = String(value).trim()
-  if (!token) return
-
-  const normalized = token.toLowerCase()
-  if (listStyleTypes.has(normalized)) {
-    return normalized
-  }
-
-  const quote = token[0]
-  if (
-    token.length >= 2 &&
-    (quote === '"' || quote === "'") &&
-    token[token.length - 1] === quote
-  ) {
-    // CSS list-style-type allows string markers (`"→"` / `'§'`).
-    return token
-  }
-}
-
-function parseListStyle(
-  value: string | number
-): Partial<
-  Pick<MainStyle, 'listStyleType' | 'listStylePosition' | 'listStyleImage'>
-> {
-  const parsed: Partial<
-    Pick<MainStyle, 'listStyleType' | 'listStylePosition' | 'listStyleImage'>
-  > = {}
-  const input = String(value).trim()
-  if (!input) return parsed
-
-  const tokens = input.match(/url\([^)]+\)|"[^"]*"|'[^']*'|\S+/g) || []
-  for (const rawToken of tokens) {
-    const token = rawToken.trim()
-    const normalized = token.toLowerCase()
-
-    if (normalized.startsWith('url(')) {
-      parsed.listStyleImage = token
-      continue
-    }
-
-    if (listStylePositions.has(normalized)) {
-      parsed.listStylePosition = normalized
-      continue
-    }
-
-    const parsedType = parseListStyleTypeValue(token)
-    if (parsedType) {
-      parsed.listStyleType = parsedType
-    }
-  }
-
-  return parsed
-}
-
 function handleFallbackColor(
   prop: string,
   parsed: Record<string, string>,
@@ -128,13 +59,15 @@ function purify(name: string, value?: string | number) {
   return String(value)
 }
 
-function handleSpecialCase(
+function splitSpaceValues(value: string | number): string[] {
+  return value.toString().trim().split(/\s+/)
+}
+
+function resolveLogicalProperty(
   name: string,
   value: string | number,
   currentColor: string
 ) {
-  // --- Logical property mappings (horizontal-tb, ltr) ---
-
   // Logical sizing
   if (name === 'inlineSize')
     return (
@@ -163,14 +96,14 @@ function handleSpecialCase(
   if (name === 'marginBlockEnd')
     return { marginBottom: purify('marginBottom', value) }
   if (name === 'marginInline') {
-    const vals = value.toString().trim().split(/\s+/)
+    const vals = splitSpaceValues(value)
     return {
       marginLeft: purify('marginLeft', vals[0]),
       marginRight: purify('marginRight', vals[1] || vals[0]),
     }
   }
   if (name === 'marginBlock') {
-    const vals = value.toString().trim().split(/\s+/)
+    const vals = splitSpaceValues(value)
     return {
       marginTop: purify('marginTop', vals[0]),
       marginBottom: purify('marginBottom', vals[1] || vals[0]),
@@ -187,14 +120,14 @@ function handleSpecialCase(
   if (name === 'paddingBlockEnd')
     return { paddingBottom: purify('paddingBottom', value) }
   if (name === 'paddingInline') {
-    const vals = value.toString().trim().split(/\s+/)
+    const vals = splitSpaceValues(value)
     return {
       paddingLeft: purify('paddingLeft', vals[0]),
       paddingRight: purify('paddingRight', vals[1] || vals[0]),
     }
   }
   if (name === 'paddingBlock') {
-    const vals = value.toString().trim().split(/\s+/)
+    const vals = splitSpaceValues(value)
     return {
       paddingTop: purify('paddingTop', vals[0]),
       paddingBottom: purify('paddingBottom', vals[1] || vals[0]),
@@ -207,21 +140,21 @@ function handleSpecialCase(
   if (name === 'insetBlockStart') return { top: purify('top', value) }
   if (name === 'insetBlockEnd') return { bottom: purify('bottom', value) }
   if (name === 'insetInline') {
-    const vals = value.toString().trim().split(/\s+/)
+    const vals = splitSpaceValues(value)
     return {
       left: purify('left', vals[0]),
       right: purify('right', vals[1] || vals[0]),
     }
   }
   if (name === 'insetBlock') {
-    const vals = value.toString().trim().split(/\s+/)
+    const vals = splitSpaceValues(value)
     return {
       top: purify('top', vals[0]),
       bottom: purify('bottom', vals[1] || vals[0]),
     }
   }
   if (name === 'inset') {
-    const vals = value.toString().trim().split(/\s+/)
+    const vals = splitSpaceValues(value)
     const [t, r = t, b = t, l = r] = vals
     return {
       top: purify('top', t),
@@ -265,14 +198,14 @@ function handleSpecialCase(
 
   // Logical border sub-properties (width)
   if (name === 'borderInlineWidth') {
-    const vals = value.toString().trim().split(/\s+/)
+    const vals = splitSpaceValues(value)
     return {
       borderLeftWidth: purify('borderLeftWidth', vals[0]),
       borderRightWidth: purify('borderRightWidth', vals[1] || vals[0]),
     }
   }
   if (name === 'borderBlockWidth') {
-    const vals = value.toString().trim().split(/\s+/)
+    const vals = splitSpaceValues(value)
     return {
       borderTopWidth: purify('borderTopWidth', vals[0]),
       borderBottomWidth: purify('borderBottomWidth', vals[1] || vals[0]),
@@ -289,14 +222,14 @@ function handleSpecialCase(
 
   // Logical border sub-properties (style)
   if (name === 'borderInlineStyle') {
-    const vals = value.toString().trim().split(/\s+/)
+    const vals = splitSpaceValues(value)
     return {
       borderLeftStyle: vals[0],
       borderRightStyle: vals[1] || vals[0],
     }
   }
   if (name === 'borderBlockStyle') {
-    const vals = value.toString().trim().split(/\s+/)
+    const vals = splitSpaceValues(value)
     return {
       borderTopStyle: vals[0],
       borderBottomStyle: vals[1] || vals[0],
@@ -309,14 +242,14 @@ function handleSpecialCase(
 
   // Logical border sub-properties (color)
   if (name === 'borderInlineColor') {
-    const vals = value.toString().trim().split(/\s+/)
+    const vals = splitSpaceValues(value)
     return {
       borderLeftColor: vals[0],
       borderRightColor: vals[1] || vals[0],
     }
   }
   if (name === 'borderBlockColor') {
-    const vals = value.toString().trim().split(/\s+/)
+    const vals = splitSpaceValues(value)
     return {
       borderTopColor: vals[0],
       borderBottomColor: vals[1] || vals[0],
@@ -336,6 +269,15 @@ function handleSpecialCase(
     return { borderBottomLeftRadius: purify('borderRadius', value) }
   if (name === 'borderEndEndRadius')
     return { borderBottomRightRadius: purify('borderRadius', value) }
+}
+
+function handleSpecialCase(
+  name: string,
+  value: string | number,
+  currentColor: string
+) {
+  const logical = resolveLogicalProperty(name, value, currentColor)
+  if (logical) return logical
 
   // --- Shorthand expansions ---
 
@@ -488,7 +430,7 @@ function handleSpecialCase(
     }
   }
   if (name === 'listStyle') {
-    return parseListStyle(value)
+    return parseListStyleShorthand(value)
   }
   if (name === 'listStyleType') {
     const parsedType = parseListStyleTypeValue(value)
@@ -498,9 +440,9 @@ function handleSpecialCase(
     return
   }
   if (name === 'listStylePosition') {
-    const normalized = String(value).trim().toLowerCase()
-    if (listStylePositions.has(normalized)) {
-      return { listStylePosition: normalized }
+    const parsedPosition = parseListStylePositionValue(value)
+    if (parsedPosition) {
+      return { listStylePosition: parsedPosition }
     }
     return
   }

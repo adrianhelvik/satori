@@ -6,50 +6,11 @@
 
 import { buildXMLString } from '../utils.js'
 import border from './border.js'
-
-function resolveOverflowClipBox(
-  style: Record<string, number | string>,
-  left: number,
-  top: number,
-  width: number,
-  height: number
-) {
-  const borderLeft = Number(style.borderLeftWidth || 0)
-  const borderRight = Number(style.borderRightWidth || 0)
-  const borderTop = Number(style.borderTopWidth || 0)
-  const borderBottom = Number(style.borderBottomWidth || 0)
-  const paddingLeft = Number(style.paddingLeft || 0)
-  const paddingRight = Number(style.paddingRight || 0)
-  const paddingTop = Number(style.paddingTop || 0)
-  const paddingBottom = Number(style.paddingBottom || 0)
-
-  const borderBox = { x: left, y: top, width, height }
-  const paddingBox = {
-    x: left + borderLeft,
-    y: top + borderTop,
-    width: Math.max(0, width - borderLeft - borderRight),
-    height: Math.max(0, height - borderTop - borderBottom),
-  }
-  const contentBox = {
-    x: left + borderLeft + paddingLeft,
-    y: top + borderTop + paddingTop,
-    width: Math.max(
-      0,
-      width - borderLeft - borderRight - paddingLeft - paddingRight
-    ),
-    height: Math.max(
-      0,
-      height - borderTop - borderBottom - paddingTop - paddingBottom
-    ),
-  }
-
-  const box = String(style.overflowClipMarginBox || 'padding-box')
-    .trim()
-    .toLowerCase()
-  if (box === 'content-box') return contentBox
-  if (box === 'border-box') return borderBox
-  return paddingBox
-}
+import {
+  OVERFLOW_EXTENT,
+  parseOverflowClipMargin,
+  resolveOverflowClipBox,
+} from './overflow-utils.js'
 
 export default function contentMask(
   {
@@ -96,12 +57,7 @@ export default function contentMask(
     style.overflow === 'hidden' || style.overflowX === 'hidden'
   const overflowYHidden =
     style.overflow === 'hidden' || style.overflowY === 'hidden'
-  const overflowClipMargin =
-    typeof style.overflowClipMargin === 'number'
-      ? Math.max(0, style.overflowClipMargin)
-      : typeof style.overflowClipMargin === 'string'
-      ? Math.max(0, Number(style.overflowClipMargin) || 0)
-      : 0
+  const overflowClipMargin = parseOverflowClipMargin(style)
 
   const clipRect = { ...contentArea }
   const clipBox = resolveOverflowClipBox(style, left, top, width, height)
@@ -114,7 +70,6 @@ export default function contentMask(
     clipRect.height = clipBox.height
   }
 
-  const OVERFLOW_EXTENT = 1_000_000
   if (overflowXClip && !overflowYClip && !overflowYHidden) {
     clipRect.y = -OVERFLOW_EXTENT
     clipRect.height = OVERFLOW_EXTENT * 2
