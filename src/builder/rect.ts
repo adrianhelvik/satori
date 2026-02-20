@@ -185,8 +185,8 @@ export default async function rect(
     src?: string
     debug?: boolean
   },
-  style: Record<string, number | string>,
-  inheritableStyle: Record<string, number | string>
+  style: Record<string, number | string | object>,
+  inheritableStyle: Record<string, number | string | object>
 ) {
   if (style.display === 'none') return ''
 

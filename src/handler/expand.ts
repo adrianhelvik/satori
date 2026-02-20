@@ -49,13 +49,11 @@ const listStylePositions = new Set(['inside', 'outside'])
 
 function parseListStyle(
   value: string | number
-): Pick<
-  SerializedStyle,
-  'listStyleType' | 'listStylePosition' | 'listStyleImage'
+): Partial<
+  Pick<MainStyle, 'listStyleType' | 'listStylePosition' | 'listStyleImage'>
 > {
-  const parsed: Pick<
-    SerializedStyle,
-    'listStyleType' | 'listStylePosition' | 'listStyleImage'
+  const parsed: Partial<
+    Pick<MainStyle, 'listStyleType' | 'listStylePosition' | 'listStyleImage'>
   > = {}
   const input = String(value).trim()
   if (!input) return parsed
@@ -805,8 +803,9 @@ function mergeBackgroundPositionAxes(serializedStyle: SerializedStyle): void {
 type MainStyle = {
   color: string
   fontSize: number
+  transform: { [type: string]: string | number | number[] }[]
   transformOrigin: ParsedTransformOrigin
-  maskImage: MaskProperty[]
+  maskImage: MaskProperty[] | string
   opacity: number
   textTransform: string
   whiteSpace: string
@@ -815,6 +814,9 @@ type MainStyle = {
   textAlignLast: string
   lineHeight: number | string
   letterSpacing: number
+  listStyleType: string
+  listStylePosition: string
+  listStyleImage: string
 
   fontFamily: string | string[]
   fontWeight: FontWeight
@@ -848,7 +850,10 @@ type MainStyle = {
   textDecorationSkipInk: 'auto' | 'none' | 'all'
 }
 
-type OtherStyle = Exclude<Record<PropertyKey, string | number>, keyof MainStyle>
+type OtherStyle = Exclude<
+  Record<PropertyKey, string | number | object>,
+  keyof MainStyle
+>
 
 export type SerializedStyle = Partial<MainStyle & OtherStyle>
 
@@ -893,6 +898,7 @@ const allModes = new Set([
   'revert',
   'revert-layer',
 ])
+const allExcludedProps = new Set(['direction', 'unicodeBidi'])
 
 function getAllInitialStyle(): SerializedStyle {
   return {
@@ -945,22 +951,42 @@ function applyAllReset(
     throw new Error('Invalid `all` value.')
   }
 
+  const preservedBySpec: SerializedStyle = {}
+  for (const prop of allExcludedProps) {
+    if (typeof serializedStyle[prop] !== 'undefined') {
+      preservedBySpec[prop] = serializedStyle[prop]
+    } else if (typeof inheritedStyle[prop] !== 'undefined') {
+      preservedBySpec[prop] = inheritedStyle[prop]
+    }
+  }
+
   for (const prop in serializedStyle) {
-    if (!prop.startsWith('_')) {
+    if (!prop.startsWith('_') && !allExcludedProps.has(prop)) {
       delete serializedStyle[prop]
     }
   }
 
   const initialStyle = getAllInitialStyle()
-  Object.assign(serializedStyle, initialStyle)
+  for (const prop in initialStyle) {
+    if (!allExcludedProps.has(prop)) {
+      serializedStyle[prop] = initialStyle[prop]
+    }
+  }
+  Object.assign(serializedStyle, preservedBySpec)
 
-  if (mode === 'initial' || mode === 'revert' || mode === 'revert-layer') {
+  if (mode === 'initial') {
+    return
+  }
+
+  if (mode === 'revert' || mode === 'revert-layer') {
+    // `revert` / `revert-layer` depend on origin/layer cascade history, which
+    // Satori doesn't model. Approximate both as `initial`.
     return
   }
 
   if (mode === 'inherit') {
     for (const prop in inheritedStyle) {
-      if (!prop.startsWith('_')) {
+      if (!prop.startsWith('_') && !allExcludedProps.has(prop)) {
         serializedStyle[prop] = inheritedStyle[prop]
       }
     }
@@ -1072,6 +1098,8 @@ export default function expand(
         : []
       const hasExplicitTransform = existingTransforms.length > 0
 
+      // Approximation note: CSS `zoom` affects layout sizing in browsers.
+      // Satori models it as an extra transform scale.
       serializedStyle.transform = [{ scale: zoom }, ...existingTransforms]
       // `zoom` scales from the top-left corner in browsers. Only force this when
       // zoom is the sole transform-like input to avoid altering existing behavior.

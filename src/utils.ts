@@ -66,7 +66,7 @@ export function lengthToNumber(
   length: string | number,
   baseFontSize: number,
   baseLength: number,
-  inheritedStyle: Record<string, string | number>,
+  inheritedStyle: Record<string, string | number | object>,
   percentage = false
 ): number | undefined {
   if (typeof length === 'number') return length

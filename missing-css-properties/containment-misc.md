@@ -25,9 +25,9 @@
 
 | Property | Feasibility | Notes |
 |----------|-------------|-------|
-| `all` | **Supported (approx.)** | Supports `initial`, `unset`, `inherit` (plus `revert` aliases) via reset/rehydration of Satori-managed style properties. Does not fully emulate full-browser cascade/layer semantics. |
+| `all` | **Supported (approx.)** | Supports `initial`, `unset`, `inherit`; `revert` / `revert-layer` are approximated as `initial` because origin/layer cascade history is not modeled. `direction` and `unicode-bidi` are excluded from reset per spec. Display fallback follows Satori element presets (Yoga/flex-oriented), not full browser UA stylesheet behavior. |
 | `appearance` | N/A | Platform-native form control styling |
-| `zoom` | **Supported (approx.)** | Maps to `transform: scale(...)` with top-left anchoring for zoom-only cases. Does not fully emulate browser layout reflow semantics. |
+| `zoom` | **Supported (approx.)** | Maps to `transform: scale(...)` and does not perform browser-like layout reflow. Combining `zoom` with explicit transforms is only approximate compared with browser coordinate-space behavior. |
 | `aspect-ratio` | **Supported** | Number and fraction syntax (e.g. `1.5`, `16/9`) |
 | `object-fit` | **Supported** | `contain`, `cover`, `none` |
 | `object-position` | **Supported** | Various keyword combinations |

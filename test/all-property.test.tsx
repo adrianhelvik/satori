@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import satori from '../src/index.js'
+import expand from '../src/handler/expand.js'
 import { initFonts, toImage } from './utils.js'
 
 describe('all property', () => {
@@ -20,17 +21,21 @@ describe('all property', () => {
         }}
       >
         <div
-          style={{
-            width: 80,
-            height: 80,
-            border: '8px solid #00ff00',
-            backgroundColor: 'red',
-            all: 'initial',
-            display: 'block',
-            width: 60,
-            height: 60,
-            backgroundColor: 'blue',
-          }}
+          style={Object.assign(
+            {
+              width: 80,
+              height: 80,
+              border: '8px solid #00ff00',
+              backgroundColor: 'red',
+              all: 'initial',
+            },
+            {
+              display: 'block',
+              width: 60,
+              height: 60,
+              backgroundColor: 'blue',
+            }
+          )}
         />
       </div>,
       { width: 120, height: 120, fonts }
@@ -63,5 +68,25 @@ describe('all property', () => {
     expect(svg).toContain('fill="#cc0000"')
     expect(svg).toContain('font-size="30"')
     expect(toImage(svg, 240)).toMatchImageSnapshot()
+  })
+
+  it('should not reset direction or unicode-bidi when all is applied', () => {
+    const expanded = expand(
+      {
+        direction: 'rtl',
+        unicodeBidi: 'bidi-override',
+        all: 'initial',
+      },
+      {
+        color: 'black',
+        fontSize: 16,
+        opacity: 1,
+        _viewportWidth: 240,
+        _viewportHeight: 100,
+      }
+    )
+
+    expect(expanded.direction).toBe('rtl')
+    expect(expanded.unicodeBidi).toBe('bidi-override')
   })
 })
