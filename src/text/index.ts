@@ -675,6 +675,11 @@ export default async function* buildTextNodes(
       width: containerWidth,
       height: containerHeight,
       isInheritingTransform,
+      parentTransform: inheritedStyle.transform as any,
+      parentTransformSize: {
+        width: parent.getComputedWidth(),
+        height: parent.getComputedHeight(),
+      },
     },
     parentStyle
   )

@@ -3,7 +3,7 @@ import type { ParsedTransformOrigin } from '../transform-origin.js'
 import backgroundImage from './background-image.js'
 import radius, { getBorderRadiusClipPath } from './border-radius.js'
 import { boxShadow } from './shadow.js'
-import transform from './transform.js'
+import transform, { type TransformInput } from './transform.js'
 import overflow from './overflow.js'
 import { buildXMLString, lengthToNumber } from '../utils.js'
 import border, { getBorderClipPath } from './border.js'
@@ -958,6 +958,8 @@ export default async function rect(
     width,
     height,
     isInheritingTransform,
+    parentTransform,
+    parentTransformSize,
     src,
     debug,
   }: {
@@ -967,6 +969,8 @@ export default async function rect(
     width: number
     height: number
     isInheritingTransform: boolean
+    parentTransform?: TransformInput
+    parentTransformSize?: { width: number; height: number }
     src?: string
     debug?: boolean
   },
@@ -1017,7 +1021,9 @@ export default async function rect(
       },
       style.transform as unknown as number[],
       isInheritingTransform,
-      style.transformOrigin as ParsedTransformOrigin | undefined
+      style.transformOrigin as ParsedTransformOrigin | undefined,
+      parentTransform,
+      parentTransformSize
     )
   }
 

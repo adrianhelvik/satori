@@ -17,6 +17,7 @@ import { SVGNodeToImage } from './handler/preprocess.js'
 import computeStyle from './handler/compute.js'
 import FontLoader from './font.js'
 import buildTextNodes from './text/index.js'
+import type { TransformInput } from './builder/transform.js'
 import rect, { type BlendPrimitive } from './builder/rect.js'
 import { Locale, normalizeLocale } from './language.js'
 import { SerializedStyle } from './handler/expand.js'
@@ -379,9 +380,6 @@ export default async function* layout(
   // This affects the coordinate system.
   const isInheritingTransform =
     computedStyle.transform === inheritedStyle.transform
-  if (!isInheritingTransform) {
-    ;(computedStyle.transform as any).__parent = inheritedStyle.transform
-  }
 
   // If the element has clipping overflow or clip-path set, we need to create a
   // clip path and use it in all its children.
@@ -558,6 +556,8 @@ export default async function* layout(
   const parentBackgroundColor = inheritedStyle._parentBackgroundColor as
     | string
     | undefined
+  const parentLayout = parent.getComputedLayout()
+  const parentTransform = inheritedStyle.transform as TransformInput | undefined
 
   if (type === 'img') {
     const src = computedStyle.__src as string
@@ -570,6 +570,11 @@ export default async function* layout(
         height,
         src,
         isInheritingTransform,
+        parentTransform,
+        parentTransformSize: {
+          width: parentLayout.width,
+          height: parentLayout.height,
+        },
         debug,
       },
       computedStyle,
@@ -591,6 +596,11 @@ export default async function* layout(
         height,
         src,
         isInheritingTransform,
+        parentTransform,
+        parentTransformSize: {
+          width: parentLayout.width,
+          height: parentLayout.height,
+        },
         debug,
       },
       computedStyle,
@@ -621,7 +631,20 @@ export default async function* layout(
       )
     }
     baseRenderResult = await rect(
-      { id, left, top, width, height, isInheritingTransform, debug },
+      {
+        id,
+        left,
+        top,
+        width,
+        height,
+        isInheritingTransform,
+        parentTransform,
+        parentTransformSize: {
+          width: parentLayout.width,
+          height: parentLayout.height,
+        },
+        debug,
+      },
       computedStyle,
       newInheritableStyle,
       siblingBlendBackdrops,

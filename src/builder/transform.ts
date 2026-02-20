@@ -3,8 +3,25 @@ import type { ParsedTransformOrigin } from '../transform-origin.js'
 
 const baseMatrix = [1, 0, 0, 1, 0, 0]
 
-// Mutate the array in place.
-function resolveTransforms(transforms: any[], width: number, height: number) {
+export type TransformDescriptor = {
+  [type: string]: number | string | number[]
+}
+
+export type TransformInput = Array<number | TransformDescriptor>
+
+function isResolvedMatrix(input: TransformInput): input is number[] {
+  if (!Array.isArray(input) || input.length !== 6) return false
+  for (const value of input) {
+    if (typeof value !== 'number' || !Number.isFinite(value)) return false
+  }
+  return true
+}
+
+function resolveTransforms(
+  transforms: TransformDescriptor[],
+  width: number,
+  height: number
+): number[] {
   let matrix = [...baseMatrix]
 
   // Handle CSS transforms To make it easier, we convert different transform
@@ -19,11 +36,8 @@ function resolveTransforms(transforms: any[], width: number, height: number) {
     if (typeof v === 'string') {
       if (type === 'translateX') {
         v = (parseFloat(v) / 100) * width
-        // Override the original object.
-        transform[type] = v
       } else if (type === 'translateY') {
         v = (parseFloat(v) / 100) * height
-        transform[type] = v
       } else {
         throw new Error(`Invalid transform: "${type}: ${v}".`)
       }
@@ -82,9 +96,25 @@ function resolveTransforms(transforms: any[], width: number, height: number) {
     matrix = multiply(transformMatrix, matrix)
   }
 
-  transforms.splice(0, transforms.length)
-  transforms.push(...matrix)
-  ;(transforms as any).__resolved = true
+  return matrix
+}
+
+function resolveAndCacheTransforms(
+  transforms: TransformInput,
+  width: number,
+  height: number
+): number[] {
+  if (isResolvedMatrix(transforms)) {
+    return transforms
+  }
+
+  const resolved = resolveTransforms(
+    transforms as TransformDescriptor[],
+    width,
+    height
+  )
+  transforms.splice(0, transforms.length, ...resolved)
+  return transforms as unknown as number[]
 }
 
 export default function transform(
@@ -99,17 +129,14 @@ export default function transform(
     width: number
     height: number
   },
-  transforms: number[],
+  transforms: TransformInput,
   isInheritingTransform: boolean,
-  transformOrigin?: ParsedTransformOrigin
+  transformOrigin?: ParsedTransformOrigin,
+  parentTransforms?: TransformInput,
+  parentSize?: { width: number; height: number }
 ) {
   let result: number[]
-
-  if (!(transforms as any).__resolved) {
-    resolveTransforms(transforms, width, height)
-  }
-
-  let matrix = transforms
+  const matrix = resolveAndCacheTransforms(transforms, width, height)
 
   // Calculate the transform origin.
   if (isInheritingTransform) {
@@ -134,13 +161,18 @@ export default function transform(
       multiply(matrix, [1, 0, 0, 1, -x, -y])
     )
 
-    // And we need to apply its parent transform if it has one.
-    if ((matrix as any).__parent) {
-      result = multiply((matrix as any).__parent, result)
+    if (parentTransforms) {
+      const parentWidth = parentSize?.width ?? width
+      const parentHeight = parentSize?.height ?? height
+      const resolvedParent = resolveAndCacheTransforms(
+        parentTransforms,
+        parentWidth,
+        parentHeight
+      )
+      result = multiply(resolvedParent, result)
     }
 
-    // Mutate self.
-    matrix.splice(0, 6, ...result)
+    transforms.splice(0, transforms.length, ...result)
   }
 
   return `matrix(${result.map((v) => v.toFixed(2)).join(',')})`

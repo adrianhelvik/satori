@@ -1,6 +1,6 @@
 import escapeHTML from 'escape-html'
 import type { ParsedTransformOrigin } from '../transform-origin.js'
-import transform from './transform.js'
+import transform, { type TransformInput } from './transform.js'
 import { buildXMLString } from '../utils.js'
 
 export function container(
@@ -10,12 +10,16 @@ export function container(
     width,
     height,
     isInheritingTransform,
+    parentTransform,
+    parentTransformSize,
   }: {
     left: number
     top: number
     width: number
     height: number
     isInheritingTransform: boolean
+    parentTransform?: TransformInput
+    parentTransformSize?: { width: number; height: number }
   },
   style: Record<string, number | string | object>
 ) {
@@ -32,7 +36,9 @@ export function container(
       },
       style.transform as unknown as number[],
       isInheritingTransform,
-      style.transformOrigin as ParsedTransformOrigin | undefined
+      style.transformOrigin as ParsedTransformOrigin | undefined,
+      parentTransform,
+      parentTransformSize
     )
   }
 
