@@ -78,6 +78,6 @@
 | `ruby-align` | Hard | Ruby annotation alignment |
 | `initial-letter` | Hard | Drop cap sizing and positioning |
 | `text-spacing-trim` | Hard | CJK punctuation spacing |
-| `white-space-collapse` | Feasible | Modern replacement for parts of `white-space` |
-| `text-wrap-mode` | Feasible | Modern sub-property of `text-wrap` |
-| `text-wrap-style` | Feasible | Already partially covered by `text-wrap: balance/pretty` |
+| `white-space-collapse` | Feasible | Basic compatibility mapping is supported (`preserve-breaks`, `collapse`, etc.). |
+| `text-wrap-mode` | Feasible | Basic compatibility mapping is supported (`nowrap`/`wrap`). |
+| `text-wrap-style` | Feasible | Compatibility mapping supports `balance`/`pretty`. |
