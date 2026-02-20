@@ -361,9 +361,15 @@ function handleSpecialCase(
   if (name === 'overflowY') return { overflowY: value }
   if (name === 'overflowClipMargin') {
     const raw = String(value).trim()
-    if (!raw) return { overflowClipMargin: 0 }
+    if (!raw) {
+      return {
+        overflowClipMargin: 0,
+        overflowClipMarginBox: 'padding-box',
+      }
+    }
 
     const parts = raw.split(/\s+/)
+    let box: 'content-box' | 'padding-box' | 'border-box' = 'padding-box'
     let marginValue: string | number | undefined
     for (const part of parts) {
       if (
@@ -371,6 +377,7 @@ function handleSpecialCase(
         part === 'padding-box' ||
         part === 'border-box'
       ) {
+        box = part
         continue
       }
       marginValue = part
@@ -378,7 +385,7 @@ function handleSpecialCase(
     }
 
     if (typeof marginValue === 'undefined') {
-      return { overflowClipMargin: 0 }
+      return { overflowClipMargin: 0, overflowClipMarginBox: box }
     }
 
     const purified = purify(name, marginValue)
@@ -387,7 +394,7 @@ function handleSpecialCase(
       throw new Error('`overflowClipMargin` must be non-negative.')
     }
 
-    return { overflowClipMargin: purified }
+    return { overflowClipMargin: purified, overflowClipMarginBox: box }
   }
 
   // outline shorthand: <width> <style> <color>

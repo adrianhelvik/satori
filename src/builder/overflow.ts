@@ -6,6 +6,50 @@ import { buildXMLString } from '../utils.js'
 import mask from './content-mask.js'
 import { buildClipPath, genClipPathId } from './clip-path.js'
 
+function resolveOverflowClipBox(
+  style: Record<string, string | number>,
+  left: number,
+  top: number,
+  width: number,
+  height: number
+) {
+  const borderLeft = Number(style.borderLeftWidth || 0)
+  const borderRight = Number(style.borderRightWidth || 0)
+  const borderTop = Number(style.borderTopWidth || 0)
+  const borderBottom = Number(style.borderBottomWidth || 0)
+  const paddingLeft = Number(style.paddingLeft || 0)
+  const paddingRight = Number(style.paddingRight || 0)
+  const paddingTop = Number(style.paddingTop || 0)
+  const paddingBottom = Number(style.paddingBottom || 0)
+
+  const borderBox = { x: left, y: top, width, height }
+  const paddingBox = {
+    x: left + borderLeft,
+    y: top + borderTop,
+    width: Math.max(0, width - borderLeft - borderRight),
+    height: Math.max(0, height - borderTop - borderBottom),
+  }
+  const contentBox = {
+    x: left + borderLeft + paddingLeft,
+    y: top + borderTop + paddingTop,
+    width: Math.max(
+      0,
+      width - borderLeft - borderRight - paddingLeft - paddingRight
+    ),
+    height: Math.max(
+      0,
+      height - borderTop - borderBottom - paddingTop - paddingBottom
+    ),
+  }
+
+  const box = String(style.overflowClipMarginBox || 'padding-box')
+    .trim()
+    .toLowerCase()
+  if (box === 'content-box') return contentBox
+  if (box === 'border-box') return borderBox
+  return paddingBox
+}
+
 export default function overflow(
   {
     left,
@@ -64,10 +108,11 @@ export default function overflow(
     // When only one axis is hidden, extend the clip rect on the visible axis
     // to a very large value so content overflows freely in that direction.
     const OVERFLOW_EXTENT = 1_000_000
-    let clipX = left
-    let clipY = top
-    let clipWidth = width
-    let clipHeight = height
+    const clipBox = resolveOverflowClipBox(style, left, top, width, height)
+    let clipX = overflowXClip ? clipBox.x : left
+    let clipY = overflowYClip ? clipBox.y : top
+    let clipWidth = overflowXClip ? clipBox.width : width
+    let clipHeight = overflowYClip ? clipBox.height : height
 
     if (overflowXHidden && !overflowYHidden && !path && !src) {
       // Clip X but allow Y to overflow

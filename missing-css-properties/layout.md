@@ -7,7 +7,7 @@
 - `top`, `right`, `bottom`, `left`, `inset`
 - `z-index`
 - `overflow`, `overflow-x`, `overflow-y`: `visible`, `hidden`, `clip`
-- `overflow-clip-margin` (partial; non-negative length for rectangular clip paths)
+- `overflow-clip-margin` (partial; non-negative length + visual-box keyword support for rectangular clip paths)
 - `visibility`: `visible`, `hidden`
 - `box-sizing`: `border-box`, `content-box`
 - Flexbox: `flex-direction`, `flex-wrap`, `flex-grow`, `flex-shrink`, `flex-basis`, `flex`, `align-items`, `align-self`, `align-content`, `justify-content`, `gap`, `row-gap`, `column-gap`
@@ -35,7 +35,7 @@
 
 | Property | Feasibility | Notes |
 |----------|-------------|-------|
-| `overflow-clip-margin` | **Supported (partial)** | Supports non-negative length values for rectangular `overflow: clip` clipping. Visual-box keywords and rounded-path precision are approximate. |
+| `overflow-clip-margin` | **Supported (partial)** | Supports non-negative length values and visual-box keywords (`content-box`, `padding-box`, `border-box`) for rectangular `overflow: clip` clipping. Rounded-path precision remains approximate. |
 
 > `overflow: clip` is supported. Shorthand `clip` behaves like hidden clipping. Per-axis behavior follows browser semantics, including asymmetric `overflow-x`/`overflow-y` combinations.
 

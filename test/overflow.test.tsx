@@ -150,15 +150,24 @@ describe('Overflow', () => {
     const svg = await satori(
       <div
         style={{
-          display: 'flex',
-          width: 50,
-          height: 50,
+          width: 60,
+          height: 60,
           overflowX: 'clip',
           overflowY: 'visible',
           backgroundColor: 'white',
+          position: 'relative',
         }}
       >
-        <div style={{ width: 100, height: 100, backgroundColor: 'red' }} />
+        <div
+          style={{
+            position: 'absolute',
+            width: 100,
+            height: 100,
+            backgroundColor: 'red',
+            left: -20,
+            top: -20,
+          }}
+        />
       </div>,
       {
         width: 100,
@@ -173,15 +182,24 @@ describe('Overflow', () => {
     const svg = await satori(
       <div
         style={{
-          display: 'flex',
-          width: 50,
-          height: 50,
+          width: 60,
+          height: 60,
           overflowY: 'clip',
           overflowX: 'visible',
           backgroundColor: 'white',
+          position: 'relative',
         }}
       >
-        <div style={{ width: 100, height: 100, backgroundColor: 'blue' }} />
+        <div
+          style={{
+            position: 'absolute',
+            width: 100,
+            height: 100,
+            backgroundColor: 'blue',
+            left: -20,
+            top: -20,
+          }}
+        />
       </div>,
       {
         width: 100,
@@ -190,6 +208,123 @@ describe('Overflow', () => {
       }
     )
     expect(toImage(svg, 100)).toMatchImageSnapshot()
+  })
+
+  it('should treat default overflow-clip-margin box as padding-box', async () => {
+    const baseNodeStyle = {
+      width: 80,
+      height: 80,
+      border: '10px solid white',
+      padding: 10,
+      backgroundColor: 'white',
+      overflow: 'clip' as const,
+      position: 'relative' as const,
+    }
+    const child = (
+      <div
+        style={{
+          position: 'absolute',
+          width: 120,
+          height: 120,
+          backgroundColor: 'red',
+          left: 0,
+          top: 0,
+        }}
+      />
+    )
+
+    const implicitPaddingBox = await satori(
+      <div style={baseNodeStyle}>{child}</div>,
+      {
+        width: 120,
+        height: 120,
+        fonts,
+      }
+    )
+    const explicitPaddingBox = await satori(
+      <div style={{ ...baseNodeStyle, overflowClipMargin: 'padding-box 0px' }}>
+        {child}
+      </div>,
+      {
+        width: 120,
+        height: 120,
+        fonts,
+      }
+    )
+
+    expect(toImage(implicitPaddingBox, 120)).toEqual(
+      toImage(explicitPaddingBox, 120)
+    )
+  })
+
+  it('should support overflow-clip-margin content-box keyword', async () => {
+    const svg = await satori(
+      <div
+        style={{
+          width: 80,
+          height: 80,
+          border: '10px solid white',
+          padding: 10,
+          backgroundColor: 'white',
+          overflow: 'clip',
+          overflowClipMargin: 'content-box 0px',
+          position: 'relative',
+        }}
+      >
+        <div
+          style={{
+            position: 'absolute',
+            width: 120,
+            height: 120,
+            backgroundColor: 'red',
+            left: 0,
+            top: 0,
+          }}
+        />
+      </div>,
+      {
+        width: 120,
+        height: 120,
+        fonts,
+      }
+    )
+
+    expect(toImage(svg, 120)).toMatchImageSnapshot()
+  })
+
+  it('should support overflow-clip-margin border-box keyword', async () => {
+    const svg = await satori(
+      <div
+        style={{
+          width: 80,
+          height: 80,
+          border: '10px solid white',
+          padding: 10,
+          backgroundColor: 'white',
+          overflow: 'clip',
+          overflowClipMargin: 'border-box 0px',
+          position: 'relative',
+        }}
+      >
+        <div
+          style={{
+            position: 'absolute',
+            width: 120,
+            height: 120,
+            backgroundColor: 'blue',
+            left: 0,
+            top: 0,
+          }}
+        />
+      </div>,
+      {
+        width: 120,
+        height: 120,
+        fonts,
+      }
+    )
+
+    expect(toImage(svg, 120)).toMatchImageSnapshot()
   })
 
   it('should work with nested border, border-radius, padding', async () => {
