@@ -337,6 +337,30 @@ function handleSpecialCase(
   if (name === 'wordSpacing')
     return { wordSpacing: purify('wordSpacing', value) }
   if (name === 'textIndent') return { textIndent: purify('textIndent', value) }
+  if (name === 'whiteSpaceCollapse') {
+    const normalized = String(value).trim().toLowerCase()
+    const whiteSpaceMap: Record<string, string> = {
+      collapse: 'normal',
+      preserve: 'pre-wrap',
+      'preserve-breaks': 'pre-line',
+      'preserve-spaces': 'pre-wrap',
+      'break-spaces': 'pre-wrap',
+    }
+    if (whiteSpaceMap[normalized]) {
+      return { whiteSpace: whiteSpaceMap[normalized] }
+    }
+  }
+  if (name === 'textWrapMode') {
+    const normalized = String(value).trim().toLowerCase()
+    if (normalized === 'nowrap') return { whiteSpace: 'nowrap' }
+    if (normalized === 'wrap') return { textWrap: 'wrap' }
+  }
+  if (name === 'textWrapStyle') {
+    const normalized = String(value).trim().toLowerCase()
+    if (normalized === 'balance' || normalized === 'pretty') {
+      return { textWrap: normalized }
+    }
+  }
   if (name === 'overflowWrap' || name === 'wordWrap')
     return { overflowWrap: value }
   if (name === 'textDecorationThickness')
