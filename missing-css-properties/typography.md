@@ -58,7 +58,7 @@
 
 | Property | Feasibility | Notes |
 |----------|-------------|-------|
-| `text-underline-position` | Feasible | Under vs. from-font positioning |
+| `text-underline-position` | Feasible | `under` is supported. Other detailed modes remain approximate. |
 
 ### Text emphasis
 
