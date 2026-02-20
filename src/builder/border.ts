@@ -276,13 +276,77 @@ function buildBorderPath(
   const d = radius(dims, style as Record<string, number>, partialSides)
 
   if (!asContentMask && borderStyleValue === 'double' && w >= 3) {
-    // Double border: two lines at 1/3 width each, separated by 1/3 gap.
-    // Outer line: full width stroke clipped to outer 1/3
-    // Inner line: full width stroke clipped to inner 1/3
+    const isFullBorder = partialSides.every(Boolean)
+
+    // For rectangular full borders we can draw precise double rings.
+    if (isFullBorder && !hasRoundedCorners(style)) {
+      const lineWidth = Math.max(1, Math.floor(w / 3))
+      const gapWidth = Math.max(0, w - lineWidth * 2)
+      const outerInset = lineWidth
+      const innerOuterInset = lineWidth + gapWidth
+      const innerInnerInset = innerOuterInset + lineWidth
+
+      const outerInnerWidth = dims.width - outerInset * 2
+      const outerInnerHeight = dims.height - outerInset * 2
+      const innerOuterWidth = dims.width - innerOuterInset * 2
+      const innerOuterHeight = dims.height - innerOuterInset * 2
+      const innerInnerWidth = dims.width - innerInnerInset * 2
+      const innerInnerHeight = dims.height - innerInnerInset * 2
+
+      if (
+        outerInnerWidth > 0 &&
+        outerInnerHeight > 0 &&
+        innerOuterWidth > 0 &&
+        innerOuterHeight > 0 &&
+        innerInnerWidth > 0 &&
+        innerInnerHeight > 0
+      ) {
+        const outerRingPath = [
+          `M${dims.left} ${dims.top}`,
+          `h${dims.width}`,
+          `v${dims.height}`,
+          `h${-dims.width}`,
+          'z',
+          `M${dims.left + outerInset} ${dims.top + outerInset}`,
+          `h${outerInnerWidth}`,
+          `v${outerInnerHeight}`,
+          `h${-outerInnerWidth}`,
+          'z',
+        ].join(' ')
+
+        const innerRingPath = [
+          `M${dims.left + innerOuterInset} ${dims.top + innerOuterInset}`,
+          `h${innerOuterWidth}`,
+          `v${innerOuterHeight}`,
+          `h${-innerOuterWidth}`,
+          'z',
+          `M${dims.left + innerInnerInset} ${dims.top + innerInnerInset}`,
+          `h${innerInnerWidth}`,
+          `v${innerInnerHeight}`,
+          `h${-innerInnerWidth}`,
+          'z',
+        ].join(' ')
+
+        return (
+          buildXMLString('path', {
+            ...props,
+            d: outerRingPath,
+            fill: currentStyle[2],
+            'fill-rule': 'evenodd',
+          }) +
+          buildXMLString('path', {
+            ...props,
+            d: innerRingPath,
+            fill: currentStyle[2],
+            'fill-rule': 'evenodd',
+          })
+        )
+      }
+    }
+
+    // Fallback approximation for rounded or partial double borders.
     const outerW = Math.round(w / 3)
     const innerW = outerW
-    // We approximate by using two strokes offset by adjusting stroke-width.
-    // Outer stroke at full size, inner stroke at reduced size.
     return (
       buildXMLString('path', {
         ...dims,
@@ -305,7 +369,6 @@ function buildBorderPath(
             width: dims.width,
             height: dims.height,
           },
-          // Inset by 2/3 of border width for the inner line.
           {
             ...style,
             borderTopWidth: Math.max(
