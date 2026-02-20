@@ -25,10 +25,10 @@
 
 | Property | Feasibility | Notes |
 |----------|-------------|-------|
-| `aspect-ratio` | Feasible | Yoga 3.x has `setAspectRatio`. There's a `@TODO` in `compute.ts:246`. Currently only used internally for `<img>` elements. Exposing as a CSS property would be straightforward. |
 | `all` | Feasible | Resets all properties — could be implemented as expanding to all supported defaults |
 | `appearance` | N/A | Platform-native form control styling |
 | `zoom` | Feasible | Could scale the entire element like `transform: scale()` |
+| `aspect-ratio` | **Supported** | Number and fraction syntax (e.g. `1.5`, `16/9`) |
 | `object-fit` | **Supported** | `contain`, `cover`, `none` |
 | `object-position` | **Supported** | Various keyword combinations |
 

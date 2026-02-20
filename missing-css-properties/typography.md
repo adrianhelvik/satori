@@ -4,13 +4,15 @@
 
 - `font-family`, `font-size`, `font-weight`, `font-style`
 - `line-height`, `letter-spacing`, `tab-size`
+- `word-spacing`, `text-indent`
 - `text-align` (start, end, left, right, center, justify)
 - `text-transform` (none, lowercase, uppercase, capitalize)
 - `text-overflow` (clip, ellipsis)
 - `text-wrap` (wrap, balance, pretty)
 - `white-space` (normal, pre, pre-wrap, pre-line, nowrap)
 - `word-break` (normal, break-all, break-word, keep-all)
-- `text-decoration-line`, `text-decoration-style` (solid, dashed, dotted, double), `text-decoration-color`, `text-decoration-skip-ink`
+- `overflow-wrap` / `word-wrap`
+- `text-decoration-line` (`underline`, `line-through`, `overline`), `text-decoration-style` (solid, dashed, dotted, double, wavy), `text-decoration-color`, `text-decoration-skip-ink`, `text-decoration-thickness`, `text-underline-offset`
 - `text-shadow`
 - `-webkit-text-stroke`, `-webkit-line-clamp`
 
@@ -45,11 +47,8 @@
 
 | Property | Feasibility | Notes |
 |----------|-------------|-------|
-| `word-spacing` | Feasible | Listed in SVG attribute mapping but not implemented as a CSS property. Would need space-width adjustment in text measurer. |
-| `text-indent` | Feasible | First-line indentation. Could offset the first line's x position. |
 | `text-align-last` | Feasible | Alignment of the last line in justified text |
 | `text-justify` | Hard | Justification algorithm (auto, inter-word, inter-character) |
-| `overflow-wrap` / `word-wrap` | Feasible | Satori has `word-break` but not the distinct `overflow-wrap` behavior |
 | `hyphens` | Hard | Requires hyphenation dictionaries per language |
 | `hyphenate-character` | Hard | Depends on `hyphens` |
 | `hyphenate-limit-chars` | Hard | Depends on `hyphens` |
@@ -60,10 +59,6 @@
 
 | Property | Feasibility | Notes |
 |----------|-------------|-------|
-| `text-decoration-line: overline` | Feasible | Currently supports `underline` and `line-through` only |
-| `text-decoration-style: wavy` | Feasible | Would need a sine-wave SVG path |
-| `text-decoration-thickness` | Feasible | Currently uses a fixed thickness |
-| `text-underline-offset` | Feasible | Offset from baseline |
 | `text-underline-position` | Feasible | Under vs. from-font positioning |
 
 ### Text emphasis

@@ -2,7 +2,8 @@
 
 ## What Satori supports
 
-- `transform`: `translateX`, `translateY`, `translate`, `scale`, `scaleX`, `scaleY`, `rotate`, `skewX`, `skewY`
+- `transform`: `translateX`, `translateY`, `translate`, `scale`, `scaleX`, `scaleY`, `rotate`, `skewX`, `skewY`, `matrix()`
+- Individual transform properties: `rotate`, `scale`, `translate`
 - `transform-origin`
 
 ## Missing properties
@@ -23,15 +24,6 @@
 | `perspective` | N/A | No perspective in SVG |
 | `perspective-origin` | N/A | Same |
 | `backface-visibility` | N/A | No 3D backface |
-
-### 2D transforms (missing)
-
-| Property | Feasibility | Notes |
-|----------|-------------|-------|
-| `transform: matrix()` | Feasible | 2D affine matrix — could map to SVG `matrix()` transform |
-| `rotate` (individual property) | Feasible | CSS individual transform property — could expand to `transform: rotate()` |
-| `scale` (individual property) | Feasible | Same |
-| `translate` (individual property) | Feasible | Same |
 
 ### Transitions
 

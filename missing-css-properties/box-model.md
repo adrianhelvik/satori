@@ -7,7 +7,10 @@
 - `padding` (all sides + shorthand)
 - `border` (all sides, width/style/color)
 - `border-radius` (all corners, including `x / y` syntax)
-- Border styles: `solid`, `dashed`
+- Border styles: `solid`, `dashed`, `dotted`, `double`
+- `outline`, `outline-width`, `outline-style`, `outline-color`, `outline-offset`
+- `aspect-ratio`
+- Logical sizing aliases: `inline-size`, `block-size`, `min-inline-size`, `min-block-size`, `max-inline-size`, `max-block-size`
 
 ## Missing properties
 
@@ -15,8 +18,6 @@
 
 | Value | Feasibility | Notes |
 |-------|-------------|-------|
-| `dotted` | Feasible | Could use SVG `stroke-dasharray` with round caps. Currently only `solid` and `dashed` are rendered for borders (though `dotted` works for text-decoration). |
-| `double` | Feasible | Two parallel lines — straightforward SVG path generation |
 | `groove` | Hard | Requires simulated 3D shading |
 | `ridge` | Hard | Same |
 | `inset` | Hard | Same |
@@ -32,28 +33,6 @@
 | `border-image-width` | Hard | Border image width override |
 | `border-image-outset` | Hard | Extends border image beyond border box |
 | `border-image-repeat` | Hard | Stretch/repeat/round/space for border image |
-
-### Outline
-
-| Property | Feasibility | Notes |
-|----------|-------------|-------|
-| `outline` | Feasible | A non-layout-affecting border. Could render as an additional SVG rect outside the border. |
-| `outline-width` | Feasible | |
-| `outline-style` | Feasible | |
-| `outline-color` | Feasible | |
-| `outline-offset` | Feasible | Gap between outline and border edge |
-
-### Box model sizing
-
-| Property | Feasibility | Notes |
-|----------|-------------|-------|
-| `aspect-ratio` | Feasible | `compute.ts:246` has a `@TODO` for this. Yoga 3.x supports `setAspectRatio`. Currently only used internally for images. |
-| `inline-size` | Feasible | Logical equivalent of `width` (in horizontal writing mode) |
-| `block-size` | Feasible | Logical equivalent of `height` |
-| `min-inline-size` | Feasible | |
-| `min-block-size` | Feasible | |
-| `max-inline-size` | Feasible | |
-| `max-block-size` | Feasible | |
 
 ### Shape
 

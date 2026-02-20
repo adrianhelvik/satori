@@ -4,10 +4,12 @@
 
 - `display`: `flex`, `block`, `none`, `contents`, `-webkit-box`
 - `position`: `relative`, `absolute`, `static`
-- `top`, `right`, `bottom`, `left`
-- `overflow`: `visible`, `hidden`
+- `top`, `right`, `bottom`, `left`, `inset`
+- `overflow`, `overflow-x`, `overflow-y`: `visible`, `hidden`
+- `visibility`: `visible`, `hidden`
 - `box-sizing`: `border-box`, `content-box`
 - Flexbox: `flex-direction`, `flex-wrap`, `flex-grow`, `flex-shrink`, `flex-basis`, `flex`, `align-items`, `align-self`, `align-content`, `justify-content`, `gap`, `row-gap`, `column-gap`
+- Alignment shorthands: `place-content`, `place-items`, `place-self`
 
 ## Missing properties
 
@@ -23,22 +25,18 @@
 |----------|-------------|-------|
 | `position: fixed` | N/A | No viewport scrolling in static SVG |
 | `position: sticky` | N/A | Requires scroll context |
-| `z-index` | Feasible | Currently warns "not supported" (`expand.ts:62`). Yoga doesn't handle stacking, but SVG paint order could be reordered post-layout. |
-| `inset` | Feasible | Shorthand for `top`/`right`/`bottom`/`left` — straightforward to expand |
+| `z-index` | Feasible | Yoga doesn't handle stacking, but SVG paint order could be reordered post-layout. |
 
 ### Overflow
 
 | Property | Feasibility | Notes |
 |----------|-------------|-------|
-| `overflow-x` | Feasible | Currently only combined `overflow` is supported |
-| `overflow-y` | Feasible | Same as above |
 | `overflow-clip-margin` | Hard | Would need clip-path offset calculations |
 
 ### Visibility & ordering
 
 | Property | Feasibility | Notes |
 |----------|-------------|-------|
-| `visibility` | Feasible | Could map to SVG `visibility` attribute |
 | `isolation` | Hard | Would need stacking context tracking |
 | `order` | Feasible | Yoga supports `order` — just not wired up |
 
@@ -58,9 +56,6 @@
 | `vertical-align` | All | Hard | Only meaningful for inline/table-cell layout which Satori doesn't implement |
 | `justify-items` | All | Feasible | Yoga may support this |
 | `justify-self` | All | Feasible | Same |
-| `place-content` | All | Feasible | Shorthand for `align-content` + `justify-content` |
-| `place-items` | All | Feasible | Shorthand for `align-items` + `justify-items` |
-| `place-self` | All | Feasible | Shorthand for `align-self` + `justify-self` |
 | `float` | All | Hard | Would require block formatting context |
 | `clear` | All | Hard | Same — depends on float |
 

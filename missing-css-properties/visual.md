@@ -3,11 +3,15 @@
 ## What Satori supports
 
 - `background-color`, `background-image` (linear/radial/repeating gradients, url), `background-position`, `background-size`, `background-repeat`, `background-clip` (border-box, text), `background-attachment`, `background-origin`
+- `background-position-x`, `background-position-y`
 - `box-shadow` (including inset, spread radius)
 - `opacity`
 - `filter`
+- `mix-blend-mode`
 - `color`
 - `mask-image`, `mask-position`, `mask-size`, `mask-repeat`
+- `mask-clip`, `mask-type`
+- `image-rendering`
 - `clip-path`
 
 ## Missing properties
@@ -16,7 +20,6 @@
 
 | Property | Feasibility | Notes |
 |----------|-------------|-------|
-| `mix-blend-mode` | Feasible | SVG supports blend modes via `<feBlend>` filter primitives. Would need a filter definition per blend mode. |
 | `background-blend-mode` | Hard | Blending between background layers — would need compositing in the gradient/image builder |
 | `isolation` | Hard | Creates a new stacking context for blend mode containment |
 
@@ -30,15 +33,12 @@
 
 | Property | Feasibility | Notes |
 |----------|-------------|-------|
-| `background-position-x` | Feasible | Satori supports `background-position` but not the individual axis shorthands |
-| `background-position-y` | Feasible | Same |
 | `background-blend-mode` | Hard | See blending section above |
 
 ### Images
 
 | Property | Feasibility | Notes |
 |----------|-------------|-------|
-| `image-rendering` | Feasible | Maps directly to SVG `image-rendering` attribute |
 | `image-orientation` | Feasible | EXIF orientation correction |
 
 ### Mask (missing sub-properties)
@@ -47,9 +47,7 @@
 |----------|-------------|-------|
 | `mask-mode` | Feasible | Luminance vs. alpha mask — SVG supports both |
 | `mask-origin` | Feasible | Mask positioning area |
-| `mask-clip` | Feasible | Mask painting area |
 | `mask-composite` | Feasible | SVG compositing operators |
-| `mask-type` | Feasible | SVG mask luminance/alpha type |
 | `mask-border` | Hard | Border-image-style masking |
 | `mask-border-source` | Hard | |
 | `mask-border-slice` | Hard | |

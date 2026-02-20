@@ -1,14 +1,8 @@
 # Logical Properties
 
-Satori does not support any CSS logical properties. Logical properties are flow-relative alternatives to physical properties (e.g., `margin-inline-start` instead of `margin-left`), designed for internationalization and writing-mode support.
+Satori supports logical properties as aliases to physical properties in the current layout mode (`horizontal-tb` + LTR assumptions). This is useful for code portability, but it is not a full writing-mode-aware implementation.
 
-Since Satori doesn't support `writing-mode` or `direction: rtl`, logical properties would currently just be aliases for their physical counterparts. However, they're still useful for code portability.
-
-## Feasibility
-
-All logical properties below are **Feasible** — they would expand to their physical equivalents in `handler/expand.ts`, assuming horizontal-tb / ltr (Satori's only layout mode).
-
-## Missing properties
+## Supported logical aliases (horizontal-tb / ltr)
 
 ### Margin
 
@@ -92,3 +86,9 @@ All logical properties below are **Feasible** — they would expand to their phy
 | `min-block-size` | `min-height` |
 | `max-inline-size` | `max-width` |
 | `max-block-size` | `max-height` |
+
+## Remaining relevant gaps
+
+- Writing-mode-aware remapping (`vertical-rl`, `vertical-lr`, etc.).
+- Direction-aware remapping for RTL (`direction: rtl` / bidi behavior).
+- Full logical behavior for features tied to writing modes beyond simple side aliasing.
