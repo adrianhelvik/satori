@@ -13,6 +13,7 @@ const list = new Set([
   'lineHeight',
   'textAlign',
   'textAlignLast',
+  'textJustify',
   'textTransform',
   'textShadowOffset',
   'textShadowColor',

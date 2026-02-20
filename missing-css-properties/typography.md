@@ -49,7 +49,7 @@
 
 | Property | Feasibility | Notes |
 |----------|-------------|-------|
-| `text-justify` | Hard | Justification algorithm (auto, inter-word, inter-character) |
+| `text-justify` | **Supported (approx.)** | Supports `auto`, `none`, `inter-word`, and `inter-character` for `text-align: justify`. Language/script-specific nuances remain approximate. |
 | `hyphens` | Hard | Requires hyphenation dictionaries per language |
 | `hyphenate-character` | Hard | Depends on `hyphens` |
 | `hyphenate-limit-chars` | Hard | Depends on `hyphens` |

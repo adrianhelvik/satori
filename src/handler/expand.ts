@@ -494,6 +494,7 @@ function handleSpecialCase(
   if (name === 'textDecorationStyle') return { textDecorationStyle: value }
   if (name === 'textDecorationColor') return { textDecorationColor: value }
   if (name === 'textAlignLast') return { textAlignLast: value }
+  if (name === 'textJustify') return { textJustify: value }
   if (name === 'visibility') return { visibility: value }
 
   // mix-blend-mode, image-rendering: pass through to SVG attributes
@@ -869,6 +870,7 @@ type MainStyle = {
   wordBreak: string
   textAlign: string
   textAlignLast: string
+  textJustify: string
   lineHeight: number | string
   letterSpacing: number
   listStyleType: string
@@ -922,6 +924,7 @@ const allInheritedProps = new Set([
   'lineHeight',
   'textAlign',
   'textAlignLast',
+  'textJustify',
   'textTransform',
   'textShadowOffset',
   'textShadowColor',
@@ -966,6 +969,7 @@ function getAllInitialStyle(): SerializedStyle {
     letterSpacing: 0,
     textAlign: 'start',
     textAlignLast: 'auto',
+    textJustify: 'auto',
     textTransform: 'none',
     whiteSpace: 'normal',
     wordBreak: 'normal',

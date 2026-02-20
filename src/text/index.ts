@@ -107,6 +107,7 @@ export default async function* buildTextNodes(
   const {
     textAlign,
     textAlignLast,
+    textJustify,
     lineHeight,
     textWrap,
     fontSize,
@@ -145,6 +146,15 @@ export default async function* buildTextNodes(
     lineLimit,
     blockEllipsis,
   } = preprocess(content, parentStyle, locale)
+
+  const normalizedTextJustify = String(textJustify || 'auto')
+    .trim()
+    .toLowerCase()
+  const justifyDisabled =
+    textAlign === 'justify' && normalizedTextJustify === 'none'
+  const justifyByCharacter =
+    textAlign === 'justify' && normalizedTextJustify === 'inter-character'
+  const allowedToJustify = textAlign === 'justify' && !justifyDisabled
 
   const textContainer = createTextContainerNode(Yoga, textAlign)
   parent.insertChild(textContainer, parent.getChildCount())
@@ -320,8 +330,6 @@ export default async function* buildTextNodes(
         currentLineHeight = engine.height(word)
       }
 
-      const allowedToJustify = textAlign === 'justify'
-
       const willWrap =
         i &&
         // When determining whether a line break is necessary, the width of the
@@ -355,7 +363,7 @@ export default async function* buildTextNodes(
           currentWidth = 0
           currentLineHeight = 0
           currentBaselineOffset = 0
-          lineSegmentNumber.push(1)
+          lineSegmentNumber.push(justifyByCharacter ? 0 : 1)
           lineIndex = -1
         }
         prevLineEndingSpacesWidth = lineEndingSpacesWidth
@@ -374,7 +382,7 @@ export default async function* buildTextNodes(
         currentWidth = w
         currentLineHeight = w ? Math.round(engine.height(word)) : 0
         currentBaselineOffset = w ? Math.round(engine.baseline(word)) : 0
-        lineSegmentNumber.push(1)
+        lineSegmentNumber.push(justifyByCharacter ? 0 : 1)
         lineIndex = -1
 
         // If it's naturally broken, we update the max width.
@@ -392,18 +400,16 @@ export default async function* buildTextNodes(
           currentLineHeight = glyphHeight
           currentBaselineOffset = Math.round(engine.baseline(word))
         }
-        if (allowedToJustify) {
-          lineSegmentNumber[lineSegmentNumber.length - 1]++
-        }
-      }
-
-      if (allowedToJustify) {
-        lineIndex++
       }
 
       maxWidth = Math.max(maxWidth, currentWidth)
 
       let x = currentWidth - w
+
+      const graphemes = w === 0 ? [] : segment(word, 'grapheme')
+      if (allowedToJustify && !justifyByCharacter) {
+        lineIndex++
+      }
 
       if (w === 0) {
         wordPositionInLayout.push({
@@ -415,7 +421,7 @@ export default async function* buildTextNodes(
           isImage: false,
         })
       } else {
-        const _texts = segment(word, 'word')
+        const _texts = justifyByCharacter ? graphemes : segment(word, 'word')
 
         for (let j = 0; j < _texts.length; j++) {
           const _text = _texts[j]
@@ -429,17 +435,28 @@ export default async function* buildTextNodes(
             _width = measureGrapheme(_text)
           }
 
+          const graphemeLineIndex =
+            allowedToJustify && justifyByCharacter ? ++lineIndex : lineIndex
+
           texts.push(_text)
           wordPositionInLayout.push({
             y: height,
             x,
             width: _width,
             line: lines,
-            lineIndex,
+            lineIndex: graphemeLineIndex,
             isImage: _isImage,
           })
 
           x += _width
+        }
+      }
+
+      if (allowedToJustify) {
+        if (justifyByCharacter) {
+          lineSegmentNumber[lineSegmentNumber.length - 1] += graphemes.length
+        } else {
+          lineSegmentNumber[lineSegmentNumber.length - 1]++
         }
       }
 
@@ -639,12 +656,16 @@ export default async function* buildTextNodes(
       // alignment when the container is multi-line.
       const remainingWidth = containerWidth - lineWidths[line]
       const isLastLine = line === lineWidths.length - 1
+      const fallbackAlign =
+        textAlign === 'justify'
+          ? justifyDisabled || isLastLine
+            ? 'start'
+            : 'justify'
+          : textAlign
       const effectiveAlign =
         isLastLine && textAlignLast && textAlignLast !== 'auto'
           ? textAlignLast
-          : textAlign === 'justify' && isLastLine
-          ? 'start'
-          : textAlign
+          : fallbackAlign
 
       if (effectiveAlign === 'right' || effectiveAlign === 'end') {
         leftOffset += remainingWidth
