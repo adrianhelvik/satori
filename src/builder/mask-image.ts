@@ -4,6 +4,21 @@ import type { MaskProperty } from '../parser/mask.js'
 
 const genMaskImageId = (id: string) => `satori_mi-${id}`
 
+function normalizeMaskComposite(value: string | undefined): string {
+  const normalized = String(value || 'add')
+    .trim()
+    .toLowerCase()
+  if (
+    normalized === 'add' ||
+    normalized === 'intersect' ||
+    normalized === 'subtract' ||
+    normalized === 'exclude'
+  ) {
+    return normalized
+  }
+  return 'add'
+}
+
 function resolveMaskBox(
   box: string,
   left: number,
@@ -82,7 +97,8 @@ export default async function buildMaskImage(
   const miId = genMaskImageId(id)
 
   const maskType = resolveMaskType(style, maskImage)
-  let mask = ''
+  let defs = ''
+  let composedMaskShape = ''
 
   for (let i = 0; i < length; i++) {
     const m = maskImage[i]
@@ -99,18 +115,49 @@ export default async function buildMaskImage(
       m.mode
     )
 
-    mask +=
-      def +
-      buildXMLString('rect', {
+    defs += def
+
+    const layerShape = buildXMLString('rect', {
+      x: clipBox.left,
+      y: clipBox.top,
+      width: clipBox.width,
+      height: clipBox.height,
+      fill: `url(#${_id})`,
+    })
+
+    if (!composedMaskShape) {
+      composedMaskShape = layerShape
+      continue
+    }
+
+    const composite = normalizeMaskComposite(m.composite)
+    if (composite === 'intersect') {
+      const prevMaskId = `${miId}-acc-${i}`
+      defs += buildXMLString(
+        'mask',
+        { id: prevMaskId, 'mask-type': 'alpha' },
+        composedMaskShape
+      )
+      composedMaskShape = buildXMLString('rect', {
         x: clipBox.left,
         y: clipBox.top,
         width: clipBox.width,
         height: clipBox.height,
         fill: `url(#${_id})`,
+        mask: `url(#${prevMaskId})`,
       })
+      continue
+    }
+
+    // Fallback for unsupported operators: additive composition.
+    composedMaskShape += layerShape
   }
 
-  mask = buildXMLString('mask', { id: miId, 'mask-type': maskType }, mask)
+  const mask = buildXMLString(
+    'mask',
+    { id: miId, 'mask-type': maskType },
+    composedMaskShape
+  )
 
-  return [miId, mask]
+  return [miId, defs + mask]
 }
