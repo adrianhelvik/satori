@@ -136,6 +136,52 @@ function resolveMaskType(
   if (firstMode === 'match-source') return 'alpha'
 }
 
+function isGradientMaskImage(image: string): boolean {
+  const normalized = image.trim().toLowerCase()
+  return (
+    normalized.startsWith('linear-gradient(') ||
+    normalized.startsWith('repeating-linear-gradient(') ||
+    normalized.startsWith('radial-gradient(') ||
+    normalized.startsWith('repeating-radial-gradient(')
+  )
+}
+
+function shiftAbsoluteMaskPosition(
+  position: string,
+  dx: number,
+  dy: number
+): string {
+  const tokens = String(position || '0% 0%')
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+  const xToken = tokens[0] || '0%'
+  const yToken = tokens[1] || xToken
+
+  const shiftToken = (token: string, delta: number, axis: 'x' | 'y') => {
+    const normalized = token.trim().toLowerCase()
+    if (!normalized) return `${delta}px`
+    if (normalized.endsWith('%')) return token
+    if (normalized === 'left' && axis === 'x') return `${delta}px`
+    if (normalized === 'top' && axis === 'y') return `${delta}px`
+    if (
+      normalized === 'right' ||
+      normalized === 'bottom' ||
+      normalized === 'center'
+    ) {
+      return token
+    }
+    const parsed = Number.parseFloat(normalized)
+    if (!Number.isFinite(parsed)) return token
+    if (normalized === String(parsed) || normalized.endsWith('px')) {
+      return `${parsed + delta}px`
+    }
+    return token
+  }
+
+  return `${shiftToken(xToken, dx, 'x')} ${shiftToken(yToken, dy, 'y')}`
+}
+
 export default async function buildMaskImage(
   v: {
     id: string
@@ -165,15 +211,30 @@ export default async function buildMaskImage(
     const m = maskImage[i]
     const originBox = resolveMaskBox(m.origin, left, top, width, height, style)
     const clipBox = resolveMaskBox(m.clip, left, top, width, height, style)
+    const useClipBoxGradientPositioning =
+      isGradientMaskImage(m.image) && m.origin !== m.clip
+    const imageBox = useClipBoxGradientPositioning ? clipBox : originBox
+    const layer =
+      useClipBoxGradientPositioning &&
+      (originBox.left !== clipBox.left || originBox.top !== clipBox.top)
+        ? {
+            ...m,
+            position: shiftAbsoluteMaskPosition(
+              m.position,
+              originBox.left - clipBox.left,
+              originBox.top - clipBox.top
+            ),
+          }
+        : m
 
     const [_id, def] = await buildBackgroundImage(
-      { id: `${miId}-${i}`, ...originBox },
-      m,
+      { id: `${miId}-${i}`, ...imageBox },
+      layer,
       inheritedStyle,
       'mask',
       style.imageRendering as string | undefined,
       style.imageOrientation as string | undefined,
-      m.mode,
+      layer.mode,
       hasExplicitMaskSize
     )
 
