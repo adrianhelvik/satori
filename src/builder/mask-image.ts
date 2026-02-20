@@ -4,6 +4,58 @@ import type { MaskProperty } from '../parser/mask.js'
 
 const genMaskImageId = (id: string) => `satori_mi-${id}`
 
+function resolveMaskClipBox(
+  box: string,
+  left: number,
+  top: number,
+  width: number,
+  height: number,
+  style: Record<string, string | number>
+) {
+  const borderLeft = Number(style.borderLeftWidth || 0)
+  const borderRight = Number(style.borderRightWidth || 0)
+  const borderTop = Number(style.borderTopWidth || 0)
+  const borderBottom = Number(style.borderBottomWidth || 0)
+  const paddingLeft = Number(style.paddingLeft || 0)
+  const paddingRight = Number(style.paddingRight || 0)
+  const paddingTop = Number(style.paddingTop || 0)
+  const paddingBottom = Number(style.paddingBottom || 0)
+
+  if (box === 'content-box') {
+    const x = left + borderLeft + paddingLeft
+    const y = top + borderTop + paddingTop
+    const w = Math.max(
+      0,
+      width - borderLeft - borderRight - paddingLeft - paddingRight
+    )
+    const h = Math.max(
+      0,
+      height - borderTop - borderBottom - paddingTop - paddingBottom
+    )
+    return { left: x, top: y, width: w, height: h }
+  }
+
+  if (box === 'padding-box') {
+    const x = left + borderLeft
+    const y = top + borderTop
+    const w = Math.max(0, width - borderLeft - borderRight)
+    const h = Math.max(0, height - borderTop - borderBottom)
+    return { left: x, top: y, width: w, height: h }
+  }
+
+  // border-box and unknown values fallback.
+  return { left, top, width, height }
+}
+
+function resolveMaskType(
+  style: Record<string, string | number>
+): 'alpha' | 'luminance' | undefined {
+  const explicitType = String(style.maskType || '').trim()
+  if (explicitType === 'alpha' || explicitType === 'luminance') {
+    return explicitType
+  }
+}
+
 export default async function buildMaskImage(
   v: {
     id: string
@@ -22,10 +74,12 @@ export default async function buildMaskImage(
   if (!length) return ['', '']
   const miId = genMaskImageId(id)
 
+  const maskType = resolveMaskType(style)
   let mask = ''
 
   for (let i = 0; i < length; i++) {
     const m = maskImage[i]
+    const clipBox = resolveMaskClipBox(m.clip, left, top, width, height, style)
 
     const [_id, def] = await buildBackgroundImage(
       { id: `${miId}-${i}`, left, top, width, height },
@@ -37,15 +91,15 @@ export default async function buildMaskImage(
     mask +=
       def +
       buildXMLString('rect', {
-        x: left,
-        y: top,
-        width,
-        height,
+        x: clipBox.left,
+        y: clipBox.top,
+        width: clipBox.width,
+        height: clipBox.height,
         fill: `url(#${_id})`,
       })
   }
 
-  mask = buildXMLString('mask', { id: miId }, mask)
+  mask = buildXMLString('mask', { id: miId, 'mask-type': maskType }, mask)
 
   return [miId, mask]
 }

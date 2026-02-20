@@ -353,8 +353,10 @@ function handleSpecialCase(
   if (name === 'imageRendering') return { imageRendering: value }
 
   // background-position-x / background-position-y
-  if (name === 'backgroundPositionX') return { backgroundPositionX: value }
-  if (name === 'backgroundPositionY') return { backgroundPositionY: value }
+  if (name === 'backgroundPositionX')
+    return { backgroundPositionX: purify('backgroundPositionX', value) }
+  if (name === 'backgroundPositionY')
+    return { backgroundPositionY: purify('backgroundPositionY', value) }
 
   // mask sub-properties
   if (name === 'maskMode') return { maskMode: value }
@@ -616,6 +618,64 @@ function normalizeColor(value: string | object) {
   return value
 }
 
+function parseBackgroundPositionLayer(layer: string): [string, string] {
+  const tokens = layer.trim().split(/\s+/).filter(Boolean)
+  if (tokens.length >= 2) return [tokens[0], tokens[1]]
+
+  if (tokens.length === 1) {
+    const token = tokens[0]
+    // `background-position: top|bottom` implies centered X.
+    if (token === 'top' || token === 'bottom') {
+      return ['50%', token]
+    }
+
+    // Other single-value forms (center/left/right/10px) imply centered Y.
+    return [token, '50%']
+  }
+
+  return ['0%', '0%']
+}
+
+function mergeBackgroundPositionAxes(serializedStyle: SerializedStyle): void {
+  const x = serializedStyle.backgroundPositionX
+  const y = serializedStyle.backgroundPositionY
+  if (typeof x === 'undefined' && typeof y === 'undefined') return
+
+  const xLayers =
+    typeof x === 'undefined'
+      ? []
+      : splitEffects(String(x)).map((value) => value.trim())
+  const yLayers =
+    typeof y === 'undefined'
+      ? []
+      : splitEffects(String(y)).map((value) => value.trim())
+  const baseLayers =
+    typeof serializedStyle.backgroundPosition === 'string'
+      ? splitEffects(serializedStyle.backgroundPosition)
+      : []
+
+  const layerCount = Math.max(
+    1,
+    baseLayers.length,
+    xLayers.length,
+    yLayers.length
+  )
+  const merged: string[] = []
+
+  for (let i = 0; i < layerCount; i++) {
+    const [baseX, baseY] = parseBackgroundPositionLayer(baseLayers[i] || '')
+    const layerX = xLayers.length
+      ? xLayers[i] || xLayers[xLayers.length - 1]
+      : baseX || '0%'
+    const layerY = yLayers.length
+      ? yLayers[i] || yLayers[yLayers.length - 1]
+      : baseY || '0%'
+    merged.push(`${layerX} ${layerY}`)
+  }
+
+  serializedStyle.backgroundPosition = merged.join(', ')
+}
+
 type MainStyle = {
   color: string
   fontSize: number
@@ -716,6 +776,9 @@ export default function expand(
       }
     }
   }
+
+  // Merge background-position-x/y into background-position shorthand.
+  mergeBackgroundPositionAxes(serializedStyle)
 
   // Parse background images.
   if (serializedStyle.backgroundImage) {
