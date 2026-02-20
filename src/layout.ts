@@ -2,7 +2,7 @@
  * This module is used to calculate the layout of the current sub-tree.
  */
 
-import type { ReactNode } from 'react'
+import { createElement, type ReactNode } from 'react'
 import {
   isReactElement,
   isClass,
@@ -21,6 +21,14 @@ import rect from './builder/rect.js'
 import { Locale, normalizeLocale } from './language.js'
 import { SerializedStyle } from './handler/expand.js'
 
+interface ListItemContext {
+  listType: 'ul' | 'ol'
+  index: number
+  styleType?: string
+  stylePosition?: string
+  styleImage?: string
+}
+
 export interface LayoutContext {
   id: string
   parentStyle: SerializedStyle
@@ -35,6 +43,7 @@ export interface LayoutContext {
   locale?: Locale
   getTwStyles: (tw: string, style: any) => any
   onNodeDetected?: (node: SatoriNode) => void
+  listItemContext?: ListItemContext
 }
 
 export interface SatoriNode {
@@ -90,6 +99,155 @@ function getChildSortMeta(
   }
 }
 
+function parseListImageURL(value: string | undefined): string | null {
+  if (!value) return null
+  const normalized = value.trim()
+  if (!normalized || normalized.toLowerCase() === 'none') return null
+  const match = normalized.match(/^url\((.*)\)$/i)
+  if (!match) return null
+  return match[1].trim().replace(/(^['"])|(['"]$)/g, '')
+}
+
+function toAlphabeticIndex(index: number, upper: boolean): string {
+  if (index <= 0) return '0'
+  const chars = upper
+    ? 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+    : 'abcdefghijklmnopqrstuvwxyz'
+  let result = ''
+  let n = index
+  while (n > 0) {
+    n -= 1
+    result = chars[n % 26] + result
+    n = Math.floor(n / 26)
+  }
+  return result
+}
+
+function toRomanIndex(index: number, upper: boolean): string {
+  if (index <= 0 || index >= 4000) return String(index)
+
+  const numerals: [number, string][] = [
+    [1000, 'M'],
+    [900, 'CM'],
+    [500, 'D'],
+    [400, 'CD'],
+    [100, 'C'],
+    [90, 'XC'],
+    [50, 'L'],
+    [40, 'XL'],
+    [10, 'X'],
+    [9, 'IX'],
+    [5, 'V'],
+    [4, 'IV'],
+    [1, 'I'],
+  ]
+
+  let n = index
+  let result = ''
+  for (const [value, symbol] of numerals) {
+    while (n >= value) {
+      result += symbol
+      n -= value
+    }
+  }
+
+  return upper ? result : result.toLowerCase()
+}
+
+function getListMarkerText(
+  type: string | undefined,
+  index: number
+): string | null {
+  const markerType = (type || '').trim().toLowerCase()
+  switch (markerType) {
+    case 'none':
+      return null
+    case 'circle':
+      return '◦'
+    case 'square':
+      return '▪'
+    case 'decimal':
+      return `${index}.`
+    case 'decimal-leading-zero':
+      return `${String(index).padStart(2, '0')}.`
+    case 'upper-alpha':
+    case 'upper-latin':
+      return `${toAlphabeticIndex(index, true)}.`
+    case 'lower-alpha':
+    case 'lower-latin':
+      return `${toAlphabeticIndex(index, false)}.`
+    case 'upper-roman':
+      return `${toRomanIndex(index, true)}.`
+    case 'lower-roman':
+      return `${toRomanIndex(index, false)}.`
+    case 'disc':
+    default:
+      return '•'
+  }
+}
+
+function buildListItemChildren(
+  children: ReactNode,
+  marker: { text: string | null; image: string | null; position: string },
+  fontSize: number
+): ReactNode[] {
+  const markerGap = Math.max(4, Math.round(fontSize * 0.25))
+  const markerBoxWidth =
+    marker.position === 'inside'
+      ? undefined
+      : Math.max(12, Math.round(fontSize * 1.25))
+  const markerSize = Math.max(8, Math.round(fontSize * 0.75))
+
+  const markerWrapper: Record<string, string | number> = {
+    display: 'flex',
+    flexShrink: 0,
+    marginRight: markerGap,
+    justifyContent: marker.position === 'inside' ? 'flex-start' : 'flex-end',
+    alignItems: 'flex-start',
+  }
+  if (typeof markerBoxWidth !== 'undefined') {
+    markerWrapper.width = markerBoxWidth
+  }
+
+  const markerNode =
+    marker.image !== null
+      ? createElement(
+          'div',
+          { key: '__satori-list-marker', style: markerWrapper },
+          createElement('img', {
+            src: marker.image,
+            width: markerSize,
+            height: markerSize,
+            style: {
+              display: 'flex',
+              objectFit: 'contain',
+              marginTop: Math.max(0, Math.round(fontSize * 0.1)),
+            },
+          })
+        )
+      : createElement(
+          'div',
+          { key: '__satori-list-marker', style: markerWrapper },
+          marker.text
+        )
+
+  const contentNode = createElement(
+    'div',
+    {
+      key: '__satori-list-content',
+      style: {
+        display: 'flex',
+        flexDirection: 'column',
+        flexGrow: 1,
+        minWidth: 0,
+      },
+    },
+    children
+  )
+
+  return [markerNode, contentNode]
+}
+
 export default async function* layout(
   element: ReactNode,
   context: LayoutContext
@@ -110,6 +268,7 @@ export default async function* layout(
     graphemeImages,
     canLoadAdditionalAssets,
     getTwStyles,
+    listItemContext,
   } = context
 
   // 1. Pre-process the node.
@@ -223,6 +382,38 @@ export default async function* layout(
     }
   }
 
+  if (type === 'li' && listItemContext) {
+    const listStyleType =
+      (computedStyle.listStyleType as string | undefined) ||
+      listItemContext.styleType ||
+      (listItemContext.listType === 'ol' ? 'decimal' : 'disc')
+    const listStylePosition =
+      ((computedStyle.listStylePosition as string | undefined) ||
+        listItemContext.stylePosition ||
+        'outside') + ''
+    const listStyleImage = parseListImageURL(
+      (computedStyle.listStyleImage as string | undefined) ||
+        listItemContext.styleImage
+    )
+    const markerText = getListMarkerText(listStyleType, listItemContext.index)
+
+    if (listStyleImage || markerText) {
+      const markerFontSize = parseStyleNumber(
+        computedStyle.fontSize,
+        parseStyleNumber(inheritedStyle.fontSize, 16)
+      )
+      children = buildListItemChildren(
+        children,
+        {
+          text: markerText,
+          image: listStyleImage,
+          position: listStylePosition.trim().toLowerCase(),
+        },
+        markerFontSize
+      )
+    }
+  }
+
   // 2. Do layout recursively for its children.
   const sortedChildren = normalizeChildren(children)
     .map((child, originalIndex) =>
@@ -236,9 +427,33 @@ export default async function* layout(
   }[] = []
 
   let i = 0
+  const isListContainer = type === 'ul' || type === 'ol'
+  const listStyleType =
+    (computedStyle.listStyleType as string | undefined) ||
+    (type === 'ol' ? 'decimal' : 'disc')
+  const listStylePosition =
+    ((computedStyle.listStylePosition as string | undefined) || 'outside') + ''
+  const listStyleImage =
+    ((computedStyle.listStyleImage as string | undefined) || 'none') + ''
+  let listItemIndex = 0
   const segmentsMissingFont: { word: string; locale?: string }[] = []
   for (let orderIndex = 0; orderIndex < sortedChildren.length; orderIndex++) {
     const { child, zIndex } = sortedChildren[orderIndex]
+    let childListItemContext: ListItemContext | undefined
+    if (
+      isListContainer &&
+      isReactElement(child) &&
+      typeof child.type === 'string' &&
+      child.type === 'li'
+    ) {
+      childListItemContext = {
+        listType: type as 'ul' | 'ol',
+        index: ++listItemIndex,
+        styleType: listStyleType,
+        stylePosition: listStylePosition,
+        styleImage: listStyleImage,
+      }
+    }
     const iter = layout(child, {
       id: id + '-' + i++,
       parentStyle: computedStyle,
@@ -253,6 +468,7 @@ export default async function* layout(
       locale: newLocale,
       getTwStyles,
       onNodeDetected: context.onNodeDetected,
+      listItemContext: childListItemContext,
     })
     if (canLoadAdditionalAssets) {
       segmentsMissingFont.push(...(((await iter.next()).value as any) || []))

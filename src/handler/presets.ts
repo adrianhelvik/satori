@@ -125,6 +125,27 @@ export default {
     marginTop: '1em',
     marginBottom: '1em',
   },
+  ul: {
+    display: DEFAULT_DISPLAY,
+    flexDirection: 'column',
+    marginTop: '1em',
+    marginBottom: '1em',
+    paddingLeft: 40,
+    listStyleType: 'disc',
+    listStylePosition: 'outside',
+  },
+  ol: {
+    display: DEFAULT_DISPLAY,
+    flexDirection: 'column',
+    marginTop: '1em',
+    marginBottom: '1em',
+    paddingLeft: 40,
+    listStyleType: 'decimal',
+    listStylePosition: 'outside',
+  },
+  li: {
+    display: DEFAULT_DISPLAY,
+  },
   mark: {
     backgroundColor: 'yellow',
     color: 'black',

@@ -31,6 +31,57 @@ const optOutPx = new Set([
   'aspectRatio',
 ])
 const keepNumber = new Set(['lineHeight'])
+const listStyleTypes = new Set([
+  'none',
+  'disc',
+  'circle',
+  'square',
+  'decimal',
+  'decimal-leading-zero',
+  'lower-alpha',
+  'upper-alpha',
+  'lower-latin',
+  'upper-latin',
+  'lower-roman',
+  'upper-roman',
+])
+const listStylePositions = new Set(['inside', 'outside'])
+
+function parseListStyle(
+  value: string | number
+): Pick<
+  SerializedStyle,
+  'listStyleType' | 'listStylePosition' | 'listStyleImage'
+> {
+  const parsed: Pick<
+    SerializedStyle,
+    'listStyleType' | 'listStylePosition' | 'listStyleImage'
+  > = {}
+  const input = String(value).trim()
+  if (!input) return parsed
+
+  const tokens = input.match(/url\([^)]+\)|\S+/g) || []
+  for (const rawToken of tokens) {
+    const token = rawToken.trim()
+    const normalized = token.toLowerCase()
+
+    if (normalized.startsWith('url(')) {
+      parsed.listStyleImage = token
+      continue
+    }
+
+    if (listStylePositions.has(normalized)) {
+      parsed.listStylePosition = normalized
+      continue
+    }
+
+    if (listStyleTypes.has(normalized)) {
+      parsed.listStyleType = normalized
+    }
+  }
+
+  return parsed
+}
 
 function handleFallbackColor(
   prop: string,
@@ -360,6 +411,26 @@ function handleSpecialCase(
     if (normalized === 'balance' || normalized === 'pretty') {
       return { textWrap: normalized }
     }
+  }
+  if (name === 'listStyle') {
+    return parseListStyle(value)
+  }
+  if (name === 'listStyleType') {
+    const normalized = String(value).trim().toLowerCase()
+    if (listStyleTypes.has(normalized)) {
+      return { listStyleType: normalized }
+    }
+    return
+  }
+  if (name === 'listStylePosition') {
+    const normalized = String(value).trim().toLowerCase()
+    if (listStylePositions.has(normalized)) {
+      return { listStylePosition: normalized }
+    }
+    return
+  }
+  if (name === 'listStyleImage') {
+    return { listStyleImage: String(value).trim() }
   }
   if (name === 'overflowWrap' || name === 'wordWrap')
     return { overflowWrap: value }
@@ -810,6 +881,9 @@ const allInheritedProps = new Set([
   'visibility',
   'wordSpacing',
   'textIndent',
+  'listStyleType',
+  'listStylePosition',
+  'listStyleImage',
 ])
 
 const allModes = new Set([
@@ -837,6 +911,9 @@ function getAllInitialStyle(): SerializedStyle {
     wordBreak: 'normal',
     overflowWrap: 'normal',
     tabSize: 8,
+    listStyleType: 'disc',
+    listStylePosition: 'outside',
+    listStyleImage: 'none',
     wordSpacing: 0,
     textIndent: 0,
     visibility: 'visible',

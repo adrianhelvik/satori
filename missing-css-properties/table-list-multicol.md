@@ -1,6 +1,6 @@
 # Table, List & Multi-column Layout
 
-Satori does not support table layout, list styling, or multi-column layout. These all require layout models beyond Flexbox.
+Satori does not support table layout or multi-column layout. List markers are supported with SVG-friendly approximations.
 
 ## Table properties
 
@@ -18,15 +18,15 @@ Satori does not support table layout, list styling, or multi-column layout. Thes
 
 | Property | Feasibility | Notes |
 |----------|-------------|-------|
-| `list-style` | Feasible | Could render markers as inline text/SVG before list items |
-| `list-style-type` | Feasible | Disc, circle, decimal, etc. — map to SVG shapes or text |
-| `list-style-position` | Feasible | Inside vs. outside positioning |
-| `list-style-image` | Feasible | Custom marker image |
+| `list-style` | **Supported (approx.)** | Parses shorthand into marker type/position/image for list items. |
+| `list-style-type` | **Supported (approx.)** | Supports common marker styles (`disc`, `circle`, `square`, `decimal`, alpha, roman). |
+| `list-style-position` | **Supported (approx.)** | Supports `inside` and `outside` marker placement. |
+| `list-style-image` | **Supported (approx.)** | Supports `url(...)` marker images. |
 | `counter-reset` | Hard | Requires a counter state machine across the tree |
 | `counter-increment` | Hard | Same |
 | `counter-set` | Hard | Same |
 
-> List markers are feasible since they're essentially prepended content. Counters are harder because they require stateful tree traversal.
+> Marker rendering is implemented as prepended list-item content. CSS counters (`counter-*`) remain unsupported.
 
 ## Multi-column layout
 
