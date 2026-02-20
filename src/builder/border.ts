@@ -31,6 +31,165 @@ function shadeBorderColor(
   )},${mixChannel(b, target, ratio)},${alpha})`
 }
 
+function mixBorderColors(colorA: string, colorB: string, ratio = 0.5): string {
+  const parsedA = cssColorParse(colorA)
+  const parsedB = cssColorParse(colorB)
+  if (!parsedA || !parsedB) return colorA
+
+  const [rA, gA, bA] = parsedA.values
+  const [rB, gB, bB] = parsedB.values
+  const alphaA = parsedA.alpha ?? 1
+  const alphaB = parsedB.alpha ?? 1
+
+  return `rgba(${mixChannel(rA, rB, ratio)},${mixChannel(
+    gA,
+    gB,
+    ratio
+  )},${mixChannel(bA, bB, ratio)},${alphaA + (alphaB - alphaA) * ratio})`
+}
+
+function isGrooveOrRidgeStyle(value: unknown): boolean {
+  return value === 'groove' || value === 'ridge'
+}
+
+function hasRoundedCorners(style: Record<string, number | string>): boolean {
+  const keys = [
+    'borderTopLeftRadius',
+    'borderTopRightRadius',
+    'borderBottomRightRadius',
+    'borderBottomLeftRadius',
+  ]
+
+  return keys.some((key) => {
+    const value = style[key]
+    if (typeof value === 'number') {
+      return value > 0
+    }
+    if (typeof value === 'string') {
+      return value.trim() !== '' && value.trim() !== '0'
+    }
+    return false
+  })
+}
+
+function buildBevelCornerOverlays(
+  dims: { left: number; top: number; width: number; height: number },
+  normalizedStyle: Record<string, number | string>,
+  originalStyle: Record<string, number | string>,
+  asContentMask: boolean
+): string {
+  if (asContentMask || hasRoundedCorners(normalizedStyle)) return ''
+
+  const hasGrooveOrRidgeBorder = (
+    ['Top', 'Right', 'Bottom', 'Left'] as BorderSide[]
+  ).some((side) => isGrooveOrRidgeStyle(originalStyle[`border${side}Style`]))
+
+  if (!hasGrooveOrRidgeBorder) return ''
+
+  const sideColor = (side: BorderSide): string | null =>
+    typeof normalizedStyle[`border${side}Color`] === 'string'
+      ? (normalizedStyle[`border${side}Color`] as string)
+      : null
+  const sideWidth = (side: BorderSide): number => {
+    const value = normalizedStyle[`border${side}Width`]
+    return typeof value === 'number' ? value : Number(value) || 0
+  }
+
+  const corners: Array<{
+    first: BorderSide
+    second: BorderSide
+    x: number
+    y: number
+    firstDX: number
+    firstDY: number
+    secondDX: number
+    secondDY: number
+  }> = [
+    {
+      first: 'Top',
+      second: 'Right',
+      x: dims.left + dims.width,
+      y: dims.top,
+      firstDX: -1,
+      firstDY: 0,
+      secondDX: 0,
+      secondDY: 1,
+    },
+    {
+      first: 'Right',
+      second: 'Bottom',
+      x: dims.left + dims.width,
+      y: dims.top + dims.height,
+      firstDX: 0,
+      firstDY: -1,
+      secondDX: -1,
+      secondDY: 0,
+    },
+    {
+      first: 'Bottom',
+      second: 'Left',
+      x: dims.left,
+      y: dims.top + dims.height,
+      firstDX: 1,
+      firstDY: 0,
+      secondDX: 0,
+      secondDY: -1,
+    },
+    {
+      first: 'Left',
+      second: 'Top',
+      x: dims.left,
+      y: dims.top,
+      firstDX: 0,
+      firstDY: 1,
+      secondDX: 1,
+      secondDY: 0,
+    },
+  ]
+
+  let overlays = ''
+  for (const corner of corners) {
+    const firstWidth = sideWidth(corner.first)
+    const secondWidth = sideWidth(corner.second)
+    if (firstWidth <= 0 || secondWidth <= 0) continue
+
+    const firstStyle = originalStyle[`border${corner.first}Style`]
+    const secondStyle = originalStyle[`border${corner.second}Style`]
+    if (
+      !isGrooveOrRidgeStyle(firstStyle) ||
+      !isGrooveOrRidgeStyle(secondStyle)
+    ) {
+      continue
+    }
+
+    const firstColor = sideColor(corner.first)
+    const secondColor = sideColor(corner.second)
+    if (!firstColor || !secondColor || firstColor === secondColor) continue
+
+    const blendWidth = Math.min(firstWidth, secondWidth)
+    if (blendWidth <= 0) continue
+
+    const x1 = corner.x + corner.firstDX * blendWidth
+    const y1 = corner.y + corner.firstDY * blendWidth
+    const x2 = corner.x + corner.secondDX * blendWidth
+    const y2 = corner.y + corner.secondDY * blendWidth
+    const rectX = Math.min(corner.x, x1, x2)
+    const rectY = Math.min(corner.y, y1, y2)
+    const rectWidth = Math.max(corner.x, x1, x2) - rectX
+    const rectHeight = Math.max(corner.y, y1, y2) - rectY
+
+    overlays += buildXMLString('rect', {
+      x: rectX,
+      y: rectY,
+      width: rectWidth,
+      height: rectHeight,
+      fill: mixBorderColors(firstColor, secondColor, 0.5),
+    })
+  }
+
+  return overlays
+}
+
 function normalizeInsetOutsetBorders(
   style: Record<string, number | string>,
   asContentMask: boolean
@@ -348,5 +507,13 @@ export default function border(
     }
   }
 
-  return fullBorder
+  return (
+    fullBorder +
+    buildBevelCornerOverlays(
+      { left, top, width, height },
+      normalizedStyle,
+      style,
+      !!asContentMask
+    )
+  )
 }
