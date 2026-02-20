@@ -22,11 +22,11 @@ Satori does not support table layout or multi-column layout. List markers are su
 | `list-style-type` | **Supported (approx.)** | Supports common marker styles (`disc`, `circle`, `square`, `decimal`, alpha, roman), `lower-greek`, disclosure markers (`disclosure-open` / `disclosure-closed`), and quoted string markers (`"→"`). |
 | `list-style-position` | **Supported (approx.)** | Supports `inside` and `outside` marker placement. |
 | `list-style-image` | **Supported (approx.)** | Supports `url(...)` marker images. |
-| `counter-reset` | Hard | Requires a counter state machine across the tree |
-| `counter-increment` | Hard | Same |
-| `counter-set` | Hard | Same |
+| `counter-reset` | **Supported (partial)** | Supports `list-item` counters for ordered-list marker numbering (`ol > li`) with integer values. General named counters and `counter()`/`counters()` generated content remain unsupported. |
+| `counter-increment` | **Supported (partial)** | Supports `list-item` counter increments on ordered list items, including integer step values and `none`. |
+| `counter-set` | **Supported (partial)** | Supports assigning `list-item` counter values for ordered list marker numbering. |
 
-> Marker rendering is implemented as prepended list-item content. Text marker width uses font metric measurement, while marker gap/icon sizing remain SVG-friendly approximations. CSS counters (`counter-*`) remain unsupported.
+> Marker rendering is implemented as prepended list-item content. Text marker width uses font metric measurement, while marker gap/icon sizing remain SVG-friendly approximations. CSS counters are currently limited to `list-item` marker numbering in ordered lists.
 
 ## Multi-column layout
 

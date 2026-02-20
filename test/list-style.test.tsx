@@ -266,4 +266,116 @@ describe('list-style', () => {
     expect(svg).toContain('▸')
     expect(toImage(svg, 280)).toMatchImageSnapshot()
   })
+
+  describe('counter properties', () => {
+    it('should support counter-reset for ordered list markers', async () => {
+      const nodes = []
+      const svg = await satori(
+        <ol
+          style={{
+            width: 260,
+            height: 160,
+            backgroundColor: 'white',
+            fontSize: 18,
+            margin: 0,
+            counterReset: 'list-item 3',
+          }}
+        >
+          <li>First</li>
+          <li>Second</li>
+          <li>Third</li>
+        </ol>,
+        {
+          width: 260,
+          height: 160,
+          fonts,
+          onNodeDetected: (node) => nodes.push(node),
+        }
+      )
+
+      const markerText = nodes
+        .filter(
+          (node) =>
+            node.key === '__satori-list-marker' &&
+            typeof node.textContent === 'string'
+        )
+        .map((node) => node.textContent)
+
+      expect(markerText).toEqual(['4.', '5.', '6.'])
+      expect(toImage(svg, 260)).toMatchImageSnapshot()
+    })
+
+    it('should support counter-increment list-item overrides', async () => {
+      const nodes = []
+      await satori(
+        <ol
+          style={{
+            width: 260,
+            height: 160,
+            backgroundColor: 'white',
+            fontSize: 18,
+            margin: 0,
+            counterReset: 'list-item 0',
+          }}
+        >
+          <li style={{ counterIncrement: 'list-item 2' }}>First</li>
+          <li style={{ counterIncrement: 'list-item 2' }}>Second</li>
+          <li style={{ counterIncrement: 'none' }}>Third</li>
+        </ol>,
+        {
+          width: 260,
+          height: 160,
+          fonts,
+          onNodeDetected: (node) => nodes.push(node),
+        }
+      )
+
+      const markerText = nodes
+        .filter(
+          (node) =>
+            node.key === '__satori-list-marker' &&
+            typeof node.textContent === 'string'
+        )
+        .map((node) => node.textContent)
+
+      expect(markerText).toEqual(['2.', '4.', '4.'])
+    })
+
+    it('should support counter-set for ordered list markers', async () => {
+      const nodes = []
+      await satori(
+        <ol
+          style={{
+            width: 260,
+            height: 160,
+            backgroundColor: 'white',
+            fontSize: 18,
+            margin: 0,
+            counterReset: 'list-item 0',
+          }}
+        >
+          <li style={{ counterSet: 'list-item 7', counterIncrement: 'none' }}>
+            First
+          </li>
+          <li>Second</li>
+        </ol>,
+        {
+          width: 260,
+          height: 160,
+          fonts,
+          onNodeDetected: (node) => nodes.push(node),
+        }
+      )
+
+      const markerText = nodes
+        .filter(
+          (node) =>
+            node.key === '__satori-list-marker' &&
+            typeof node.textContent === 'string'
+        )
+        .map((node) => node.textContent)
+
+      expect(markerText).toEqual(['7.', '8.'])
+    })
+  })
 })

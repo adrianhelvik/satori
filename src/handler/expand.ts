@@ -449,6 +449,13 @@ function handleSpecialCase(
   if (name === 'listStyleImage') {
     return { listStyleImage: String(value).trim() }
   }
+  if (
+    name === 'counterReset' ||
+    name === 'counterIncrement' ||
+    name === 'counterSet'
+  ) {
+    return { [name]: String(value).trim() }
+  }
   if (name === 'overflowWrap' || name === 'wordWrap')
     return { overflowWrap: value }
   if (name === 'textDecorationThickness')
@@ -842,6 +849,9 @@ type MainStyle = {
   listStyleType: string
   listStylePosition: string
   listStyleImage: string
+  counterReset: string
+  counterIncrement: string
+  counterSet: string
 
   fontFamily: string | string[]
   fontWeight: FontWeight
@@ -962,6 +972,9 @@ function getAllInitialStyle(): SerializedStyle {
     listStyleType: 'disc',
     listStylePosition: 'outside',
     listStyleImage: 'none',
+    counterReset: 'none',
+    counterIncrement: 'none',
+    counterSet: 'none',
     wordSpacing: 0,
     textIndent: 0,
     visibility: 'visible',

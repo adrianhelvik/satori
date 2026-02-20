@@ -30,6 +30,11 @@ interface ListItemContext {
   styleType?: string
   stylePosition?: string
   styleImage?: string
+  orderedCounter?: OrderedListCounterState
+}
+
+interface OrderedListCounterState {
+  value: number
 }
 
 export interface LayoutContext {
@@ -137,6 +142,83 @@ function parseStyleNumber(value: unknown, fallback = 0): number {
     if (Number.isFinite(parsed)) return parsed
   }
   return fallback
+}
+
+interface ParsedCounterProperty {
+  explicit: boolean
+  none: boolean
+  values: Map<string, number>
+}
+
+const integerCounterToken = /^[+-]?\d+$/
+
+function parseCounterProperty(
+  value: unknown,
+  defaultAmount: number
+): ParsedCounterProperty {
+  if (typeof value !== 'string') {
+    return { explicit: false, none: false, values: new Map() }
+  }
+
+  const raw = value.trim()
+  if (!raw) {
+    return { explicit: false, none: false, values: new Map() }
+  }
+
+  if (raw.toLowerCase() === 'none') {
+    return { explicit: true, none: true, values: new Map() }
+  }
+
+  const values = new Map<string, number>()
+  const tokens = raw.split(/\s+/).filter(Boolean)
+  for (let i = 0; i < tokens.length; i++) {
+    const token = tokens[i]
+    if (integerCounterToken.test(token)) continue
+
+    const name = token.toLowerCase()
+    let amount = defaultAmount
+    const maybeAmount = tokens[i + 1]
+    if (maybeAmount && integerCounterToken.test(maybeAmount)) {
+      amount = Number.parseInt(maybeAmount, 10)
+      i++
+    }
+    values.set(name, amount)
+  }
+
+  return { explicit: true, none: false, values }
+}
+
+function applyListItemCounterStyles(
+  counter: OrderedListCounterState,
+  style: SerializedStyle,
+  defaultIncrement: number
+) {
+  const reset = parseCounterProperty(style.counterReset, 0)
+  const resetListItem = reset.values.get('list-item')
+  if (typeof resetListItem === 'number') {
+    counter.value = resetListItem
+  }
+
+  const set = parseCounterProperty(style.counterSet, 0)
+  const setListItem = set.values.get('list-item')
+  if (typeof setListItem === 'number') {
+    counter.value = setListItem
+  }
+
+  const increment = parseCounterProperty(style.counterIncrement, 1)
+  if (increment.none) return
+
+  if (increment.explicit) {
+    const incrementListItem = increment.values.get('list-item')
+    if (typeof incrementListItem === 'number') {
+      counter.value += incrementListItem
+    }
+    return
+  }
+
+  if (defaultIncrement !== 0) {
+    counter.value += defaultIncrement
+  }
 }
 
 function getChildSortMeta(
@@ -432,7 +514,16 @@ export default async function* layout(
       (computedStyle.listStyleImage as string | undefined) ||
         listItemContext.styleImage
     )
-    const markerText = getListMarkerText(listStyleType, listItemContext.index)
+    let markerIndex = listItemContext.index
+    if (listItemContext.listType === 'ol' && listItemContext.orderedCounter) {
+      applyListItemCounterStyles(
+        listItemContext.orderedCounter,
+        computedStyle,
+        1
+      )
+      markerIndex = listItemContext.orderedCounter.value
+    }
+    const markerText = getListMarkerText(listStyleType, markerIndex)
 
     if (listStyleImage || markerText) {
       const markerFontSize = parseStyleNumber(
@@ -481,6 +572,11 @@ export default async function* layout(
     ((computedStyle.listStylePosition as string | undefined) || 'outside') + ''
   const listStyleImage =
     ((computedStyle.listStyleImage as string | undefined) || 'none') + ''
+  let orderedListCounter: OrderedListCounterState | undefined
+  if (isListContainer && type === 'ol') {
+    orderedListCounter = { value: 0 }
+    applyListItemCounterStyles(orderedListCounter, computedStyle, 0)
+  }
   let listItemIndex = 0
   const segmentsMissingFont: { word: string; locale?: string }[] = []
   for (let orderIndex = 0; orderIndex < sortedChildren.length; orderIndex++) {
@@ -498,6 +594,7 @@ export default async function* layout(
         styleType: listStyleType,
         stylePosition: listStylePosition,
         styleImage: listStyleImage,
+        orderedCounter: orderedListCounter,
       }
     }
     const renderMeta: ChildRenderMeta = {}
