@@ -68,7 +68,8 @@ export default async function backgroundImage(
   { image, size, position, repeat }: Background,
   inheritableStyle: Record<string, number | string>,
   from?: 'background' | 'mask',
-  imageRendering?: string
+  imageRendering?: string,
+  imageOrientation?: string
 ): Promise<string[]> {
   // Default to `repeat`.
   repeat = repeat || 'repeat'
@@ -156,6 +157,7 @@ export default async function backgroundImage(
           width: resolvedWidth,
           height: resolvedHeight,
           'image-rendering': imageRendering || undefined,
+          'image-orientation': imageOrientation || undefined,
           preserveAspectRatio: 'none',
           href: src,
         })

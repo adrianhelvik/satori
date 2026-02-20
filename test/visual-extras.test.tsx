@@ -260,4 +260,49 @@ describe('Visual Extras', () => {
       expect(toImage(svg, 100)).toMatchImageSnapshot()
     })
   })
+
+  describe('image-orientation', () => {
+    it('should pass image-orientation through to img rendering', async () => {
+      const svg = await satori(
+        <div
+          style={{
+            display: 'flex',
+            width: 100,
+            height: 100,
+            backgroundColor: 'white',
+          }}
+        >
+          <img
+            src={PIXEL_ART_2X2_PNG}
+            width='100%'
+            height='100%'
+            style={{ imageOrientation: 'from-image' }}
+          />
+        </div>,
+        { width: 100, height: 100, fonts }
+      )
+      expect(svg).toContain('image-orientation:from-image')
+      expect(toImage(svg, 100)).toMatchImageSnapshot()
+    })
+
+    it('should pass image-orientation through to background images', async () => {
+      const svg = await satori(
+        <div
+          style={{
+            display: 'flex',
+            width: 100,
+            height: 100,
+            backgroundColor: 'white',
+            backgroundImage: `url(${PIXEL_ART_2X2_PNG})`,
+            backgroundRepeat: 'no-repeat',
+            backgroundSize: '80px 80px',
+            imageOrientation: 'from-image',
+          }}
+        />,
+        { width: 100, height: 100, fonts }
+      )
+      expect(svg).toContain('image-orientation="from-image"')
+      expect(toImage(svg, 100)).toMatchImageSnapshot()
+    })
+  })
 })

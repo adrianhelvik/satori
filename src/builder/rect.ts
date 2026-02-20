@@ -82,7 +82,8 @@ export default async function rect(
         background,
         inheritableStyle,
         'background',
-        style.imageRendering as string | undefined
+        style.imageRendering as string | undefined,
+        style.imageOrientation as string | undefined
       )
       if (image) {
         // Background images that come first in the array are rendered last.
@@ -141,6 +142,7 @@ export default async function rect(
     filter: cssFilter,
     mixBlendMode,
     imageRendering,
+    imageOrientation,
   } = style
 
   const currentClipPath =
@@ -276,6 +278,7 @@ export default async function rect(
     const imageStyle = [
       cssFilter ? `filter:${cssFilter}` : '',
       imageRendering ? `image-rendering:${imageRendering}` : '',
+      imageOrientation ? `image-orientation:${imageOrientation}` : '',
     ]
       .filter(Boolean)
       .join(';')

@@ -92,7 +92,8 @@ export default async function buildMaskImage(
       m,
       inheritedStyle,
       'mask',
-      style.imageRendering as string | undefined
+      style.imageRendering as string | undefined,
+      style.imageOrientation as string | undefined
     )
 
     mask +=
