@@ -273,6 +273,10 @@ const thaiDigits = '๐๑๒๓๔๕๖๗๘๙'.split('')
 const laoDigits = '໐໑໒໓໔໕໖໗໘໙'.split('')
 const myanmarDigits = '၀၁၂၃၄၅၆၇၈၉'.split('')
 const khmerDigits = '០១២៣៤៥៦៧៨៩'.split('')
+const mongolianDigits = '᠐᠑᠒᠓᠔᠕᠖᠗᠘᠙'.split('')
+const oriyaDigits = '୦୧୨୩୪୫୬୭୮୯'.split('')
+const tibetanDigits = '༠༡༢༣༤༥༦༧༨༩'.split('')
+const cjkDecimalDigits = '〇一二三四五六七八九'.split('')
 const lowerGreekSymbols = [
   '\u03b1',
   '\u03b2',
@@ -603,10 +607,20 @@ function createRegistry(): Record<string, ListStyleDefinition> {
     ['lao', laoDigits],
     ['myanmar', myanmarDigits],
     ['khmer', khmerDigits],
+    ['cambodian', khmerDigits],
+    ['mongolian', mongolianDigits],
+    ['oriya', oriyaDigits],
+    ['tibetan', tibetanDigits],
   ]
   for (const [type, symbols] of numericStyles) {
     registerListStyle(registry, type, ordered(markerNumeric(symbols)))
   }
+
+  registerListStyle(
+    registry,
+    'cjk-decimal',
+    ordered((index) => `${toNumericBySymbols(index, cjkDecimalDigits)}、`)
+  )
 
   registerListStyle(registry, 'upper-roman', ordered(markerRoman(true)))
   registerListStyle(registry, 'lower-roman', ordered(markerRoman(false)))
