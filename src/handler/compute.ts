@@ -40,7 +40,9 @@ const JUSTIFY_CONTENT_VALUE_ALIASES: Record<string, string> = {
 
 const POSITION_VALUE_ALIASES: Record<string, string> = {
   fixed: 'absolute',
-  sticky: 'relative',
+  // Without a scrolling viewport model, sticky behaves closer to static:
+  // offsets should not shift layout in the default, non-scrolled state.
+  sticky: 'static',
 }
 
 function normalizeBoxAlignmentValue(

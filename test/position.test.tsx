@@ -117,4 +117,33 @@ describe('Position', () => {
       expect(toImage(svg, 100)).toMatchImageSnapshot()
     })
   })
+
+  describe('sticky', () => {
+    it('should approximate sticky position as static in non-scrolling layouts', async () => {
+      const svg = await satori(
+        <div
+          style={{
+            height: '100%',
+            width: '100%',
+            display: 'flex',
+          }}
+        >
+          <div
+            style={{
+              position: 'sticky',
+              left: 10,
+              top: 10,
+              bottom: 0,
+              right: 0,
+              width: 10,
+              height: 10,
+              background: 'black',
+            }}
+          ></div>
+        </div>,
+        { width: 100, height: 100, fonts }
+      )
+      expect(toImage(svg, 100)).toMatchImageSnapshot()
+    })
+  })
 })
