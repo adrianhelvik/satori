@@ -217,6 +217,44 @@ const georgianSymbols: Array<[number, string]> = [
   [1, 'ა'],
 ]
 
+const lowerCyrillicSymbols = [
+  'а',
+  'б',
+  'в',
+  'г',
+  'д',
+  'е',
+  'ж',
+  'з',
+  'и',
+  'й',
+  'к',
+  'л',
+  'м',
+  'н',
+  'о',
+  'п',
+  'р',
+  'с',
+  'т',
+  'у',
+  'ф',
+  'х',
+  'ц',
+  'ч',
+  'ш',
+  'щ',
+  'ъ',
+  'ы',
+  'ь',
+  'э',
+  'ю',
+  'я',
+]
+const upperCyrillicSymbols = lowerCyrillicSymbols.map((symbol) =>
+  symbol.toUpperCase()
+)
+
 export function getListMarkerText(
   type: string | undefined,
   index: number
@@ -256,6 +294,10 @@ export function getListMarkerText(
     case 'lower-alpha':
     case 'lower-latin':
       return `${toAlphabeticIndex(index, false)}.`
+    case 'lower-cyrillic':
+      return `${toAlphabeticBySymbols(index, lowerCyrillicSymbols)}.`
+    case 'upper-cyrillic':
+      return `${toAlphabeticBySymbols(index, upperCyrillicSymbols)}.`
     case 'lower-greek':
       return `${toAlphabeticBySymbols(index, [
         '\u03b1',
