@@ -7,6 +7,7 @@ import { createHash } from 'crypto'
 import { join, relative } from 'path'
 import { mkdirSync, writeFileSync, readFileSync } from 'fs'
 import { Resvg } from '@resvg/resvg-js'
+import { resolveBrowserCaptureSize } from './browser-diff-utils.js'
 
 const DIFF_DIR = join(process.cwd(), 'test', '__browser_diffs__')
 
@@ -346,8 +347,7 @@ afterEach(async (ctx) => {
 
   for (let i = 0; i < captures.length; i++) {
     const { element, options, svg } = captures[i]
-    const w = options.width || 100
-    const h = options.height || 100
+    const { width: w, height: h } = resolveBrowserCaptureSize(options, svg)
     const suffix = captures.length > 1 ? `-${i}` : ''
     const baseName = `${slug}${suffix}`
 
