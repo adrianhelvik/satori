@@ -16,6 +16,8 @@ const listStyleTypes = new Set([
   'lower-cyrillic',
   'upper-cyrillic',
   'lower-greek',
+  'hiragana',
+  'katakana',
   'lower-latin',
   'upper-latin',
   'lower-roman',
@@ -40,6 +42,8 @@ const orderedListStyleTypes = new Set([
   'lower-latin',
   'upper-latin',
   'lower-greek',
+  'hiragana',
+  'katakana',
   'lower-roman',
   'upper-roman',
 ])
