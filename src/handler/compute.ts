@@ -9,6 +9,7 @@ import inheritable from './inheritable.js'
 import expand from './expand.js'
 import type { SerializedStyle } from './style-types.js'
 import { DISPLAY_VALUE_TO_CANONICAL, normalizeDisplayValue } from './display.js'
+import { normalizePositionValue } from './position.js'
 import {
   asPointAutoPercentageLength,
   asPointPercentageLength,
@@ -38,13 +39,6 @@ const JUSTIFY_CONTENT_VALUE_ALIASES: Record<string, string> = {
   right: 'flex-end',
 }
 
-const POSITION_VALUE_ALIASES: Record<string, string> = {
-  fixed: 'absolute',
-  // Without a scrolling viewport model, sticky behaves closer to static:
-  // offsets should not shift layout in the default, non-scrolled state.
-  sticky: 'static',
-}
-
 function normalizeBoxAlignmentValue(
   value: unknown,
   aliases: Record<string, string>
@@ -57,12 +51,6 @@ function normalizeBoxAlignmentValue(
   // CSS overflow-position prefix (`safe` / `unsafe`) has no Yoga equivalent.
   const withoutOverflowPosition = normalized.replace(/^(safe|unsafe)\s+/, '')
   return aliases[withoutOverflowPosition] || withoutOverflowPosition
-}
-
-function normalizePositionValue(value: unknown): unknown {
-  if (typeof value !== 'string') return value
-  const normalized = value.trim().toLowerCase()
-  return POSITION_VALUE_ALIASES[normalized] || normalized
 }
 
 function isAutoSize(value: unknown): boolean {
