@@ -7,6 +7,10 @@ import {
   parseListStyleShorthand,
   parseListStyleTypeValue,
 } from '../src/handler/list-style.js'
+import {
+  listStyleTypes,
+  orderedListStyleTypes,
+} from '../src/handler/list-style-types.js'
 
 describe('list-style helpers', () => {
   it('should parse list-style-type keywords and quoted strings', () => {
@@ -26,6 +30,21 @@ describe('list-style helpers', () => {
     expect(parseListStyleTypeValue('KATAKANA')).toBe('katakana')
     expect(parseListStyleTypeValue('"->"')).toBe('"->"')
     expect(parseListStyleTypeValue('unknown')).toBeUndefined()
+  })
+
+  it('keeps parser and ordered marker classification registries in sync', () => {
+    for (const type of listStyleTypes) {
+      expect(parseListStyleTypeValue(type.toUpperCase())).toBe(type)
+    }
+
+    for (const type of orderedListStyleTypes) {
+      expect(listStyleTypes.has(type)).toBe(true)
+      expect(isOrderedListMarkerType(type)).toBe(true)
+    }
+
+    expect(isOrderedListMarkerType('disc')).toBe(false)
+    expect(isOrderedListMarkerType('square')).toBe(false)
+    expect(isOrderedListMarkerType('disclosure-open')).toBe(false)
   })
 
   it('should parse list-style shorthand tokens', () => {
