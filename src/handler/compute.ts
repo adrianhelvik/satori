@@ -194,10 +194,16 @@ export default async function compute(
       contentBoxHeight -= extraVertical
     }
 
-    // When no content size is defined, we use the image size as the content size.
+    // When no content size is defined, use intrinsic image dimensions.
+    // Browser <img> elements default to intrinsic size, not 100% fill.
     if (contentBoxWidth === undefined && contentBoxHeight === undefined) {
-      contentBoxWidth = '100%'
-      node.setAspectRatio(1 / r)
+      if (typeof imageWidth === 'number' && typeof imageHeight === 'number') {
+        contentBoxWidth = imageWidth
+        contentBoxHeight = imageHeight
+      } else {
+        contentBoxWidth = '100%'
+        node.setAspectRatio(1 / r)
+      }
     } else {
       // If only one sisde is not defined, we can calculate the other one.
       if (contentBoxWidth === undefined) {
