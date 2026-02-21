@@ -3,6 +3,7 @@ import { createElement, type ReactNode } from 'react'
 import type { Locale } from './language.js'
 import type FontLoader from './font.js'
 import type { SerializedStyle } from './handler/style-types.js'
+import { parseFiniteNumber } from './style-number.js'
 
 export interface OrderedListCounterState {
   value: number
@@ -50,15 +51,6 @@ function parseCounterProperty(
   }
 
   return { explicit: true, none: false, values }
-}
-
-function parseStyleNumber(value: unknown, fallback = 0): number {
-  if (typeof value === 'number' && Number.isFinite(value)) return value
-  if (typeof value === 'string') {
-    const parsed = Number(value)
-    if (Number.isFinite(parsed)) return parsed
-  }
-  return fallback
 }
 
 export function applyListItemCounterStyles(
@@ -207,7 +199,7 @@ export function measureListMarkerTextWidth(
     )
     return engine.measure(markerText, {
       fontSize,
-      letterSpacing: parseStyleNumber(style.letterSpacing, 0),
+      letterSpacing: parseFiniteNumber(style.letterSpacing, 0),
       kerning: style.fontKerning !== 'none',
     })
   } catch {

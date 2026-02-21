@@ -24,7 +24,7 @@ import buildTextNodes from './text/index.js'
 import { isTransformInput, type TransformInput } from './builder/transform.js'
 import rect, { type BlendPrimitive } from './builder/rect.js'
 import { Locale, normalizeLocale } from './language.js'
-import { SerializedStyle } from './handler/expand.js'
+import type { SerializedStyle } from './handler/style-types.js'
 import {
   getListMarkerText,
   isOrderedListMarkerType,
@@ -48,6 +48,7 @@ import {
   type MissingFontSegment,
 } from './layout-protocol.js'
 import cssColorParse from 'parse-css-color'
+import { parseFiniteNumber } from './style-number.js'
 
 interface ListItemContext {
   listType: 'ul' | 'ol'
@@ -159,15 +160,6 @@ function resolveBlendPrimitive(
   }
 }
 
-function parseStyleNumber(value: unknown, fallback = 0): number {
-  if (typeof value === 'number' && Number.isFinite(value)) return value
-  if (typeof value === 'string') {
-    const parsed = Number(value)
-    if (Number.isFinite(parsed)) return parsed
-  }
-  return fallback
-}
-
 function getChildSortMeta(
   child: ReactNode,
   originalIndex: number,
@@ -180,8 +172,8 @@ function getChildSortMeta(
 
   return {
     child,
-    order: parseStyleNumber(childStyle?.order, 0),
-    zIndex: parseStyleNumber(childStyle?.zIndex, 0),
+    order: parseFiniteNumber(childStyle?.order, 0),
+    zIndex: parseFiniteNumber(childStyle?.zIndex, 0),
     originalIndex,
   }
 }
@@ -403,9 +395,9 @@ export default async function* layout(
     const markerText = getListMarkerText(listStyleType, markerIndex)
 
     if (listStyleImage || markerText) {
-      const markerFontSize = parseStyleNumber(
+      const markerFontSize = parseFiniteNumber(
         computedStyle.fontSize,
-        parseStyleNumber(inheritedStyle.fontSize, 16)
+        parseFiniteNumber(inheritedStyle.fontSize, 16)
       )
       const markerTextWidth = measureListMarkerTextWidth(
         markerText,

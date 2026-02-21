@@ -1,6 +1,6 @@
 import { buildXMLString, lengthToNumber } from '../utils.js'
 import type { GlyphBox } from '../font.js'
-import type { SerializedStyle } from '../handler/expand.js'
+import type { SerializedStyle } from '../handler/style-types.js'
 
 function buildSkipInkSegments(
   start: number,

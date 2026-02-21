@@ -1,5 +1,5 @@
 import type { ParsedTransformOrigin } from '../transform-origin.js'
-import type { SerializedStyle } from '../handler/expand.js'
+import type { SerializedStyle } from '../handler/style-types.js'
 
 import backgroundImage from './background-image.js'
 import radius, { getBorderRadiusClipPath } from './border-radius.js'

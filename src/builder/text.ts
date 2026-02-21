@@ -1,6 +1,6 @@
 import escapeHTML from 'escape-html'
 import type { ParsedTransformOrigin } from '../transform-origin.js'
-import type { SerializedStyle } from '../handler/expand.js'
+import type { SerializedStyle } from '../handler/style-types.js'
 import transform, {
   isTransformInput,
   type TransformInput,

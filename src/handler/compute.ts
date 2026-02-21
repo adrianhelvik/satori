@@ -6,7 +6,8 @@
 
 import presets from './presets.js'
 import inheritable from './inheritable.js'
-import expand, { SerializedStyle } from './expand.js'
+import expand from './expand.js'
+import type { SerializedStyle } from './style-types.js'
 import { DISPLAY_VALUE_TO_CANONICAL, normalizeDisplayValue } from './display.js'
 import {
   asPointAutoPercentageLength,

@@ -1,7 +1,7 @@
 import { Locale } from '../language.js'
 import { isNumber, segment, splitByBreakOpportunities } from '../utils.js'
 import { HorizontalEllipsis, Space } from './characters.js'
-import { SerializedStyle } from '../handler/expand.js'
+import type { SerializedStyle } from '../handler/style-types.js'
 
 export function preprocess(
   content: string,
