@@ -9,7 +9,7 @@ import { getYoga, TYoga } from './yoga.js'
 import { detectLanguageCode, LangCode, Locale } from './language.js'
 import getTw from './handler/tailwind.js'
 import { preProcessNode } from './handler/preprocess.js'
-import { cache, inflightRequests } from './handler/image.js'
+import { resetImageResolutionState } from './handler/image.js'
 import { segment } from './utils.js'
 
 // We don't need to initialize the opentype instances every time.
@@ -88,8 +88,7 @@ export default async function satori(
   // To address this situation, we may need to add `processedWordsMissingFont`
   const processedWordsMissingFonts = new Set()
 
-  cache.clear()
-  inflightRequests.clear()
+  resetImageResolutionState()
   await preProcessNode(element)
 
   const handler = layout(element, {

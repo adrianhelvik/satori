@@ -64,6 +64,11 @@ type ResolvedImageData = [string, number?, number?] | readonly []
 export const cache = createLRU<ResolvedImageData>(100)
 export const inflightRequests = new Map<string, Promise<ResolvedImageData>>()
 
+export function resetImageResolutionState() {
+  cache.clear()
+  inflightRequests.clear()
+}
+
 const ALLOWED_IMAGE_TYPES = [PNG, APNG, JPEG, GIF, SVG]
 
 function arrayBufferToBase64(buffer) {
@@ -224,7 +229,7 @@ export async function resolveImageData(
   }
 
   if (inflightRequests.has(src)) {
-    return inflightRequests.get(src)
+    return inflightRequests.get(src)!
   }
   const cached = cache.get(src)
   if (cached) {
@@ -266,6 +271,9 @@ export async function resolveImageData(
       console.error(`Can't load image ${url}: ` + err.message)
       cache.set(url, [])
       return [] as const
+    })
+    .finally(() => {
+      inflightRequests.delete(url)
     })
 
   inflightRequests.set(url, promise)
