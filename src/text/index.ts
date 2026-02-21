@@ -95,6 +95,12 @@ function resolveAdjustedFontSize(
   return fontSize * (targetAspect / fontAspect)
 }
 
+function hasExplicitWidth(width: unknown): boolean {
+  if (isUndefined(width)) return false
+  if (isString(width) && width.trim().toLowerCase() === 'auto') return false
+  return true
+}
+
 export default async function* buildTextNodes(
   content: string,
   context: LayoutContext
@@ -183,12 +189,7 @@ export default async function* buildTextNodes(
   const textContainer = createTextContainerNode(Yoga, textAlign)
   parent.insertChild(textContainer, parent.getChildCount())
 
-  const widthValue = parentStyle.width
-  const hasExplicitWidth =
-    !isUndefined(widthValue) &&
-    !(isString(widthValue) && widthValue.trim().toLowerCase() === 'auto')
-
-  if (isUndefined(flexShrink) && !hasExplicitWidth) {
+  if (isUndefined(flexShrink) && !hasExplicitWidth(parentStyle.width)) {
     parent.setFlexShrink(1)
   }
 
