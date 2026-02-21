@@ -425,4 +425,150 @@ describe('Logical Properties', () => {
       expect(toImage(svg, 100)).toMatchImageSnapshot()
     })
   })
+
+  describe('logical overflow', () => {
+    it('should map overflow-inline to overflow-x', async () => {
+      const base = await satori(
+        <div
+          style={{
+            width: 120,
+            height: 120,
+            backgroundColor: 'white',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <div
+            style={{
+              width: 60,
+              height: 60,
+              overflowX: 'hidden',
+              overflowY: 'visible',
+              backgroundColor: '#ddd',
+              position: 'relative',
+            }}
+          >
+            <div
+              style={{
+                position: 'absolute',
+                width: 100,
+                height: 100,
+                backgroundColor: 'red',
+              }}
+            />
+          </div>
+        </div>,
+        { width: 120, height: 120, fonts }
+      )
+
+      const logical = await satori(
+        <div
+          style={{
+            width: 120,
+            height: 120,
+            backgroundColor: 'white',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <div
+            style={{
+              width: 60,
+              height: 60,
+              overflowInline: 'hidden',
+              overflowBlock: 'visible',
+              backgroundColor: '#ddd',
+              position: 'relative',
+            }}
+          >
+            <div
+              style={{
+                position: 'absolute',
+                width: 100,
+                height: 100,
+                backgroundColor: 'red',
+              }}
+            />
+          </div>
+        </div>,
+        { width: 120, height: 120, fonts }
+      )
+
+      expect(toImage(logical, 120)).toEqual(toImage(base, 120))
+    })
+
+    it('should map overflow-block to overflow-y', async () => {
+      const base = await satori(
+        <div
+          style={{
+            width: 120,
+            height: 120,
+            backgroundColor: 'white',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <div
+            style={{
+              width: 60,
+              height: 60,
+              overflowX: 'visible',
+              overflowY: 'hidden',
+              backgroundColor: '#ddd',
+              position: 'relative',
+            }}
+          >
+            <div
+              style={{
+                position: 'absolute',
+                width: 100,
+                height: 100,
+                backgroundColor: 'blue',
+              }}
+            />
+          </div>
+        </div>,
+        { width: 120, height: 120, fonts }
+      )
+
+      const logical = await satori(
+        <div
+          style={{
+            width: 120,
+            height: 120,
+            backgroundColor: 'white',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <div
+            style={{
+              width: 60,
+              height: 60,
+              overflowInline: 'visible',
+              overflowBlock: 'hidden',
+              backgroundColor: '#ddd',
+              position: 'relative',
+            }}
+          >
+            <div
+              style={{
+                position: 'absolute',
+                width: 100,
+                height: 100,
+                backgroundColor: 'blue',
+              }}
+            />
+          </div>
+        </div>,
+        { width: 120, height: 120, fonts }
+      )
+
+      expect(toImage(logical, 120)).toEqual(toImage(base, 120))
+    })
+  })
 })

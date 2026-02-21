@@ -38,6 +38,13 @@ Satori supports logical properties as aliases to physical properties in the curr
 | `inset-inline-start` | `left` |
 | `inset-inline-end` | `right` |
 
+### Overflow
+
+| Logical property | Physical equivalent |
+|-----------------|-------------------|
+| `overflow-inline` | `overflow-x` |
+| `overflow-block` | `overflow-y` |
+
 ### Border
 
 | Logical property | Physical equivalent |

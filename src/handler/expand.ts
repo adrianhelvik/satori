@@ -164,6 +164,10 @@ function resolveLogicalProperty(
     }
   }
 
+  // Logical overflow
+  if (name === 'overflowInline') return { overflowX: value }
+  if (name === 'overflowBlock') return { overflowY: value }
+
   // Logical border shorthand
   if (name === 'borderInline') {
     const resolved = handleSpecialCase('border', value, currentColor)
