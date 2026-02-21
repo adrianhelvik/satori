@@ -183,7 +183,12 @@ export default async function* buildTextNodes(
   const textContainer = createTextContainerNode(Yoga, textAlign)
   parent.insertChild(textContainer, parent.getChildCount())
 
-  if (isUndefined(flexShrink)) {
+  const widthValue = parentStyle.width
+  const hasExplicitWidth =
+    !isUndefined(widthValue) &&
+    !(isString(widthValue) && widthValue.trim().toLowerCase() === 'auto')
+
+  if (isUndefined(flexShrink) && !hasExplicitWidth) {
     parent.setFlexShrink(1)
   }
 
