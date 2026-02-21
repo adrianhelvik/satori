@@ -160,6 +160,74 @@ function parseTransformWithPercentageSupport(
   return parsed
 }
 
+const LOGICAL_PURIFIED_ALIASES: Record<string, string> = {
+  minInlineSize: 'minWidth',
+  minBlockSize: 'minHeight',
+  maxInlineSize: 'maxWidth',
+  maxBlockSize: 'maxHeight',
+
+  marginInlineStart: 'marginLeft',
+  marginInlineEnd: 'marginRight',
+  marginBlockStart: 'marginTop',
+  marginBlockEnd: 'marginBottom',
+
+  paddingInlineStart: 'paddingLeft',
+  paddingInlineEnd: 'paddingRight',
+  paddingBlockStart: 'paddingTop',
+  paddingBlockEnd: 'paddingBottom',
+
+  insetInlineStart: 'left',
+  insetInlineEnd: 'right',
+  insetBlockStart: 'top',
+  insetBlockEnd: 'bottom',
+
+  borderInlineStartWidth: 'borderLeftWidth',
+  borderInlineEndWidth: 'borderRightWidth',
+  borderBlockStartWidth: 'borderTopWidth',
+  borderBlockEndWidth: 'borderBottomWidth',
+
+  borderStartStartRadius: 'borderTopLeftRadius',
+  borderStartEndRadius: 'borderTopRightRadius',
+  borderEndStartRadius: 'borderBottomLeftRadius',
+  borderEndEndRadius: 'borderBottomRightRadius',
+}
+
+const LOGICAL_RAW_ALIASES: Record<string, string> = {
+  overflowInline: 'overflowX',
+  overflowBlock: 'overflowY',
+
+  borderInlineStartStyle: 'borderLeftStyle',
+  borderInlineEndStyle: 'borderRightStyle',
+  borderBlockStartStyle: 'borderTopStyle',
+  borderBlockEndStyle: 'borderBottomStyle',
+
+  borderInlineStartColor: 'borderLeftColor',
+  borderInlineEndColor: 'borderRightColor',
+  borderBlockStartColor: 'borderTopColor',
+  borderBlockEndColor: 'borderBottomColor',
+}
+
+function resolvePurifiedLogicalAlias(name: string, value: string | number) {
+  const target = LOGICAL_PURIFIED_ALIASES[name]
+  if (!target) return
+
+  const purifiedName =
+    name === 'borderStartStartRadius' ||
+    name === 'borderStartEndRadius' ||
+    name === 'borderEndStartRadius' ||
+    name === 'borderEndEndRadius'
+      ? 'borderRadius'
+      : target
+
+  return { [target]: purify(purifiedName, value) }
+}
+
+function resolveRawLogicalAlias(name: string, value: string | number) {
+  const target = LOGICAL_RAW_ALIASES[name]
+  if (!target) return
+  return { [target]: value }
+}
+
 function resolveLogicalProperty(
   name: string,
   value: string | number,
@@ -178,20 +246,14 @@ function resolveLogicalProperty(
         height: purify('height', value),
       }
     )
-  if (name === 'minInlineSize') return { minWidth: purify('minWidth', value) }
-  if (name === 'minBlockSize') return { minHeight: purify('minHeight', value) }
-  if (name === 'maxInlineSize') return { maxWidth: purify('maxWidth', value) }
-  if (name === 'maxBlockSize') return { maxHeight: purify('maxHeight', value) }
+
+  const purifiedAlias = resolvePurifiedLogicalAlias(name, value)
+  if (purifiedAlias) return purifiedAlias
+
+  const rawAlias = resolveRawLogicalAlias(name, value)
+  if (rawAlias) return rawAlias
 
   // Logical margin
-  if (name === 'marginInlineStart')
-    return { marginLeft: purify('marginLeft', value) }
-  if (name === 'marginInlineEnd')
-    return { marginRight: purify('marginRight', value) }
-  if (name === 'marginBlockStart')
-    return { marginTop: purify('marginTop', value) }
-  if (name === 'marginBlockEnd')
-    return { marginBottom: purify('marginBottom', value) }
   if (name === 'marginInline') {
     const vals = splitSpaceValues(value)
     return {
@@ -208,14 +270,6 @@ function resolveLogicalProperty(
   }
 
   // Logical padding
-  if (name === 'paddingInlineStart')
-    return { paddingLeft: purify('paddingLeft', value) }
-  if (name === 'paddingInlineEnd')
-    return { paddingRight: purify('paddingRight', value) }
-  if (name === 'paddingBlockStart')
-    return { paddingTop: purify('paddingTop', value) }
-  if (name === 'paddingBlockEnd')
-    return { paddingBottom: purify('paddingBottom', value) }
   if (name === 'paddingInline') {
     const vals = splitSpaceValues(value)
     return {
@@ -232,10 +286,6 @@ function resolveLogicalProperty(
   }
 
   // Logical inset
-  if (name === 'insetInlineStart') return { left: purify('left', value) }
-  if (name === 'insetInlineEnd') return { right: purify('right', value) }
-  if (name === 'insetBlockStart') return { top: purify('top', value) }
-  if (name === 'insetBlockEnd') return { bottom: purify('bottom', value) }
   if (name === 'insetInline') {
     const vals = splitSpaceValues(value)
     return {
@@ -260,10 +310,6 @@ function resolveLogicalProperty(
       left: purify('left', l),
     }
   }
-
-  // Logical overflow
-  if (name === 'overflowInline') return { overflowX: value }
-  if (name === 'overflowBlock') return { overflowY: value }
 
   // Logical border shorthand
   if (name === 'borderInline') {
@@ -312,14 +358,6 @@ function resolveLogicalProperty(
       borderBottomWidth: purify('borderBottomWidth', vals[1] || vals[0]),
     }
   }
-  if (name === 'borderInlineStartWidth')
-    return { borderLeftWidth: purify('borderLeftWidth', value) }
-  if (name === 'borderInlineEndWidth')
-    return { borderRightWidth: purify('borderRightWidth', value) }
-  if (name === 'borderBlockStartWidth')
-    return { borderTopWidth: purify('borderTopWidth', value) }
-  if (name === 'borderBlockEndWidth')
-    return { borderBottomWidth: purify('borderBottomWidth', value) }
 
   // Logical border sub-properties (style)
   if (name === 'borderInlineStyle') {
@@ -336,10 +374,6 @@ function resolveLogicalProperty(
       borderBottomStyle: vals[1] || vals[0],
     }
   }
-  if (name === 'borderInlineStartStyle') return { borderLeftStyle: value }
-  if (name === 'borderInlineEndStyle') return { borderRightStyle: value }
-  if (name === 'borderBlockStartStyle') return { borderTopStyle: value }
-  if (name === 'borderBlockEndStyle') return { borderBottomStyle: value }
 
   // Logical border sub-properties (color)
   if (name === 'borderInlineColor') {
@@ -356,20 +390,6 @@ function resolveLogicalProperty(
       borderBottomColor: vals[1] || vals[0],
     }
   }
-  if (name === 'borderInlineStartColor') return { borderLeftColor: value }
-  if (name === 'borderInlineEndColor') return { borderRightColor: value }
-  if (name === 'borderBlockStartColor') return { borderTopColor: value }
-  if (name === 'borderBlockEndColor') return { borderBottomColor: value }
-
-  // Logical border radius
-  if (name === 'borderStartStartRadius')
-    return { borderTopLeftRadius: purify('borderRadius', value) }
-  if (name === 'borderStartEndRadius')
-    return { borderTopRightRadius: purify('borderRadius', value) }
-  if (name === 'borderEndStartRadius')
-    return { borderBottomLeftRadius: purify('borderRadius', value) }
-  if (name === 'borderEndEndRadius')
-    return { borderBottomRightRadius: purify('borderRadius', value) }
 }
 
 function handleSpecialCase(
