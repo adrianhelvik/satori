@@ -104,7 +104,7 @@ describe('Typography Extras', () => {
       expect(toImage(svg, 180)).toMatchImageSnapshot()
     })
 
-    it('should support text-indent: each-line for forced line breaks', async () => {
+    it('should ignore text-indent: each-line (currently unsupported)', async () => {
       const svg = await satori(
         <div
           style={{
@@ -124,7 +124,7 @@ describe('Typography Extras', () => {
       expect(toImage(svg, 220)).toMatchImageSnapshot()
     })
 
-    it('should support text-indent: hanging', async () => {
+    it('should ignore text-indent: hanging (currently unsupported)', async () => {
       const svg = await satori(
         <div
           style={{
@@ -144,7 +144,7 @@ describe('Typography Extras', () => {
       expect(toImage(svg, 220)).toMatchImageSnapshot()
     })
 
-    it('should support text-indent with each-line and hanging', async () => {
+    it('should ignore text-indent with each-line and hanging', async () => {
       const svg = await satori(
         <div
           style={{

@@ -250,32 +250,18 @@ export default async function* buildTextNodes(
 
     const tokens = textIndent.trim().split(/\s+/).filter(Boolean)
 
-    let eachLine = false
-    let hanging = false
-    const numericTokens: string[] = []
-
-    for (const token of tokens) {
-      const normalized = token.toLowerCase()
-      if (normalized === 'each-line') {
-        eachLine = true
-      } else if (normalized === 'hanging') {
-        hanging = true
-      } else {
-        numericTokens.push(token)
-      }
-    }
-
-    const numericToken = numericTokens[0]
-    if (!numericToken) {
+    // Chromium currently ignores declarations that include keyword modifiers
+    // like `each-line` / `hanging` for text-indent.
+    if (tokens.length !== 1) {
       return {
         width: 0,
-        eachLine,
-        hanging,
+        eachLine: false,
+        hanging: false,
       }
     }
 
     const resolved = lengthToNumber(
-      numericToken,
+      tokens[0],
       resolvedFontSize,
       width,
       parentStyle as Record<string, number | string>,
@@ -284,8 +270,8 @@ export default async function* buildTextNodes(
 
     return {
       width: typeof resolved === 'number' ? resolved : 0,
-      eachLine,
-      hanging,
+      eachLine: false,
+      hanging: false,
     }
   }
   const kerning = fontKerning !== 'none'
