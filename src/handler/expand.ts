@@ -64,6 +64,54 @@ function splitSpaceValues(value: string | number): string[] {
   return value.toString().trim().split(/\s+/)
 }
 
+function parseAlignmentValue(
+  tokens: string[],
+  startIndex: number
+): {
+  value?: string
+  nextIndex: number
+} {
+  const token = tokens[startIndex]
+  if (!token) {
+    return { nextIndex: startIndex }
+  }
+
+  const normalized = token.toLowerCase()
+  if (
+    (normalized === 'safe' || normalized === 'unsafe') &&
+    tokens[startIndex + 1]
+  ) {
+    return {
+      value: `${token} ${tokens[startIndex + 1]}`,
+      nextIndex: startIndex + 2,
+    }
+  }
+
+  return {
+    value: token,
+    nextIndex: startIndex + 1,
+  }
+}
+
+function parsePlaceShorthandValues(value: string | number): {
+  first?: string
+  second?: string
+} {
+  const tokens = value.toString().trim().split(/\s+/).filter(Boolean)
+  if (tokens.length === 0) return {}
+
+  const first = parseAlignmentValue(tokens, 0)
+  const second =
+    first.nextIndex < tokens.length
+      ? parseAlignmentValue(tokens, first.nextIndex)
+      : undefined
+
+  return {
+    first: first.value,
+    second: second?.value,
+  }
+}
+
 const TRANSFORM_PERCENTAGE_RE = /(-?[\d.]+%)/g
 const TRANSFORM_PLACEHOLDER_BASE = 987_654_000
 
@@ -350,26 +398,29 @@ function handleSpecialCase(
 
   // place-content → alignContent + justifyContent
   if (name === 'placeContent') {
-    const parts = value.toString().trim().split(/\s+/)
+    const { first, second } = parsePlaceShorthandValues(value)
+    if (!first) return {}
     return {
-      alignContent: parts[0],
-      justifyContent: parts[1] || parts[0],
+      alignContent: first,
+      justifyContent: second || first,
     }
   }
 
   // place-items → alignItems (+ ignore justify-items in flex-only layout)
   if (name === 'placeItems') {
-    const parts = value.toString().trim().split(/\s+/)
+    const { first } = parsePlaceShorthandValues(value)
+    if (!first) return {}
     return {
-      alignItems: parts[0],
+      alignItems: first,
     }
   }
 
   // place-self → alignSelf (+ ignore justify-self in flex-only layout)
   if (name === 'placeSelf') {
-    const parts = value.toString().trim().split(/\s+/)
+    const { first } = parsePlaceShorthandValues(value)
+    if (!first) return {}
     return {
-      alignSelf: parts[0],
+      alignSelf: first,
     }
   }
 

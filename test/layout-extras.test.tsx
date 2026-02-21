@@ -159,6 +159,40 @@ describe('Layout Extras', () => {
       )
       expect(toImage(svg, 100)).toMatchImageSnapshot()
     })
+
+    it('should parse place-content safe center as a single value', async () => {
+      const safe = await satori(
+        <div
+          style={{
+            width: 100,
+            height: 100,
+            display: 'flex',
+            placeContent: 'safe center',
+            backgroundColor: 'white',
+          }}
+        >
+          <div style={{ width: 30, height: 30, backgroundColor: 'red' }} />
+        </div>,
+        { width: 100, height: 100, fonts }
+      )
+
+      const center = await satori(
+        <div
+          style={{
+            width: 100,
+            height: 100,
+            display: 'flex',
+            placeContent: 'center',
+            backgroundColor: 'white',
+          }}
+        >
+          <div style={{ width: 30, height: 30, backgroundColor: 'red' }} />
+        </div>,
+        { width: 100, height: 100, fonts }
+      )
+
+      expect(toImage(safe, 100)).toEqual(toImage(center, 100))
+    })
   })
 
   describe('place-items', () => {
@@ -212,6 +246,40 @@ describe('Layout Extras', () => {
       )
 
       expect(toImage(withPlaceItems, 100)).toEqual(toImage(base, 100))
+    })
+
+    it('should parse place-items safe end as align-items value', async () => {
+      const safe = await satori(
+        <div
+          style={{
+            width: 100,
+            height: 100,
+            display: 'flex',
+            placeItems: 'safe end',
+            backgroundColor: 'white',
+          }}
+        >
+          <div style={{ width: 30, height: 30, backgroundColor: 'red' }} />
+        </div>,
+        { width: 100, height: 100, fonts }
+      )
+
+      const expected = await satori(
+        <div
+          style={{
+            width: 100,
+            height: 100,
+            display: 'flex',
+            alignItems: 'flex-end',
+            backgroundColor: 'white',
+          }}
+        >
+          <div style={{ width: 30, height: 30, backgroundColor: 'red' }} />
+        </div>,
+        { width: 100, height: 100, fonts }
+      )
+
+      expect(toImage(safe, 100)).toEqual(toImage(expected, 100))
     })
   })
 
@@ -284,6 +352,52 @@ describe('Layout Extras', () => {
       )
 
       expect(toImage(withPlaceSelf, 100)).toEqual(toImage(base, 100))
+    })
+
+    it('should parse place-self safe end on child', async () => {
+      const safe = await satori(
+        <div
+          style={{
+            width: 100,
+            height: 100,
+            display: 'flex',
+            backgroundColor: 'white',
+          }}
+        >
+          <div
+            style={{
+              width: 30,
+              height: 30,
+              placeSelf: 'safe end',
+              backgroundColor: 'red',
+            }}
+          />
+        </div>,
+        { width: 100, height: 100, fonts }
+      )
+
+      const expected = await satori(
+        <div
+          style={{
+            width: 100,
+            height: 100,
+            display: 'flex',
+            backgroundColor: 'white',
+          }}
+        >
+          <div
+            style={{
+              width: 30,
+              height: 30,
+              alignSelf: 'flex-end',
+              backgroundColor: 'red',
+            }}
+          />
+        </div>,
+        { width: 100, height: 100, fonts }
+      )
+
+      expect(toImage(safe, 100)).toEqual(toImage(expected, 100))
     })
   })
 
