@@ -14,6 +14,9 @@ describe('list-style helpers', () => {
     expect(parseListStyleTypeValue('lower-hexadecimal')).toBe(
       'lower-hexadecimal'
     )
+    expect(parseListStyleTypeValue('upper-hexadecimal')).toBe(
+      'upper-hexadecimal'
+    )
     expect(parseListStyleTypeValue('"->"')).toBe('"->"')
     expect(parseListStyleTypeValue('unknown')).toBeUndefined()
   })
@@ -40,6 +43,7 @@ describe('list-style helpers', () => {
   it('should format marker text for counters and strings', () => {
     expect(getListMarkerText('decimal', 3)).toBe('3.')
     expect(getListMarkerText('lower-hexadecimal', 16)).toBe('10.')
+    expect(getListMarkerText('upper-hexadecimal', 26)).toBe('1A.')
     expect(getListMarkerText('lower-roman', 4)).toBe('iv.')
     expect(getListMarkerText('"\\2192"', 1)).toBe('\u2192')
     expect(getListMarkerText('none', 1)).toBeNull()
@@ -48,6 +52,7 @@ describe('list-style helpers', () => {
   it('should detect ordered list marker types', () => {
     expect(isOrderedListMarkerType('decimal')).toBe(true)
     expect(isOrderedListMarkerType('lower-hexadecimal')).toBe(true)
+    expect(isOrderedListMarkerType('upper-hexadecimal')).toBe(true)
     expect(isOrderedListMarkerType('disc')).toBe(false)
     expect(isOrderedListMarkerType('"→"')).toBe(false)
   })

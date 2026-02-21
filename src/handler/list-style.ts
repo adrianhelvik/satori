@@ -6,6 +6,7 @@ const listStyleTypes = new Set([
   'decimal',
   'decimal-leading-zero',
   'lower-hexadecimal',
+  'upper-hexadecimal',
   'lower-alpha',
   'upper-alpha',
   'lower-greek',
@@ -21,6 +22,7 @@ const orderedListStyleTypes = new Set([
   'decimal',
   'decimal-leading-zero',
   'lower-hexadecimal',
+  'upper-hexadecimal',
   'lower-alpha',
   'upper-alpha',
   'lower-latin',
@@ -214,6 +216,8 @@ export function getListMarkerText(
       return `${String(index).padStart(2, '0')}.`
     case 'lower-hexadecimal':
       return `${index > 0 ? index.toString(16) : String(index)}.`
+    case 'upper-hexadecimal':
+      return `${index > 0 ? index.toString(16).toUpperCase() : String(index)}.`
     case 'upper-alpha':
     case 'upper-latin':
       return `${toAlphabeticIndex(index, true)}.`
