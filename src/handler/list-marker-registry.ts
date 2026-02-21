@@ -87,12 +87,29 @@ function markerUpperHex(index: number): string {
   return `${index > 0 ? index.toString(16).toUpperCase() : String(index)}.`
 }
 
+function toNumericBySymbols(index: number, symbols: string[]): string {
+  const raw = String(index)
+  let result = ''
+  for (const ch of raw) {
+    if (ch >= '0' && ch <= '9') {
+      result += symbols[ch.charCodeAt(0) - 48]
+    } else {
+      result += ch
+    }
+  }
+  return result
+}
+
 function markerRoman(upper: boolean): MarkerFormatter {
   return (index) => `${toRomanIndex(index, upper)}.`
 }
 
 function markerAlphabetic(symbols: string[]): MarkerFormatter {
   return (index) => `${toAlphabeticBySymbols(index, symbols)}.`
+}
+
+function markerNumeric(symbols: string[]): MarkerFormatter {
+  return (index) => `${toNumericBySymbols(index, symbols)}.`
 }
 
 function markerAdditive(
@@ -223,6 +240,20 @@ const lowerLatinSymbols = 'abcdefghijklmnopqrstuvwxyz'.split('')
 const upperLatinSymbols = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('')
 const lowerNorwegianSymbols = 'abcdefghijklmnopqrstuvwxyzæøå'.split('')
 const upperNorwegianSymbols = 'ABCDEFGHIJKLMNOPQRSTUVWXYZÆØÅ'.split('')
+const arabicIndicDigits = '٠١٢٣٤٥٦٧٨٩'.split('')
+const persianDigits = '۰۱۲۳۴۵۶۷۸۹'.split('')
+const devanagariDigits = '०१२३४५६७८९'.split('')
+const bengaliDigits = '০১২৩৪৫৬৭৮৯'.split('')
+const gurmukhiDigits = '੦੧੨੩੪੫੬੭੮੯'.split('')
+const gujaratiDigits = '૦૧૨૩૪૫૬૭૮૯'.split('')
+const kannadaDigits = '೦೧೨೩೪೫೬೭೮೯'.split('')
+const malayalamDigits = '൦൧൨൩൪൫൬൭൮൯'.split('')
+const tamilDigits = '௦௧௨௩௪௫௬௭௮௯'.split('')
+const teluguDigits = '౦౧౨౩౪౫౬౭౮౯'.split('')
+const thaiDigits = '๐๑๒๓๔๕๖๗๘๙'.split('')
+const laoDigits = '໐໑໒໓໔໕໖໗໘໙'.split('')
+const myanmarDigits = '၀၁၂၃၄၅၆၇၈၉'.split('')
+const khmerDigits = '០១២៣៤៥៦៧៨៩'.split('')
 const lowerGreekSymbols = [
   '\u03b1',
   '\u03b2',
@@ -525,6 +556,20 @@ const registry: Record<string, ListStyleDefinition> = {
     ordered: true,
     format: markerAlphabetic(upperNorwegianSymbols),
   },
+  'arabic-indic': { ordered: true, format: markerNumeric(arabicIndicDigits) },
+  persian: { ordered: true, format: markerNumeric(persianDigits) },
+  devanagari: { ordered: true, format: markerNumeric(devanagariDigits) },
+  bengali: { ordered: true, format: markerNumeric(bengaliDigits) },
+  gurmukhi: { ordered: true, format: markerNumeric(gurmukhiDigits) },
+  gujarati: { ordered: true, format: markerNumeric(gujaratiDigits) },
+  kannada: { ordered: true, format: markerNumeric(kannadaDigits) },
+  malayalam: { ordered: true, format: markerNumeric(malayalamDigits) },
+  tamil: { ordered: true, format: markerNumeric(tamilDigits) },
+  telugu: { ordered: true, format: markerNumeric(teluguDigits) },
+  thai: { ordered: true, format: markerNumeric(thaiDigits) },
+  lao: { ordered: true, format: markerNumeric(laoDigits) },
+  myanmar: { ordered: true, format: markerNumeric(myanmarDigits) },
+  khmer: { ordered: true, format: markerNumeric(khmerDigits) },
   'lower-greek': { ordered: true, format: markerAlphabetic(lowerGreekSymbols) },
   'lower-cyrillic': {
     ordered: true,

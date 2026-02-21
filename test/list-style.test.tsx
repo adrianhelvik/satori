@@ -453,6 +453,71 @@ describe('list-style', () => {
     expect(toImage(svg, 320)).toMatchImageSnapshot()
   })
 
+  it('should support numeric script listStyleType values', async () => {
+    const nodes = []
+    const svg = await satori(
+      <div
+        style={{
+          width: 340,
+          height: 160,
+          display: 'flex',
+          gap: 20,
+          backgroundColor: 'white',
+          fontSize: 18,
+          margin: 0,
+        }}
+      >
+        <ol
+          style={{
+            margin: 0,
+            listStyleType: 'arabic-indic' as any,
+            counterReset: 'list-item 41',
+          }}
+        >
+          <li>item</li>
+          <li>item</li>
+        </ol>
+        <ol
+          style={{
+            margin: 0,
+            listStyleType: 'devanagari' as any,
+            counterReset: 'list-item 41',
+          }}
+        >
+          <li>item</li>
+          <li>item</li>
+        </ol>
+        <ol
+          style={{
+            margin: 0,
+            listStyleType: 'persian' as any,
+            counterReset: 'list-item 304',
+          }}
+        >
+          <li>item</li>
+        </ol>
+      </div>,
+      {
+        width: 340,
+        height: 160,
+        fonts,
+        onNodeDetected: (node) => nodes.push(node),
+      }
+    )
+
+    const markerText = nodes
+      .filter(
+        (node) =>
+          node.key === '__satori-list-marker' &&
+          typeof node.textContent === 'string'
+      )
+      .map((node) => node.textContent)
+    expect(markerText).toContain('٤٢.')
+    expect(markerText).toContain('४२.')
+    expect(markerText).toContain('۳۰۵.')
+    expect(toImage(svg, 340)).toMatchImageSnapshot()
+  })
+
   it('should size outside text markers using marker text metrics', async () => {
     const nodes = []
     await satori(
