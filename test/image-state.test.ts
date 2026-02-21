@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import {
+  ImageResolver,
   inflightRequests,
   resetImageResolutionState,
   resolveImageData,
@@ -52,5 +53,23 @@ describe('image request state', () => {
 
     await expect(pending).resolves.toEqual([])
     expect(inflightRequests.has(url)).toBe(false)
+  })
+
+  it('keeps resolver instances isolated', async () => {
+    const url = 'https://example.com/isolated.png'
+    ;(globalThis as any).fetch = vi.fn(async () => ({
+      headers: { get: () => 'image/png' },
+      arrayBuffer: async () => toArrayBuffer(PNG_1X1_BASE64),
+    }))
+
+    const first = new ImageResolver()
+    const second = new ImageResolver()
+
+    await first.resolve(url)
+
+    expect(first.cache.get(url)).toBeTruthy()
+    expect(second.cache.get(url)).toBeUndefined()
+    expect(first.inflightRequests.has(url)).toBe(false)
+    expect(second.inflightRequests.has(url)).toBe(false)
   })
 })

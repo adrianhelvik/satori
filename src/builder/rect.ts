@@ -1,9 +1,13 @@
 import type { ParsedTransformOrigin } from '../transform-origin.js'
+import type { SerializedStyle } from '../handler/expand.js'
 
 import backgroundImage from './background-image.js'
 import radius, { getBorderRadiusClipPath } from './border-radius.js'
 import { boxShadow } from './shadow.js'
-import transform, { type TransformInput } from './transform.js'
+import transform, {
+  isTransformInput,
+  type TransformInput,
+} from './transform.js'
 import overflow from './overflow.js'
 import { buildXMLString, lengthToNumber } from '../utils.js'
 import border, { getBorderClipPath } from './border.js'
@@ -1078,8 +1082,8 @@ export default async function rect(
     src?: string
     debug?: boolean
   },
-  style: Record<string, number | string | object>,
-  inheritableStyle: Record<string, number | string | object>,
+  style: SerializedStyle,
+  inheritableStyle: SerializedStyle,
   siblingBlendBackdrops: BlendPrimitive[] = [],
   parentBackgroundColor?: string
 ) {
@@ -1137,7 +1141,7 @@ export default async function rect(
     opacity = +style.opacity
   }
 
-  if (style.transform) {
+  if (isTransformInput(style.transform)) {
     matrix = transform(
       {
         left,
@@ -1145,7 +1149,7 @@ export default async function rect(
         width,
         height,
       },
-      style.transform as unknown as number[],
+      style.transform,
       isInheritingTransform,
       style.transformOrigin as ParsedTransformOrigin | undefined,
       parentTransform,
@@ -1273,7 +1277,7 @@ export default async function rect(
     type = 'path'
   }
 
-  const clipPathId = style._inheritedClipPathId as number | undefined
+  const clipPathId = style._inheritedClipPathId as string | undefined
 
   if (debug) {
     extra = buildXMLString('rect', {

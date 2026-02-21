@@ -2,6 +2,7 @@ import { multiply } from '../utils.js'
 import type { ParsedTransformOrigin } from '../transform-origin.js'
 
 const baseMatrix = [1, 0, 0, 1, 0, 0]
+const MATRIX_LENGTH = 6
 
 export type TransformDescriptor = {
   [type: string]: number | string | number[]
@@ -9,8 +10,37 @@ export type TransformDescriptor = {
 
 export type TransformInput = Array<number | TransformDescriptor>
 
+function isFiniteNumberArray(value: unknown): value is number[] {
+  return (
+    Array.isArray(value) &&
+    value.every((item) => typeof item === 'number' && Number.isFinite(item))
+  )
+}
+
+function isTransformDescriptor(value: unknown): value is TransformDescriptor {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false
+
+  const entries = Object.values(value as Record<string, unknown>)
+  if (!entries.length) return false
+
+  return entries.every((entry) => {
+    if (typeof entry === 'number') return Number.isFinite(entry)
+    if (typeof entry === 'string') return true
+    return isFiniteNumberArray(entry)
+  })
+}
+
+export function isTransformInput(value: unknown): value is TransformInput {
+  if (!Array.isArray(value)) return false
+  return value.every(
+    (entry) =>
+      (typeof entry === 'number' && Number.isFinite(entry)) ||
+      isTransformDescriptor(entry)
+  )
+}
+
 function isResolvedMatrix(input: TransformInput): input is number[] {
-  if (!Array.isArray(input) || input.length !== 6) return false
+  if (!Array.isArray(input) || input.length !== MATRIX_LENGTH) return false
   for (const value of input) {
     if (typeof value !== 'number' || !Number.isFinite(value)) return false
   }
@@ -81,8 +111,8 @@ function resolveTransforms(
         break
       case 'matrix': {
         // matrix(a, b, c, d, tx, ty) — value is already an array of 6 numbers
-        const m = v as unknown as number[]
-        if (Array.isArray(m) && m.length === 6) {
+        const m = v
+        if (isFiniteNumberArray(m) && m.length === MATRIX_LENGTH) {
           transformMatrix[0] = m[0]
           transformMatrix[1] = m[1]
           transformMatrix[2] = m[2]
@@ -113,8 +143,9 @@ function resolveAndCacheTransforms(
     width,
     height
   )
+  // Keep the array identity so inheritance can share the resolved matrix.
   transforms.splice(0, transforms.length, ...resolved)
-  return transforms as unknown as number[]
+  return transforms as number[]
 }
 
 export default function transform(

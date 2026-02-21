@@ -61,12 +61,171 @@ function parsePNG(buf: ArrayBuffer) {
 import { createLRU, parseViewBox } from '../utils.js'
 
 type ResolvedImageData = [string, number?, number?] | readonly []
-export const cache = createLRU<ResolvedImageData>(100)
-export const inflightRequests = new Map<string, Promise<ResolvedImageData>>()
+
+export class ImageResolver {
+  readonly cache = createLRU<ResolvedImageData>(100)
+  readonly inflightRequests = new Map<string, Promise<ResolvedImageData>>()
+
+  reset() {
+    this.cache.clear()
+    this.inflightRequests.clear()
+  }
+
+  async resolve(src: string | ArrayBuffer): Promise<ResolvedImageData> {
+    if (!src) {
+      throw new Error('Image source is not provided.')
+    }
+
+    // ArrayBuffer
+    if (typeof src === 'object') {
+      const [newSrc, imageSize] = arrayBufferToDataUri(src)
+      return [newSrc, ...imageSize] as ResolvedImageData
+    }
+
+    if (
+      (src.startsWith('"') && src.endsWith('"')) ||
+      (src.startsWith("'") && src.endsWith("'"))
+    ) {
+      src = src.slice(1, -1)
+    }
+
+    // Throw error if the image source is not an absolute URL in server environment
+    // Should be after slicing quotes to avoid throwing error too early
+    if (typeof window === 'undefined') {
+      if (!src.startsWith('http') && !src.startsWith('data:')) {
+        throw new Error(`Image source must be an absolute URL: ${src}`)
+      }
+    }
+
+    if (src.startsWith('data:')) {
+      src = normalizeDataUriSource(src)
+
+      let decodedURI: { imageType; encodingType; dataString }
+
+      try {
+        decodedURI =
+          /data:(?<imageType>[a-z/+]+)(;[^;=]+=[^;=]+)*?(;(?<encodingType>[^;,]+))?,(?<dataString>.*)/g.exec(
+            src
+          ).groups as typeof decodedURI
+      } catch (err) {
+        console.warn('Image data URI resolved without size:' + src)
+        return [src]
+      }
+
+      const { imageType, encodingType, dataString } = decodedURI
+      if (imageType === SVG) {
+        try {
+          const utf8Src =
+            encodingType === 'base64'
+              ? atob(dataString)
+              : decodeURIComponent(dataString.replace(/ /g, '%20'))
+
+          // Avoid passing malformed SVG payloads downstream to resvg, which can
+          // panic on invalid XML inputs.
+          if (!/<\/svg\s*>/i.test(utf8Src)) {
+            throw new Error('Malformed SVG data URI')
+          }
+
+          const base64Src =
+            encodingType === 'base64'
+              ? src
+              : `data:image/svg+xml;base64,${btoa(utf8Src)}`
+          const imageSize = parseSvgImageSize(src, utf8Src)
+          this.cache.set(src, [base64Src, ...imageSize])
+          return [base64Src, ...imageSize]
+        } catch (err) {
+          console.warn(`Image data URI resolved without size:${src}`)
+          this.cache.set(src, [])
+          return []
+        }
+      } else if (encodingType === 'base64') {
+        let imageSize: [number, number]
+        const data = base64ToArrayBuffer(dataString)
+        switch (imageType) {
+          case PNG:
+          case APNG:
+            imageSize = parsePNG(data)
+            break
+          case GIF:
+            imageSize = parseGIF(data)
+            break
+          case JPEG:
+            imageSize = parseJPEG(data)
+            break
+        }
+        this.cache.set(src, [src, ...imageSize])
+        return [src, ...imageSize]
+      } else {
+        console.warn('Image data URI resolved without size:' + src)
+        this.cache.set(src, [src])
+        return [src]
+      }
+    }
+
+    if (!globalThis.fetch) {
+      throw new Error('`fetch` is required to be polyfilled to load images.')
+    }
+
+    if (this.inflightRequests.has(src)) {
+      return this.inflightRequests.get(src)!
+    }
+    const cached = this.cache.get(src)
+    if (cached) {
+      return cached
+    }
+
+    const url = src
+    const promise = fetch(url)
+      .then((res): Promise<string | ArrayBuffer> => {
+        const type = res.headers.get('content-type')
+
+        // Handle SVG specially
+        if (type === 'image/svg+xml' || type === 'application/svg+xml') {
+          return res.text()
+        }
+
+        return res.arrayBuffer()
+      })
+      .then((data) => {
+        if (typeof data === 'string') {
+          try {
+            const newSrc = `data:image/svg+xml;base64,${btoa(data)}`
+            // Parse the SVG image size
+            const imageSize = parseSvgImageSize(url, data)
+            return [newSrc, ...imageSize] as ResolvedImageData
+          } catch (e) {
+            throw new Error(`Failed to parse SVG image: ${e.message}`)
+          }
+        }
+
+        const [newSrc, imageSize] = arrayBufferToDataUri(data)
+        return [newSrc, ...imageSize] as ResolvedImageData
+      })
+      .then((result) => {
+        this.cache.set(url, result)
+        return result
+      })
+      .catch((err) => {
+        console.error(`Can't load image ${url}: ` + err.message)
+        this.cache.set(url, [])
+        return [] as const
+      })
+      .finally(() => {
+        this.inflightRequests.delete(url)
+      })
+
+    this.inflightRequests.set(url, promise)
+    return promise
+  }
+}
+
+const defaultImageResolver = new ImageResolver()
+
+export const cache = defaultImageResolver.cache
+export const inflightRequests = defaultImageResolver.inflightRequests
 
 export function resetImageResolutionState() {
-  cache.clear()
-  inflightRequests.clear()
+  defaultImageResolver.reset()
 }
 
 function normalizeDataUriSource(src: string): string {
@@ -163,150 +322,7 @@ function arrayBufferToDataUri(data: ArrayBuffer) {
 export async function resolveImageData(
   src: string | ArrayBuffer
 ): Promise<ResolvedImageData> {
-  if (!src) {
-    throw new Error('Image source is not provided.')
-  }
-
-  // ArrayBuffer
-  if (typeof src === 'object') {
-    const [newSrc, imageSize] = arrayBufferToDataUri(src)
-    return [newSrc, ...imageSize] as ResolvedImageData
-  }
-
-  if (
-    (src.startsWith('"') && src.endsWith('"')) ||
-    (src.startsWith("'") && src.endsWith("'"))
-  ) {
-    src = src.slice(1, -1)
-  }
-
-  // Throw error if the image source is not an absolute URL in server environment
-  // Should be after slicing quotes to avoid throwing error too early
-  if (typeof window === 'undefined') {
-    if (!src.startsWith('http') && !src.startsWith('data:')) {
-      throw new Error(`Image source must be an absolute URL: ${src}`)
-    }
-  }
-
-  if (src.startsWith('data:')) {
-    src = normalizeDataUriSource(src)
-
-    let decodedURI: { imageType; encodingType; dataString }
-
-    try {
-      decodedURI =
-        /data:(?<imageType>[a-z/+]+)(;[^;=]+=[^;=]+)*?(;(?<encodingType>[^;,]+))?,(?<dataString>.*)/g.exec(
-          src
-        ).groups as typeof decodedURI
-    } catch (err) {
-      console.warn('Image data URI resolved without size:' + src)
-      return [src]
-    }
-
-    const { imageType, encodingType, dataString } = decodedURI
-    if (imageType === SVG) {
-      try {
-        const utf8Src =
-          encodingType === 'base64'
-            ? atob(dataString)
-            : decodeURIComponent(dataString.replace(/ /g, '%20'))
-
-        // Avoid passing malformed SVG payloads downstream to resvg, which can
-        // panic on invalid XML inputs.
-        if (!/<\/svg\s*>/i.test(utf8Src)) {
-          throw new Error('Malformed SVG data URI')
-        }
-
-        const base64Src =
-          encodingType === 'base64'
-            ? src
-            : `data:image/svg+xml;base64,${btoa(utf8Src)}`
-        const imageSize = parseSvgImageSize(src, utf8Src)
-        cache.set(src, [base64Src, ...imageSize])
-        return [base64Src, ...imageSize]
-      } catch (err) {
-        console.warn(`Image data URI resolved without size:${src}`)
-        cache.set(src, [])
-        return []
-      }
-    } else if (encodingType === 'base64') {
-      let imageSize: [number, number]
-      const data = base64ToArrayBuffer(dataString)
-      switch (imageType) {
-        case PNG:
-        case APNG:
-          imageSize = parsePNG(data)
-          break
-        case GIF:
-          imageSize = parseGIF(data)
-          break
-        case JPEG:
-          imageSize = parseJPEG(data)
-          break
-      }
-      cache.set(src, [src, ...imageSize])
-      return [src, ...imageSize]
-    } else {
-      console.warn('Image data URI resolved without size:' + src)
-      cache.set(src, [src])
-      return [src]
-    }
-  }
-
-  if (!globalThis.fetch) {
-    throw new Error('`fetch` is required to be polyfilled to load images.')
-  }
-
-  if (inflightRequests.has(src)) {
-    return inflightRequests.get(src)!
-  }
-  const cached = cache.get(src)
-  if (cached) {
-    return cached
-  }
-
-  const url = src
-  const promise = fetch(url)
-    .then((res): Promise<string | ArrayBuffer> => {
-      const type = res.headers.get('content-type')
-
-      // Handle SVG specially
-      if (type === 'image/svg+xml' || type === 'application/svg+xml') {
-        return res.text()
-      }
-
-      return res.arrayBuffer()
-    })
-    .then((data) => {
-      if (typeof data === 'string') {
-        try {
-          const newSrc = `data:image/svg+xml;base64,${btoa(data)}`
-          // Parse the SVG image size
-          const imageSize = parseSvgImageSize(url, data)
-          return [newSrc, ...imageSize] as ResolvedImageData
-        } catch (e) {
-          throw new Error(`Failed to parse SVG image: ${e.message}`)
-        }
-      }
-
-      const [newSrc, imageSize] = arrayBufferToDataUri(data)
-      return [newSrc, ...imageSize] as ResolvedImageData
-    })
-    .then((result) => {
-      cache.set(url, result)
-      return result
-    })
-    .catch((err) => {
-      console.error(`Can't load image ${url}: ` + err.message)
-      cache.set(url, [])
-      return [] as const
-    })
-    .finally(() => {
-      inflightRequests.delete(url)
-    })
-
-  inflightRequests.set(url, promise)
-  return promise
+  return defaultImageResolver.resolve(src)
 }
 
 /**

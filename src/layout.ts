@@ -21,7 +21,7 @@ import {
 import computeStyle from './handler/compute.js'
 import FontLoader from './font.js'
 import buildTextNodes from './text/index.js'
-import type { TransformInput } from './builder/transform.js'
+import { isTransformInput, type TransformInput } from './builder/transform.js'
 import rect, { type BlendPrimitive } from './builder/rect.js'
 import { Locale, normalizeLocale } from './language.js'
 import { SerializedStyle } from './handler/expand.js'
@@ -739,7 +739,11 @@ export default async function* layout(
   // Generate the rendered markup for the current node.
   const parentBackgroundColor = inheritedStyle._parentBackgroundColor
   const parentLayout = parent.getComputedLayout()
-  const parentTransform = inheritedStyle.transform as TransformInput | undefined
+  const parentTransform: TransformInput | undefined = isTransformInput(
+    inheritedStyle.transform
+  )
+    ? inheritedStyle.transform
+    : undefined
 
   if (type === 'img') {
     const src = computedStyle.__src

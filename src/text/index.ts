@@ -14,7 +14,7 @@ import {
 } from '../utils.js'
 import { getYoga, TYoga, YogaNode } from '../yoga.js'
 import buildText, { container } from '../builder/text.js'
-import type { TransformInput } from '../builder/transform.js'
+import { isTransformInput, type TransformInput } from '../builder/transform.js'
 import { buildDropShadow } from '../builder/shadow.js'
 import buildDecoration from '../builder/text-decoration.js'
 import type { GlyphBox } from '../font.js'
@@ -683,7 +683,9 @@ export default async function* buildTextNodes(
       width: containerWidth,
       height: containerHeight,
       isInheritingTransform,
-      parentTransform: inheritedStyle.transform as TransformInput | undefined,
+      parentTransform: isTransformInput(inheritedStyle.transform)
+        ? inheritedStyle.transform
+        : undefined,
       parentTransformSize: {
         width: parent.getComputedWidth(),
         height: parent.getComputedHeight(),

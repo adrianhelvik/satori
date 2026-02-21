@@ -1,6 +1,10 @@
 import escapeHTML from 'escape-html'
 import type { ParsedTransformOrigin } from '../transform-origin.js'
-import transform, { type TransformInput } from './transform.js'
+import type { SerializedStyle } from '../handler/expand.js'
+import transform, {
+  isTransformInput,
+  type TransformInput,
+} from './transform.js'
 import { buildXMLString } from '../utils.js'
 
 export function container(
@@ -21,12 +25,12 @@ export function container(
     parentTransform?: TransformInput
     parentTransformSize?: { width: number; height: number }
   },
-  style: Record<string, number | string | object>
+  style: SerializedStyle
 ) {
   let matrix = ''
   let opacity = 1
 
-  if (style.transform) {
+  if (isTransformInput(style.transform)) {
     matrix = transform(
       {
         left,
@@ -34,7 +38,7 @@ export function container(
         width,
         height,
       },
-      style.transform as unknown as number[],
+      style.transform,
       isInheritingTransform,
       style.transformOrigin as ParsedTransformOrigin | undefined,
       parentTransform,
@@ -81,7 +85,7 @@ export default function buildText(
     shape?: boolean
     decorationShape?: string
   },
-  style: Record<string, number | string | object>
+  style: SerializedStyle
 ) {
   const textStyle = style as Record<string, string | number | undefined>
   const serializedStyle = [

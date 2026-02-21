@@ -12,6 +12,11 @@ import CssDimension from '../vendor/parse-css-dimension/index.js'
 import parseTransformOrigin, {
   ParsedTransformOrigin,
 } from '../transform-origin.js'
+import type {
+  TransformInput,
+  TransformDescriptor,
+} from '../builder/transform.js'
+import { isTransformInput } from '../builder/transform.js'
 import { isString, lengthToNumber, v, splitEffects } from '../utils.js'
 import { MaskProperty, parseMask } from '../parser/mask.js'
 import { FontWeight, FontStyle } from '../font.js'
@@ -944,7 +949,7 @@ function mergeBackgroundPositionAxes(serializedStyle: SerializedStyle): void {
 type MainStyle = {
   color: string
   fontSize: number
-  transform: { [type: string]: string | number | number[] }[]
+  transform: TransformInput
   transformOrigin: ParsedTransformOrigin
   maskImage: MaskProperty[] | string
   opacity: number
@@ -1227,10 +1232,13 @@ export default function expand(
     delete serializedStyle.zoom
 
     if (isFinite(zoom) && zoom > 0 && zoom !== 1) {
-      const existingTransforms = Array.isArray(serializedStyle.transform)
-        ? (serializedStyle.transform as {
-            [type: string]: number | string
-          }[])
+      const existingTransforms = isTransformInput(serializedStyle.transform)
+        ? serializedStyle.transform.filter(
+            (entry): entry is TransformDescriptor =>
+              typeof entry === 'object' &&
+              entry !== null &&
+              !Array.isArray(entry)
+          )
         : []
       const hasExplicitTransform = existingTransforms.length > 0
 
@@ -1288,9 +1296,15 @@ export default function expand(
     }
 
     if (prop === 'transform') {
-      const transforms = value as any as { [type: string]: number | string }[]
-
-      for (const transform of transforms) {
+      if (!isTransformInput(value)) continue
+      for (const transform of value) {
+        if (
+          typeof transform !== 'object' ||
+          transform === null ||
+          Array.isArray(transform)
+        ) {
+          continue
+        }
         const type = Object.keys(transform)[0]
         const _v = transform[type]
 
