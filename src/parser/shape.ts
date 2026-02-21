@@ -8,6 +8,7 @@ const regexMap = {
   path: /path\((.+)\)/,
   polygon: /polygon\((.+)\)/,
   inset: /inset\((.+)\)/,
+  xywh: /xywh\((.+)\)/,
 }
 
 export function createShapeParser(
@@ -195,12 +196,74 @@ export function createShapeParser(
     }
   }
 
+  function parseXywh(str: string) {
+    const res = str.match(regexMap['xywh'])
+    if (!res) return null
+
+    const value = res[1].trim()
+    const [boxPart, roundPart = ''] = value.split(/\bround\b/i)
+    const tokens = boxPart.trim().split(/\s+/).filter(Boolean)
+    if (tokens.length !== 4) return null
+
+    const x =
+      lengthToNumber(
+        tokens[0],
+        inheritedStyle.fontSize as number,
+        width,
+        inheritedStyle,
+        true
+      ) ?? 0
+    const y =
+      lengthToNumber(
+        tokens[1],
+        inheritedStyle.fontSize as number,
+        height,
+        inheritedStyle,
+        true
+      ) ?? 0
+    const w =
+      lengthToNumber(
+        tokens[2],
+        inheritedStyle.fontSize as number,
+        width,
+        inheritedStyle,
+        true
+      ) ?? 0
+    const h =
+      lengthToNumber(
+        tokens[3],
+        inheritedStyle.fontSize as number,
+        height,
+        inheritedStyle,
+        true
+      ) ?? 0
+
+    if (!roundPart.trim()) {
+      return {
+        type: 'rect',
+        x,
+        y,
+        width: w,
+        height: h,
+      }
+    }
+
+    const radiusMap = getStylesForProperty('borderRadius', roundPart, true)
+    const d = buildBorderRadius(
+      { left: x, top: y, width: w, height: h },
+      { ...style, ...radiusMap }
+    )
+
+    return { type: 'path', d }
+  }
+
   return {
     parseCircle,
     parseEllipse,
     parsePath,
     parsePolygon,
     parseInset,
+    parseXywh,
   }
 }
 

@@ -47,6 +47,34 @@ describe('clipPath', () => {
     svgs.forEach((svg) => expect(toImage(svg)).toMatchImageSnapshot())
   })
 
+  it('should support xywh clip-path', async () => {
+    const svg = await satori(
+      <div
+        style={{
+          width: 100,
+          height: 100,
+          backgroundColor: '#eee',
+        }}
+      >
+        <div
+          style={{
+            width: 100,
+            height: 100,
+            backgroundColor: 'red',
+            clipPath: 'xywh(10px 12px 60px 44px round 8px)',
+          }}
+        />
+      </div>,
+      {
+        width: 100,
+        height: 100,
+        fonts,
+      }
+    )
+
+    expect(toImage(svg)).toMatchImageSnapshot()
+  })
+
   it('should make clip-path compatible with overflow', async () => {
     const svg = await satori(
       <div

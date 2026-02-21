@@ -14,7 +14,7 @@
 - `mask-image`, `mask-position`, `mask-size`, `mask-repeat`
 - `mask-origin`, `mask-clip`, `mask-type`, `mask-mode` (`alpha`, `luminance`, `match-source` approximations)
 - `image-rendering`, `image-orientation` (`image-rendering` is normalized to SVG-compatible values, e.g. `pixelated` → `optimizeSpeed`)
-- `clip-path`
+- `clip-path` (basic shapes: `circle`, `ellipse`, `polygon`, `inset`, `xywh`, and SVG `path(...)`)
 
 ## Missing properties
 
