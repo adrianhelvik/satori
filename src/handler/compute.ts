@@ -131,6 +131,17 @@ function shouldApplyAspectRatio(
   return true
 }
 
+function setAspectRatioIfAllowed(
+  node: YogaNode,
+  style: SerializedStyle,
+  Yoga: Awaited<ReturnType<typeof getYoga>>,
+  aspectRatio: number
+): void {
+  if (shouldApplyAspectRatio(node, style, Yoga)) {
+    node.setAspectRatio(aspectRatio)
+  }
+}
+
 export default async function compute(
   node: YogaNode,
   type: SatoriElement | string,
@@ -176,11 +187,6 @@ export default async function compute(
       }
     }
     const r = imageHeight / imageWidth
-    const applyIntrinsicAspectRatio = () => {
-      if (shouldApplyAspectRatio(node, style, Yoga)) {
-        node.setAspectRatio(1 / r)
-      }
-    }
 
     // Before calculating the missing width or height based on the image ratio,
     // we must subtract the padding and border due to how box model works.
@@ -216,7 +222,7 @@ export default async function compute(
         contentBoxHeight = imageHeight
       } else {
         contentBoxWidth = '100%'
-        applyIntrinsicAspectRatio()
+        setAspectRatioIfAllowed(node, style, Yoga, 1 / r)
       }
     } else {
       // If only one sisde is not defined, we can calculate the other one.
@@ -226,7 +232,7 @@ export default async function compute(
         } else {
           // If it uses a relative value (e.g. 50%), we can rely on aspect ratio.
           // Note: this doesn't work well if there are paddings or borders.
-          applyIntrinsicAspectRatio()
+          setAspectRatioIfAllowed(node, style, Yoga, 1 / r)
         }
       } else if (contentBoxHeight === undefined) {
         if (typeof contentBoxWidth === 'number') {
@@ -234,7 +240,7 @@ export default async function compute(
         } else {
           // If it uses a relative value (e.g. 50%), we can rely on aspect ratio.
           // Note: this doesn't work well if there are paddings or borders.
-          applyIntrinsicAspectRatio()
+          setAspectRatioIfAllowed(node, style, Yoga, 1 / r)
         }
       }
     }
@@ -406,11 +412,8 @@ export default async function compute(
   )
   if (typeof style.aspectRatio !== 'undefined') {
     const ar = parseAspectRatioValue(style.aspectRatio)
-    if (
-      typeof ar !== 'undefined' &&
-      shouldApplyAspectRatio(node, style, Yoga)
-    ) {
-      node.setAspectRatio(ar)
+    if (typeof ar !== 'undefined') {
+      setAspectRatioIfAllowed(node, style, Yoga, ar)
     }
   }
 
