@@ -18,7 +18,6 @@ describe('style inheritance sets', () => {
       .sort()
 
     expect(runtimeOnly).toEqual([
-      '_inheritedBackgroundClipTextHasBackground',
       '_inheritedBackgroundClipTextPath',
       '_inheritedClipPathId',
       '_inheritedMaskId',

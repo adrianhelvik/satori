@@ -22,5 +22,4 @@ export const RUNTIME_INHERITED_PROPS: Set<string> = new Set([
   '_inheritedClipPathId',
   '_inheritedMaskId',
   '_inheritedBackgroundClipTextPath',
-  '_inheritedBackgroundClipTextHasBackground',
 ])

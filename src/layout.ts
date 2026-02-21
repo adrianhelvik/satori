@@ -358,11 +358,6 @@ export default async function* layout(
     > = { value: '' }
     newInheritableStyle._inheritedBackgroundClipTextPath = mutateRefValue
     computedStyle._inheritedBackgroundClipTextPath = mutateRefValue
-
-    if (computedStyle.backgroundImage) {
-      newInheritableStyle._inheritedBackgroundClipTextHasBackground = 'true'
-      computedStyle._inheritedBackgroundClipTextHasBackground = 'true'
-    }
   }
 
   const shouldApplyListMarker =

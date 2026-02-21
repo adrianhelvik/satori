@@ -72,7 +72,6 @@ export type InternalStyle = {
   _inheritedClipPathId: string
   _inheritedMaskId: string
   _inheritedBackgroundClipTextPath: BackgroundClipPathRef
-  _inheritedBackgroundClipTextHasBackground: 'true'
   _parentBackgroundColor: string
   _textUnderlineOffsetFromFont: number
   _textDecorationThicknessFromFont: number
