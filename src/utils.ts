@@ -179,8 +179,63 @@ export function v(
   return value
 }
 
-let wordSegmenter
-let graphemeSegmenter
+type CachedSegmenters = {
+  word: Intl.Segmenter
+  grapheme: Intl.Segmenter
+}
+
+const segmenterCache = new Map<string, CachedSegmenters>()
+
+function getSegmenterLocaleKey(locale?: string) {
+  const normalizedLocale = normalizeSegmenterLocale(locale)
+  return normalizedLocale ? normalizedLocale.toLowerCase() : '__default__'
+}
+
+function normalizeSegmenterLocale(locale?: string) {
+  if (typeof locale !== 'string') return undefined
+  const normalized = locale.trim()
+  if (!normalized) return undefined
+  const firstLocale = normalized.split('|')[0].trim()
+  return firstLocale || undefined
+}
+
+function getSegmenters(locale?: string): CachedSegmenters {
+  if (!(typeof Intl !== 'undefined' && 'Segmenter' in Intl)) {
+    // https://caniuse.com/mdn-javascript_builtins_intl_segments
+    throw new Error(
+      'Intl.Segmenter does not exist, please use import a polyfill.'
+    )
+  }
+
+  const localeKey = getSegmenterLocaleKey(locale)
+  const cached = segmenterCache.get(localeKey)
+  if (cached) return cached
+
+  const normalizedLocale = normalizeSegmenterLocale(locale)
+  let created: CachedSegmenters
+  try {
+    created = {
+      word: new Intl.Segmenter(normalizedLocale, { granularity: 'word' }),
+      grapheme: new Intl.Segmenter(normalizedLocale, {
+        granularity: 'grapheme',
+      }),
+    }
+  } catch (error) {
+    if (normalizedLocale && error instanceof RangeError) {
+      created = {
+        word: new Intl.Segmenter(undefined, { granularity: 'word' }),
+        grapheme: new Intl.Segmenter(undefined, {
+          granularity: 'grapheme',
+        }),
+      }
+    } else {
+      throw error
+    }
+  }
+
+  segmenterCache.set(localeKey, created)
+  return created
+}
 
 // Implementation modified from
 // https://github.com/niklasvh/html2canvas/blob/6521a487d78172f7179f7c973c1a3af40eb92009/src/css/layout/text.ts
@@ -194,19 +249,8 @@ export function segment(
   granularity: 'word' | 'grapheme',
   locale?: string
 ): string[] {
-  if (!wordSegmenter || !graphemeSegmenter) {
-    if (!(typeof Intl !== 'undefined' && 'Segmenter' in Intl)) {
-      // https://caniuse.com/mdn-javascript_builtins_intl_segments
-      throw new Error(
-        'Intl.Segmenter does not exist, please use import a polyfill.'
-      )
-    }
-
-    wordSegmenter = new Intl.Segmenter(locale, { granularity: 'word' })
-    graphemeSegmenter = new Intl.Segmenter(locale, {
-      granularity: 'grapheme',
-    })
-  }
+  const { word: wordSegmenter, grapheme: graphemeSegmenter } =
+    getSegmenters(locale)
 
   if (granularity === 'grapheme') {
     return [...graphemeSegmenter.segment(content)].map((seg) => seg.segment)
