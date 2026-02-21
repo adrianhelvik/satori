@@ -67,7 +67,10 @@ export interface LayoutContext {
   graphemeImages?: Record<string, string>
   canLoadAdditionalAssets: boolean
   locale?: Locale
-  getTwStyles: (tw: string, style: any) => any
+  getTwStyles: (
+    tw: string,
+    style: Record<string, unknown> | undefined
+  ) => Record<string, unknown>
   onNodeDetected?: (node: SatoriNode) => void
   listItemContext?: ListItemContext
   childRenderMeta?: ChildRenderMeta

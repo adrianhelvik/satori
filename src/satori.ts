@@ -8,7 +8,7 @@ import svg from './builder/svg.js'
 import { getYoga, TYoga } from './yoga.js'
 import { detectLanguageCode } from './language.js'
 import type { LangCode } from './language.js'
-import getTw from './handler/tailwind.js'
+import { createTwStyleResolver } from './handler/tailwind.js'
 import { preProcessNode } from './handler/preprocess.js'
 import { resetImageResolutionState } from './handler/image.js'
 import { segment } from './utils.js'
@@ -81,6 +81,12 @@ export default async function satori(
   root.setOverflow(Yoga.OVERFLOW_HIDDEN)
 
   const graphemeImages = { ...options.graphemeImages }
+  const getTwStyles = createTwStyleResolver({
+    width: definedWidth,
+    height: definedHeight,
+    config: options.tailwindConfig,
+  })
+
   // Some Chinese characters have different glyphs in Chinese and
   // Japanese, but their Unicode is the same. If the user needs to display
   // the Chinese and Japanese characters simultaneously correctly, the user
@@ -122,25 +128,7 @@ export default async function satori(
     graphemeImages,
     canLoadAdditionalAssets: !!options.loadAdditionalAsset,
     onNodeDetected: options.onNodeDetected,
-    getTwStyles: (tw, style) => {
-      const twToStyles = getTw({
-        width: definedWidth,
-        height: definedHeight,
-        config: options.tailwindConfig,
-      })
-      const twStyles = { ...twToStyles([tw] as any) }
-      if (typeof twStyles.lineHeight === 'number') {
-        twStyles.lineHeight =
-          twStyles.lineHeight / (+twStyles.fontSize || style.fontSize || 16)
-      }
-      if (twStyles.shadowColor && twStyles.boxShadow) {
-        twStyles.boxShadow = (twStyles.boxShadow as string).replace(
-          /rgba?\([^)]+\)/,
-          twStyles.shadowColor as string
-        )
-      }
-      return twStyles
-    },
+    getTwStyles,
   })
   const layoutSession = createLayoutSession(handler)
 

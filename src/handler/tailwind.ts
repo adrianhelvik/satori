@@ -3,6 +3,9 @@ import type { TwConfig } from 'twrnc'
 import * as twrnc from 'twrnc/create'
 
 type TwPlugin = TwConfig['plugins'][number]
+type TwStyle = Record<string, unknown>
+type TwConverter = ReturnType<typeof createTw>
+type TwApply = (tokens: string[]) => TwStyle
 
 const defaultShadows: TwPlugin = {
   handler: ({ addUtilities }) => {
@@ -47,19 +50,86 @@ function createTw(config?: TwConfig) {
   )
 }
 
-let tw
+const twByConfig = new WeakMap<TwConfig, TwConverter>()
+let defaultTw: TwConverter | undefined
+
+function resolveTwConverter(config?: TwConfig): TwConverter {
+  if (config) {
+    const cached = twByConfig.get(config)
+    if (cached) return cached
+    const created = createTw(config)
+    twByConfig.set(config, created)
+    return created
+  }
+
+  if (!defaultTw) {
+    defaultTw = createTw()
+  }
+  return defaultTw
+}
+
+function normalizeTwStyles(
+  twStyles: TwStyle,
+  style: TwStyle | undefined
+): TwStyle {
+  const normalized = { ...twStyles }
+
+  if (typeof normalized.lineHeight === 'number') {
+    const inheritedFontSize =
+      typeof style?.fontSize === 'number' ? style.fontSize : 16
+    const twFontSize =
+      typeof normalized.fontSize === 'number' ? normalized.fontSize : undefined
+    const baseFontSize = twFontSize || inheritedFontSize || 16
+    normalized.lineHeight = normalized.lineHeight / baseFontSize
+  }
+
+  if (
+    typeof normalized.shadowColor === 'string' &&
+    typeof normalized.boxShadow === 'string'
+  ) {
+    normalized.boxShadow = normalized.boxShadow.replace(
+      /rgba?\([^)]+\)/,
+      normalized.shadowColor
+    )
+  }
+
+  return normalized
+}
+
+export function createTwStyleResolver({
+  width,
+  height,
+  config,
+}: {
+  width?: number
+  height?: number
+  config?: TwConfig
+}) {
+  const tw = resolveTwConverter(config)
+  tw.setWindowDimensions({
+    width: Number.isFinite(width) ? Number(width) : 0,
+    height: Number.isFinite(height) ? Number(height) : 0,
+  })
+
+  return (twClassName: string, style: TwStyle | undefined): TwStyle => {
+    const applyTw = tw as unknown as TwApply
+    return normalizeTwStyles({ ...applyTw([twClassName]) }, style)
+  }
+}
+
 export default function getTw({
   width,
   height,
   config,
 }: {
-  width: number
-  height: number
+  width?: number
+  height?: number
   config?: TwConfig
 }) {
-  if (!tw) {
-    tw = createTw(config)
-  }
-  tw.setWindowDimensions({ width: +width, height: +height })
+  const tw = resolveTwConverter(config)
+  tw.setWindowDimensions({
+    width: Number.isFinite(width) ? Number(width) : 0,
+    height: Number.isFinite(height) ? Number(height) : 0,
+  })
   return tw
 }
