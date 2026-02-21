@@ -301,6 +301,41 @@ describe('list-style', () => {
     expect(toImage(svg, 240)).toMatchImageSnapshot()
   })
 
+  it('should lay out list-style-image markers with non-zero size', async () => {
+    const nodes = []
+    await satori(
+      <ul
+        style={{
+          width: 240,
+          height: 140,
+          backgroundColor: 'white',
+          fontSize: 18,
+          listStyleImage: `url(${PIXEL_ART_2X2_PNG})`,
+          margin: 0,
+        }}
+      >
+        <li>Image marker one</li>
+        <li>Image marker two</li>
+      </ul>,
+      {
+        width: 240,
+        height: 140,
+        fonts,
+        onNodeDetected: (node) => nodes.push(node),
+      }
+    )
+
+    const markerImageNodes = nodes.filter(
+      (node) =>
+        node.type === 'img' &&
+        node.props?.src === PIXEL_ART_2X2_PNG &&
+        node.width > 0 &&
+        node.height > 0
+    )
+
+    expect(markerImageNodes.length).toBeGreaterThan(0)
+  })
+
   it('should support quoted string listStyleType markers', async () => {
     const svg = await satori(
       <ul

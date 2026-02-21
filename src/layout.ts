@@ -316,10 +316,11 @@ function buildListItemChildren(
           { key: '__satori-list-marker', style: markerWrapper },
           createElement('img', {
             src: marker.image,
-            width: markerSize,
-            height: markerSize,
             style: {
               display: 'flex',
+              width: markerSize,
+              height: markerSize,
+              flexShrink: 0,
               objectFit: 'contain',
               marginTop: Math.max(0, Math.round(fontSize * 0.1)),
             },
