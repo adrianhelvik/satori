@@ -562,6 +562,46 @@ describe('list-style', () => {
       expect(toImage(svg, 260)).toMatchImageSnapshot()
     })
 
+    it('should apply counter-reset for ordered markers on ul', async () => {
+      const nodes = []
+      const svg = await satori(
+        <ul
+          style={{
+            width: 260,
+            height: 140,
+            backgroundColor: 'white',
+            fontSize: 18,
+            listStyleType: 'decimal',
+            counterReset: 'list-item 4',
+            paddingLeft: 40,
+            margin: 0,
+          }}
+        >
+          <li>First item</li>
+          <li>Second item</li>
+          <li>Third item</li>
+        </ul>,
+        {
+          width: 260,
+          height: 140,
+          fonts,
+          embedFont: false,
+          onNodeDetected: (node) => nodes.push(node),
+        }
+      )
+
+      const markerText = nodes
+        .filter(
+          (node) =>
+            node.key === '__satori-list-marker' &&
+            typeof node.textContent === 'string'
+        )
+        .map((node) => node.textContent)
+
+      expect(markerText).toEqual(['5.', '6.', '7.'])
+      expect(toImage(svg, 260)).toMatchImageSnapshot()
+    })
+
     it('should support counter-increment list-item overrides', async () => {
       const nodes = []
       await satori(

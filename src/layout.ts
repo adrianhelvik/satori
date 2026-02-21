@@ -584,7 +584,7 @@ export default async function* layout(
         listItemContext.styleImage
     )
     let markerIndex = listItemContext.index
-    if (listItemContext.listType === 'ol' && listItemContext.orderedCounter) {
+    if (listItemContext.orderedCounter) {
       applyListItemCounterStyles(
         listItemContext.orderedCounter,
         computedStyle,
@@ -653,8 +653,7 @@ export default async function* layout(
   let orderedListCounter: OrderedListCounterState | undefined
   const hasOrderedListMarkers =
     type === 'ol' ||
-    (type !== 'ul' &&
-      typeof listStyleType === 'string' &&
+    (typeof listStyleType === 'string' &&
       isOrderedListMarkerType(listStyleType))
   if (hasOrderedListMarkers) {
     orderedListCounter = { value: 0 }

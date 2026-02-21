@@ -22,9 +22,9 @@ Satori does not support table layout or multi-column layout. List markers are su
 | `list-style-type` | **Supported (approx.)** | Supports common marker styles (`disc`, `circle`, `square`, `decimal`, `lower-hexadecimal`, alpha, roman), `lower-greek`, disclosure markers (`disclosure-open` / `disclosure-closed`), and quoted string markers (`"→"`). |
 | `list-style-position` | **Supported (approx.)** | Supports `inside` and `outside` marker placement. |
 | `list-style-image` | **Supported (approx.)** | Supports `url(...)` marker images. |
-| `counter-reset` | **Supported (partial)** | Supports `list-item` counters for ordered-list marker numbering (`ol > li`) with integer values. General named counters and `counter()`/`counters()` generated content remain unsupported. |
-| `counter-increment` | **Supported (partial)** | Supports `list-item` counter increments on ordered list items, including integer step values and `none`. |
-| `counter-set` | **Supported (partial)** | Supports assigning `list-item` counter values for ordered list marker numbering. |
+| `counter-reset` | **Supported (partial)** | Supports `list-item` counters for ordered marker numbering on list items (`<li>` and `display: list-item`) with integer values. General named counters and `counter()`/`counters()` generated content remain unsupported. |
+| `counter-increment` | **Supported (partial)** | Supports `list-item` counter increments for ordered marker styles on list items, including integer step values and `none`. |
+| `counter-set` | **Supported (partial)** | Supports assigning `list-item` counter values for ordered marker numbering. |
 
 > Marker rendering is implemented as prepended list-item content. `list-style-position: outside` markers are rendered out of flow (absolute marker box) so content alignment better matches browser behavior. Text marker width uses font metric measurement, while marker gap/icon sizing remain SVG-friendly approximations. CSS counters are currently limited to `list-item` marker numbering in ordered lists.
 
