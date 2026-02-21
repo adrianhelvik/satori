@@ -36,7 +36,7 @@ Satori renders static SVG — there is no scrolling runtime, input handling, or 
 | `pointer-events` | **Supported (SVG pass-through)** | Forwarded to generated SVG nodes (`pointer-events` style/attribute). This is meaningful when consuming raw SVG interactively; rasterized outputs are visually unchanged. |
 | `user-select` | **Supported (SVG pass-through)** | Forwarded as `user-select` CSS on generated SVG text/shape nodes. Useful for interactive raw SVG embedding; rasterized outputs are visually unchanged. |
 | `resize` | N/A | No resize handles |
-| `touch-action` | N/A | No touch input |
+| `touch-action` | **Supported (SVG pass-through)** | Forwarded as `touch-action` CSS on generated SVG nodes. Useful when embedding raw SVG in interactive touch contexts; rasterized outputs are visually unchanged. |
 | `caret-color` | N/A | No text input |
 | `caret-shape` | N/A | No text input |
 | `field-sizing` | N/A | No form fields |

@@ -32,6 +32,7 @@ const list = new Set([
   'tabSize',
   'visibility',
   'cursor',
+  'touchAction',
   'userSelect',
   'wordSpacing',
   'textIndent',

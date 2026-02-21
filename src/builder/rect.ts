@@ -1800,6 +1800,7 @@ export default async function rect(
     isolation && isolation !== 'auto' ? `isolation:${isolation}` : '',
     style.pointerEvents ? `pointer-events:${style.pointerEvents}` : '',
     style.cursor ? `cursor:${style.cursor}` : '',
+    style.touchAction ? `touch-action:${style.touchAction}` : '',
     style.userSelect ? `user-select:${style.userSelect}` : '',
   ]
     .filter(Boolean)

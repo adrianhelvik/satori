@@ -15,6 +15,7 @@ describe('interaction pass-through', () => {
           height: 100,
           backgroundColor: 'red',
           cursor: 'crosshair',
+          touchAction: 'none',
           userSelect: 'none',
         }}
       />,
@@ -26,6 +27,7 @@ describe('interaction pass-through', () => {
     )
 
     expect(svg).toContain('cursor:crosshair')
+    expect(svg).toContain('touch-action:none')
     expect(svg).toContain('user-select:none')
   })
 
@@ -38,6 +40,7 @@ describe('interaction pass-through', () => {
           color: 'black',
           fontSize: 20,
           cursor: 'pointer',
+          touchAction: 'pan-x',
           userSelect: 'none',
         }}
       >
@@ -52,6 +55,7 @@ describe('interaction pass-through', () => {
     )
 
     expect(svg).toContain('cursor="pointer"')
+    expect(svg).toContain('touch-action:pan-x')
     expect(svg).toContain('user-select:none')
   })
 
@@ -64,6 +68,7 @@ describe('interaction pass-through', () => {
           color: 'black',
           fontSize: 20,
           cursor: 'move',
+          touchAction: 'manipulation',
           userSelect: 'none',
         }}
       >
@@ -77,6 +82,7 @@ describe('interaction pass-through', () => {
     )
 
     expect(svg).toMatch(/<path[^>]*cursor="move"/)
+    expect(svg).toContain('touch-action:manipulation')
     expect(svg).toContain('user-select:none')
   })
 })

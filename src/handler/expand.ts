@@ -522,6 +522,7 @@ function handleSpecialCase(
   if (name === 'textJustify') return { textJustify: value }
   if (name === 'visibility') return { visibility: value }
   if (name === 'cursor') return { cursor: String(value).trim() }
+  if (name === 'touchAction') return { touchAction: String(value).trim() }
   if (name === 'userSelect') return { userSelect: String(value).trim() }
 
   // mix-blend-mode, image-rendering: pass through to SVG attributes
@@ -918,6 +919,7 @@ type MainStyle = {
   textShadowColor: string[]
   textShadowRadius: number[]
   cursor: string
+  touchAction: string
   userSelect: string
   WebkitTextStrokeWidth: number
   WebkitTextStrokeColor: string
@@ -1019,6 +1021,7 @@ function getAllInitialStyle(): SerializedStyle {
     textIndent: 0,
     visibility: 'visible',
     cursor: 'auto',
+    touchAction: 'auto',
     userSelect: 'auto',
     opacity: 1,
     filter: 'none',

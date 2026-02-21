@@ -14,7 +14,7 @@ Satori supports ~80 CSS properties (mostly Flexbox layout, basic typography, bac
 | [visual.md](visual.md) | Visual & Decoration | backdrop-filter, non-uniform blend parity, mask-border/full mask parity |
 | [transforms-animations.md](transforms-animations.md) | Transforms & Animations | 3D transforms, transitions, animations, will-change |
 | [table-list-multicol.md](table-list-multicol.md) | Table, List & Multi-column | Table layout, CSS counters, multi-column |
-| [scroll-interaction.md](scroll-interaction.md) | Scroll & Interaction | Scroll-snap/runtime interaction features (with SVG pass-through for `cursor`/`pointer-events`/`user-select`) |
+| [scroll-interaction.md](scroll-interaction.md) | Scroll & Interaction | Scroll-snap/runtime interaction features (with SVG pass-through for `cursor`/`pointer-events`/`user-select`/`touch-action`) |
 | [logical-properties.md](logical-properties.md) | Logical Properties | Writing-mode-aware remapping (RTL/vertical), flow-relative behavior beyond ltr/horizontal |
 | [containment-misc.md](containment-misc.md) | Containment, Performance & Misc | Container queries, content-visibility, generated content |
 

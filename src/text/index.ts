@@ -1059,6 +1059,7 @@ export default async function* buildTextNodes(
   if (mergedPath) {
     const embeddedPathStyle = [
       cssFilter ? `filter:${cssFilter}` : '',
+      parentStyle.touchAction ? `touch-action:${parentStyle.touchAction}` : '',
       parentStyle.userSelect ? `user-select:${parentStyle.userSelect}` : '',
     ]
       .filter(Boolean)
