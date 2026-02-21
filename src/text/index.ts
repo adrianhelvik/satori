@@ -122,6 +122,7 @@ export default async function* buildTextNodes(
     letterSpacing,
     wordSpacing,
     textIndent,
+    hyphenateCharacter,
     fontKerning,
     _inheritedBackgroundClipTextPath,
     _inheritedBackgroundClipTextHasBackground,
@@ -228,6 +229,24 @@ export default async function* buildTextNodes(
   }
 
   const wordSpacingValue = typeof wordSpacing === 'number' ? wordSpacing : 0
+
+  function resolveHyphenateCharacter(): string {
+    if (!isString(hyphenateCharacter)) return '-'
+
+    const raw = hyphenateCharacter.trim()
+    if (!raw || raw.toLowerCase() === 'auto') return '-'
+    if (
+      raw.length >= 2 &&
+      ((raw[0] === '"' && raw[raw.length - 1] === '"') ||
+        (raw[0] === "'" && raw[raw.length - 1] === "'"))
+    ) {
+      return raw.slice(1, -1)
+    }
+
+    return raw
+  }
+
+  const discretionaryHyphenCharacter = resolveHyphenateCharacter()
 
   function resolveTextIndent(width: number): {
     width: number
@@ -477,11 +496,10 @@ export default async function* buildTextNodes(
         }
 
         if (willWrap && softHyphenBreaks[i]) {
-          const discretionaryHyphen = '-'
-          const hyphenWidth = measureText(discretionaryHyphen)
+          const hyphenWidth = measureText(discretionaryHyphenCharacter)
           if (hyphenWidth > 0) {
             const hyphenX = currentWidth
-            texts.push(discretionaryHyphen)
+            texts.push(discretionaryHyphenCharacter)
             wordPositionInLayout.push({
               y: height,
               x: hyphenX,
