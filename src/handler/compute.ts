@@ -18,6 +18,8 @@ import { getYoga, YogaNode } from '../yoga.js'
 import { resolveImageData } from './image.js'
 
 type SatoriElement = keyof typeof presets
+const TRANSPARENT_PIXEL_DATA_URI =
+  'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw=='
 
 function isAutoSize(value: unknown): boolean {
   return typeof value === 'undefined' || value === 'auto'
@@ -107,6 +109,12 @@ export default async function compute(
     let [resolvedSrc, imageWidth, imageHeight] = await resolveImageData(
       props.src
     )
+
+    // Keep rendering when image fetch/parsing fails. Browsers still layout the
+    // <img> box in this case, while the bitmap itself is empty/broken.
+    if (typeof resolvedSrc !== 'string') {
+      resolvedSrc = TRANSPARENT_PIXEL_DATA_URI
+    }
 
     // Cannot parse the image size (e.g. base64 data URI).
     if (imageWidth === undefined && imageHeight === undefined) {
