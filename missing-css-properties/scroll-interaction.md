@@ -33,7 +33,7 @@ Satori renders static SVG — there is no scrolling, user interaction, or dynami
 | Property | Feasibility | Notes |
 |----------|-------------|-------|
 | `cursor` | N/A | No pointer in static rendering |
-| `pointer-events` | N/A | Could theoretically set the SVG `pointer-events` attribute, but Satori output is typically rasterized |
+| `pointer-events` | **Supported (SVG pass-through)** | Forwarded to generated SVG nodes (`pointer-events` style/attribute). This is meaningful when consuming raw SVG interactively; rasterized outputs are visually unchanged. |
 | `user-select` | N/A | No text selection |
 | `resize` | N/A | No resize handles |
 | `touch-action` | N/A | No touch input |
