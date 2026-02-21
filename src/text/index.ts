@@ -233,6 +233,12 @@ export default async function* buildTextNodes(
     eachLine: boolean
     hanging: boolean
   } {
+    const noIndent = {
+      width: 0,
+      eachLine: false,
+      hanging: false,
+    }
+
     if (typeof textIndent === 'number') {
       return {
         width: textIndent,
@@ -241,37 +247,44 @@ export default async function* buildTextNodes(
       }
     }
     if (!isString(textIndent)) {
-      return {
-        width: 0,
-        eachLine: false,
-        hanging: false,
-      }
+      return noIndent
     }
 
     const tokens = textIndent.trim().split(/\s+/).filter(Boolean)
+    let indentToken: string | null = null
+    let eachLine = false
+    let hanging = false
 
-    // Chromium currently ignores declarations that include keyword modifiers
-    // like `each-line` / `hanging` for text-indent.
-    if (tokens.length !== 1) {
-      return {
-        width: 0,
-        eachLine: false,
-        hanging: false,
+    for (const token of tokens) {
+      const normalizedToken = token.toLowerCase()
+      if (normalizedToken === 'each-line') {
+        if (eachLine) return noIndent
+        eachLine = true
+        continue
       }
+      if (normalizedToken === 'hanging') {
+        if (hanging) return noIndent
+        hanging = true
+        continue
+      }
+      if (indentToken !== null) return noIndent
+      indentToken = token
     }
+    if (!indentToken) return noIndent
 
     const resolved = lengthToNumber(
-      tokens[0],
+      indentToken,
       resolvedFontSize,
       width,
       parentStyle as Record<string, number | string>,
       true
     )
+    if (typeof resolved !== 'number') return noIndent
 
     return {
-      width: typeof resolved === 'number' ? resolved : 0,
-      eachLine: false,
-      hanging: false,
+      width: resolved,
+      eachLine,
+      hanging,
     }
   }
   const kerning = fontKerning !== 'none'

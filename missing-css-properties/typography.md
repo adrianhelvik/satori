@@ -6,7 +6,7 @@
 - `font-size-adjust` (numeric / `from-font`, approximate)
 - `font-kerning` (`auto` / `normal` / `none`)
 - `line-height`, `letter-spacing`, `tab-size`
-- `word-spacing`, `text-indent` (length/percentage values)
+- `word-spacing`, `text-indent` (length/percentage values with `each-line`/`hanging` modifiers)
 - `text-align` (start, end, left, right, center, justify)
 - `text-transform` (none, lowercase, uppercase, capitalize)
 - `text-overflow` (clip, ellipsis)
@@ -49,7 +49,7 @@
 
 | Property | Feasibility | Notes |
 |----------|-------------|-------|
-| `text-indent` | **Supported (partial)** | Supports length and percentage values. Keyword modifiers (`each-line`, `hanging`) are currently ignored for browser compatibility. Writing-mode and bidi-dependent behavior remains limited. |
+| `text-indent` | **Supported (partial)** | Supports length/percentage values and keyword modifiers (`each-line`, `hanging`). Writing-mode and bidi-dependent behavior remains limited. |
 | `text-justify` | **Supported (approx.)** | Supports `auto`, `none`, `inter-word`, and `inter-character` for `text-align: justify`. Language/script-specific nuances remain approximate. |
 | `hyphens` | Hard | Requires hyphenation dictionaries per language |
 | `hyphenate-character` | Hard | Depends on `hyphens` |
