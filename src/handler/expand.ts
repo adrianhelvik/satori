@@ -234,6 +234,381 @@ const simpleSpecialCaseHandlers: Record<string, SimpleSpecialCaseHandler> = {
   lineHeight: (value) => ({ lineHeight: purify('lineHeight', value) }),
 }
 
+type ComplexSpecialCaseHandler = (
+  value: string | number,
+  currentColor: string
+) => SimpleSpecialCaseResult
+
+const OUTLINE_STYLES = new Set([
+  'solid',
+  'dashed',
+  'dotted',
+  'double',
+  'none',
+  'groove',
+  'ridge',
+  'inset',
+  'outset',
+])
+const WHITE_SPACE_COLLAPSE_MAP: Record<string, string> = {
+  collapse: 'normal',
+  preserve: 'pre-wrap',
+  'preserve-breaks': 'pre-line',
+  'preserve-spaces': 'pre-wrap',
+  'break-spaces': 'pre-wrap',
+}
+const TEXT_DECORATION_SKIP_INK_VALUES = new Set(['auto', 'none', 'all'])
+const BORDER_NAME_RE = /^border(Top|Right|Bottom|Left)?$/
+const BACKGROUND_IMAGE_FUNCTION_RE =
+  /^(linear-gradient|radial-gradient|url|repeating-linear-gradient|repeating-radial-gradient)\(/
+const MATRIX_TRANSFORM_RE =
+  /^matrix\(\s*(-?[\d.]+)\s*,\s*(-?[\d.]+)\s*,\s*(-?[\d.]+)\s*,\s*(-?[\d.]+)\s*,\s*(-?[\d.]+)\s*,\s*(-?[\d.]+)\s*\)$/
+
+function resolveOverflowClipMargin(value: string | number): SpecialCaseResult {
+  const raw = String(value).trim()
+  if (!raw) {
+    return {
+      overflowClipMargin: 0,
+      overflowClipMarginBox: 'padding-box',
+    }
+  }
+
+  const parts = raw.split(/\s+/)
+  let box: 'content-box' | 'padding-box' | 'border-box' = 'padding-box'
+  let marginValue: string | number | undefined
+  for (const part of parts) {
+    if (
+      part === 'content-box' ||
+      part === 'padding-box' ||
+      part === 'border-box'
+    ) {
+      box = part
+      continue
+    }
+    marginValue = part
+    break
+  }
+
+  if (typeof marginValue === 'undefined') {
+    return { overflowClipMargin: 0, overflowClipMarginBox: box }
+  }
+
+  const purified = purify('overflowClipMargin', marginValue)
+  const numeric = Number.parseFloat(String(purified))
+  if (!Number.isNaN(numeric) && numeric < 0) {
+    throw new Error('`overflowClipMargin` must be non-negative.')
+  }
+
+  return { overflowClipMargin: purified, overflowClipMarginBox: box }
+}
+
+function resolveOutlineShorthand(value: string | number): SpecialCaseResult {
+  const parts = value.toString().trim().split(/\s+/)
+  const result: Record<string, string | number> = {}
+  for (const part of parts) {
+    if (OUTLINE_STYLES.has(part)) {
+      result.outlineStyle = part
+    } else if (/^\d/.test(part) || part === '0') {
+      result.outlineWidth = purify('outlineWidth', part)
+    } else {
+      result.outlineColor = part
+    }
+  }
+  return result
+}
+
+function resolveTextWrapMode(value: string | number): SpecialCaseResult {
+  const normalized = String(value).trim().toLowerCase()
+  if (normalized === 'nowrap') return { whiteSpace: 'nowrap' }
+  if (normalized === 'wrap') return { textWrap: 'wrap' }
+}
+
+function resolveTextWrapStyle(value: string | number): SpecialCaseResult {
+  const normalized = String(value).trim().toLowerCase()
+  if (normalized === 'balance' || normalized === 'pretty') {
+    return { textWrap: normalized }
+  }
+}
+
+function resolveRotate(value: string | number): SpecialCaseResult {
+  const deg = typeof value === 'number' ? value : parseFloat(String(value))
+  return { transform: [{ rotate: deg }] }
+}
+
+function resolveScale(value: string | number): SpecialCaseResult {
+  const parts = value.toString().trim().split(/\s+/)
+  const sx = parseFloat(parts[0])
+  const sy = parts.length > 1 ? parseFloat(parts[1]) : sx
+  if (sx === sy) return { transform: [{ scale: sx }] }
+  return { transform: [{ scaleX: sx }, { scaleY: sy }] }
+}
+
+function resolveTranslate(value: string | number): SpecialCaseResult {
+  const parts = value.toString().trim().split(/\s+/)
+  const result: ParsedTransformStyle['transform'] = [
+    { translateX: String(purify('translateX', parts[0])) },
+  ]
+  if (parts.length > 1) {
+    result.push({ translateY: String(purify('translateY', parts[1])) })
+  }
+  return { transform: result }
+}
+
+function resolveFontKerning(value: string | number): SpecialCaseResult {
+  const normalized = String(value).trim().toLowerCase()
+  if (
+    normalized === 'auto' ||
+    normalized === 'normal' ||
+    normalized === 'none'
+  ) {
+    return { fontKerning: normalized }
+  }
+}
+
+function resolveZoom(value: string | number): SpecialCaseResult {
+  const normalized = String(value).trim().toLowerCase()
+  if (!normalized || normalized === 'normal') return { zoom: 1 }
+
+  if (normalized.endsWith('%')) {
+    const percentage = parseFloat(normalized)
+    if (!isNaN(percentage)) return { zoom: percentage / 100 }
+    return
+  }
+
+  const zoom = Number(normalized)
+  if (!isNaN(zoom)) return { zoom }
+}
+
+function resolveFontFamily(value: string | number): SpecialCaseResult {
+  return {
+    fontFamily: String(value)
+      .split(',')
+      .map((_v) => {
+        return _v
+          .trim()
+          .replace(/(^['"])|(['"]$)/g, '')
+          .toLocaleLowerCase()
+      }),
+  }
+}
+
+function resolveBorderRadius(value: string | number): SpecialCaseResult {
+  if (typeof value !== 'string' || !value.includes('/')) {
+    // Regular border radius
+    return
+  }
+  // Support the `border-radius: 10px / 20px` syntax.
+  const [horizontal, vertical] = value.split('/')
+  const vh = getStylesForProperty('borderRadius', horizontal, true)
+  const vv = getStylesForProperty('borderRadius', vertical, true)
+  for (const k in vh) {
+    vv[k] = purify('borderRadius', vh[k]) + ' ' + purify('borderRadius', vv[k])
+  }
+  return vv
+}
+
+function resolveBorder(
+  name: string,
+  value: string | number,
+  currentColor: string
+): SpecialCaseResult {
+  // css-to-react-native only supports 'solid' and 'dashed' border styles.
+  // Pre-process to swap unsupported styles with 'solid' for parsing, then restore.
+  const valueStr = String(value)
+  const extraStyles = ['dotted', 'double', 'groove', 'ridge', 'inset', 'outset']
+  let actualBorderStyle: string | null = null
+  let parsableValue = valueStr
+  for (const es of extraStyles) {
+    if (valueStr.includes(es)) {
+      actualBorderStyle = es
+      parsableValue = valueStr.replace(es, 'solid')
+      break
+    }
+  }
+  const resolved = getStylesForProperty('border', parsableValue, true)
+  if (actualBorderStyle) {
+    resolved.borderStyle = actualBorderStyle
+  }
+
+  // Border width should default to 3px (medium) instead of 1px.
+  if (resolved.borderWidth === 1 && !String(value).includes('1px')) {
+    resolved.borderWidth = 3
+  }
+
+  // Preserve inherited color when border color was omitted.
+  if (resolved.borderColor === 'black' && !String(value).includes('black')) {
+    resolved.borderColor = currentColor
+  }
+
+  const purified = {
+    Width: purify(name + 'Width', resolved.borderWidth),
+    Style: v(
+      resolved.borderStyle,
+      {
+        solid: 'solid',
+        dashed: 'dashed',
+        dotted: 'dotted',
+        double: 'double',
+        groove: 'groove',
+        ridge: 'ridge',
+        inset: 'inset',
+        outset: 'outset',
+      },
+      'solid',
+      name + 'Style'
+    ),
+    Color: resolved.borderColor,
+  }
+
+  const full = {}
+  for (const k of name === 'border'
+    ? ['Top', 'Right', 'Bottom', 'Left']
+    : [name.slice(6)]) {
+    for (const p in purified) {
+      full['border' + k + p] = purified[p]
+    }
+  }
+  return full
+}
+
+function resolveBoxShadow(value: string | number): SpecialCaseResult {
+  if (!value) {
+    throw new Error('Invalid `boxShadow` value: "' + value + '".')
+  }
+  return {
+    boxShadow: typeof value === 'string' ? parseBoxShadow(value) : value,
+  }
+}
+
+function resolveTransform(value: string | number): SpecialCaseResult {
+  if (typeof value !== 'string') throw new Error('Invalid `transform` value.')
+
+  // Handle matrix() directly since css-to-react-native doesn't support it.
+  const matrixMatch = value.match(MATRIX_TRANSFORM_RE)
+  if (matrixMatch) {
+    return {
+      transform: [{ matrix: matrixMatch.slice(1).map(Number) }],
+    }
+  }
+  return parseTransformWithPercentageSupport(value)
+}
+
+function resolveBackground(value: string | number): SpecialCaseResult {
+  const normalized = value.toString().trim()
+  if (BACKGROUND_IMAGE_FUNCTION_RE.test(normalized)) {
+    return getStylesForProperty('backgroundImage', normalized, true)
+  }
+  return getStylesForProperty('background', normalized, true)
+}
+
+function resolveTextShadow(value: string | number): SpecialCaseResult {
+  const normalized = value.toString().trim()
+  const result = {}
+  const shadows = splitEffects(normalized)
+
+  for (const shadow of shadows) {
+    const styles = getStylesForProperty('textShadow', shadow, true)
+    for (const k in styles) {
+      if (!result[k]) {
+        result[k] = [styles[k]]
+      } else {
+        result[k].push(styles[k])
+      }
+    }
+  }
+
+  return result
+}
+
+function resolveWebkitTextStroke(value: string | number): SpecialCaseResult {
+  const normalized = value.toString().trim()
+  const values = normalized.split(' ')
+  if (values.length !== 2) {
+    throw new Error('Invalid `WebkitTextStroke` value.')
+  }
+
+  return {
+    WebkitTextStrokeWidth: purify('WebkitTextStroke', values[0]),
+    WebkitTextStrokeColor: purify('WebkitTextStroke', values[1]),
+  }
+}
+
+function resolveTextDecorationSkipInk(
+  value: string | number
+): SpecialCaseResult {
+  const normalized = value.toString().trim().toLowerCase()
+  if (!TEXT_DECORATION_SKIP_INK_VALUES.has(normalized)) {
+    throw new Error('Invalid `textDecorationSkipInk` value.')
+  }
+
+  return { textDecorationSkipInk: normalized }
+}
+
+const complexSpecialCaseHandlers: Record<string, ComplexSpecialCaseHandler> = {
+  flexFlow: (value) => {
+    const parts = value.toString().trim().split(/\s+/)
+    const result: Record<string, string> = {}
+    for (const part of parts) {
+      if (['row', 'column', 'row-reverse', 'column-reverse'].includes(part)) {
+        result.flexDirection = part
+      } else if (['wrap', 'nowrap', 'wrap-reverse'].includes(part)) {
+        result.flexWrap = part
+      }
+    }
+    return result
+  },
+  placeContent: (value) => {
+    const { first, second } = parsePlaceShorthandValues(value)
+    if (!first) return {}
+    return {
+      alignContent: first,
+      justifyContent: second || first,
+    }
+  },
+  placeItems: (value) => {
+    const { first } = parsePlaceShorthandValues(value)
+    if (!first) return {}
+    return {
+      alignItems: first,
+    }
+  },
+  placeSelf: (value) => {
+    const { first } = parsePlaceShorthandValues(value)
+    if (!first) return {}
+    return {
+      alignSelf: first,
+    }
+  },
+  justifyItems: () => ({}),
+  justifySelf: () => ({}),
+  overflowX: (value) => ({ overflowX: value }),
+  overflowY: (value) => ({ overflowY: value }),
+  overflowClipMargin: (value) => resolveOverflowClipMargin(value),
+  outline: (value) => resolveOutlineShorthand(value),
+  wordSpacing: (value) => ({ wordSpacing: purify('wordSpacing', value) }),
+  textIndent: (value) => ({ textIndent: purify('textIndent', value) }),
+  whiteSpaceCollapse: (value) => {
+    const normalized = String(value).trim().toLowerCase()
+    const mapped = WHITE_SPACE_COLLAPSE_MAP[normalized]
+    if (mapped) return { whiteSpace: mapped }
+  },
+  textWrapMode: (value) => resolveTextWrapMode(value),
+  textWrapStyle: (value) => resolveTextWrapStyle(value),
+  rotate: (value) => resolveRotate(value),
+  scale: (value) => resolveScale(value),
+  translate: (value) => resolveTranslate(value),
+  fontKerning: (value) => resolveFontKerning(value),
+  zoom: (value) => resolveZoom(value),
+  fontFamily: (value) => resolveFontFamily(value),
+  borderRadius: (value) => resolveBorderRadius(value),
+  boxShadow: (value) => resolveBoxShadow(value),
+  transform: (value) => resolveTransform(value),
+  background: (value) => resolveBackground(value),
+  textShadow: (value) => resolveTextShadow(value),
+  WebkitTextStroke: (value) => resolveWebkitTextStroke(value),
+  textDecorationSkipInk: (value) => resolveTextDecorationSkipInk(value),
+}
+
 function handleSpecialCase(
   name: string,
   value: string | number,
@@ -251,378 +626,12 @@ function handleSpecialCase(
   const simpleHandler = simpleSpecialCaseHandlers[name]
   if (simpleHandler) return simpleHandler(value)
 
-  // --- Shorthand expansions ---
+  const complexHandler = complexSpecialCaseHandlers[name]
+  if (complexHandler) return complexHandler(value, currentColor)
 
-  // flex-flow → flexDirection + flexWrap
-  if (name === 'flexFlow') {
-    const parts = value.toString().trim().split(/\s+/)
-    const result: Record<string, string> = {}
-    for (const part of parts) {
-      if (['row', 'column', 'row-reverse', 'column-reverse'].includes(part)) {
-        result.flexDirection = part
-      } else if (['wrap', 'nowrap', 'wrap-reverse'].includes(part)) {
-        result.flexWrap = part
-      }
-    }
-    return result
+  if (BORDER_NAME_RE.test(name)) {
+    return resolveBorder(name, value, currentColor)
   }
-
-  // place-content → alignContent + justifyContent
-  if (name === 'placeContent') {
-    const { first, second } = parsePlaceShorthandValues(value)
-    if (!first) return {}
-    return {
-      alignContent: first,
-      justifyContent: second || first,
-    }
-  }
-
-  // place-items → alignItems (+ ignore justify-items in flex-only layout)
-  if (name === 'placeItems') {
-    const { first } = parsePlaceShorthandValues(value)
-    if (!first) return {}
-    return {
-      alignItems: first,
-    }
-  }
-
-  // place-self → alignSelf (+ ignore justify-self in flex-only layout)
-  if (name === 'placeSelf') {
-    const { first } = parsePlaceShorthandValues(value)
-    if (!first) return {}
-    return {
-      alignSelf: first,
-    }
-  }
-
-  // Grid-focused properties. Satori uses flex-only layout, so accept and ignore
-  // these for browser parity (no effect on flex formatting).
-  if (name === 'justifyItems' || name === 'justifySelf') {
-    return {}
-  }
-
-  // overflow-x / overflow-y: store individually, compute.ts will merge
-  if (name === 'overflowX') return { overflowX: value }
-  if (name === 'overflowY') return { overflowY: value }
-  if (name === 'overflowClipMargin') {
-    const raw = String(value).trim()
-    if (!raw) {
-      return {
-        overflowClipMargin: 0,
-        overflowClipMarginBox: 'padding-box',
-      }
-    }
-
-    const parts = raw.split(/\s+/)
-    let box: 'content-box' | 'padding-box' | 'border-box' = 'padding-box'
-    let marginValue: string | number | undefined
-    for (const part of parts) {
-      if (
-        part === 'content-box' ||
-        part === 'padding-box' ||
-        part === 'border-box'
-      ) {
-        box = part
-        continue
-      }
-      marginValue = part
-      break
-    }
-
-    if (typeof marginValue === 'undefined') {
-      return { overflowClipMargin: 0, overflowClipMarginBox: box }
-    }
-
-    const purified = purify(name, marginValue)
-    const numeric = Number.parseFloat(String(purified))
-    if (!Number.isNaN(numeric) && numeric < 0) {
-      throw new Error('`overflowClipMargin` must be non-negative.')
-    }
-
-    return { overflowClipMargin: purified, overflowClipMarginBox: box }
-  }
-
-  // outline shorthand: <width> <style> <color>
-  if (name === 'outline') {
-    const parts = value.toString().trim().split(/\s+/)
-    const result: Record<string, string | number> = {}
-    for (const part of parts) {
-      if (
-        [
-          'solid',
-          'dashed',
-          'dotted',
-          'double',
-          'none',
-          'groove',
-          'ridge',
-          'inset',
-          'outset',
-        ].includes(part)
-      ) {
-        result.outlineStyle = part
-      } else if (/^\d/.test(part) || part === '0') {
-        result.outlineWidth = purify('outlineWidth', part)
-      } else {
-        result.outlineColor = part
-      }
-    }
-    return result
-  }
-  // Pass-through properties that don't need special handling
-  if (name === 'wordSpacing')
-    return { wordSpacing: purify('wordSpacing', value) }
-  if (name === 'textIndent') return { textIndent: purify('textIndent', value) }
-  if (name === 'whiteSpaceCollapse') {
-    const normalized = String(value).trim().toLowerCase()
-    const whiteSpaceMap: Record<string, string> = {
-      collapse: 'normal',
-      preserve: 'pre-wrap',
-      'preserve-breaks': 'pre-line',
-      'preserve-spaces': 'pre-wrap',
-      'break-spaces': 'pre-wrap',
-    }
-    if (whiteSpaceMap[normalized]) {
-      return { whiteSpace: whiteSpaceMap[normalized] }
-    }
-  }
-  if (name === 'textWrapMode') {
-    const normalized = String(value).trim().toLowerCase()
-    if (normalized === 'nowrap') return { whiteSpace: 'nowrap' }
-    if (normalized === 'wrap') return { textWrap: 'wrap' }
-  }
-  if (name === 'textWrapStyle') {
-    const normalized = String(value).trim().toLowerCase()
-    if (normalized === 'balance' || normalized === 'pretty') {
-      return { textWrap: normalized }
-    }
-  }
-  // Individual transform properties (CSS Transforms Level 2)
-  if (name === 'rotate') {
-    const deg = typeof value === 'number' ? value : parseFloat(value as string)
-    return { transform: [{ rotate: deg }] }
-  }
-  if (name === 'scale') {
-    const parts = value.toString().trim().split(/\s+/)
-    const sx = parseFloat(parts[0])
-    const sy = parts.length > 1 ? parseFloat(parts[1]) : sx
-    if (sx === sy) return { transform: [{ scale: sx }] }
-    return { transform: [{ scaleX: sx }, { scaleY: sy }] }
-  }
-  if (name === 'translate') {
-    const parts = value.toString().trim().split(/\s+/)
-    const result = [{ translateX: purify('translateX', parts[0]) }]
-    if (parts.length > 1) {
-      result.push({ translateY: purify('translateY', parts[1]) } as any)
-    }
-    return { transform: result }
-  }
-
-  if (name === 'fontKerning') {
-    const normalized = String(value).trim().toLowerCase()
-    if (
-      normalized === 'auto' ||
-      normalized === 'normal' ||
-      normalized === 'none'
-    ) {
-      return { fontKerning: normalized }
-    }
-    return
-  }
-
-  if (name === 'zoom') {
-    const normalized = String(value).trim().toLowerCase()
-    if (!normalized || normalized === 'normal') return { zoom: 1 }
-
-    if (normalized.endsWith('%')) {
-      const percentage = parseFloat(normalized)
-      if (!isNaN(percentage)) return { zoom: percentage / 100 }
-      return
-    }
-
-    const zoom = Number(normalized)
-    if (!isNaN(zoom)) return { zoom }
-    return
-  }
-
-  if (name === 'fontFamily') {
-    return {
-      fontFamily: (value as string).split(',').map((_v) => {
-        return _v
-          .trim()
-          .replace(/(^['"])|(['"]$)/g, '')
-          .toLocaleLowerCase()
-      }),
-    }
-  }
-
-  if (name === 'borderRadius') {
-    if (typeof value !== 'string' || !value.includes('/')) {
-      // Regular border radius
-      return
-    }
-    // Support the `border-radius: 10px / 20px` syntax.
-    const [horizontal, vertical] = value.split('/')
-    const vh = getStylesForProperty(name, horizontal, true)
-    const vv = getStylesForProperty(name, vertical, true)
-    for (const k in vh) {
-      vv[k] = purify(name, vh[k]) + ' ' + purify(name, vv[k])
-    }
-    return vv
-  }
-
-  if (/^border(Top|Right|Bottom|Left)?$/.test(name)) {
-    // css-to-react-native only supports 'solid' and 'dashed' border styles.
-    // Pre-process to swap unsupported styles with 'solid' for parsing, then restore.
-    const valueStr = String(value)
-    const extraStyles = [
-      'dotted',
-      'double',
-      'groove',
-      'ridge',
-      'inset',
-      'outset',
-    ]
-    let actualBorderStyle: string | null = null
-    let parsableValue = valueStr
-    for (const es of extraStyles) {
-      if (valueStr.includes(es)) {
-        actualBorderStyle = es
-        parsableValue = valueStr.replace(es, 'solid')
-        break
-      }
-    }
-    const resolved = getStylesForProperty('border', parsableValue, true)
-    if (actualBorderStyle) {
-      resolved.borderStyle = actualBorderStyle
-    }
-
-    // Border width should be default to 3px (medium) instead of 1px:
-    // https://w3c.github.io/csswg-drafts/css-backgrounds-3/#border-width
-    // Although on Chrome it will be displayed as 1.5px but let's stick to the
-    // spec.
-    if (resolved.borderWidth === 1 && !String(value).includes('1px')) {
-      resolved.borderWidth = 3
-    }
-
-    // A trick to fix `border: 1px solid` to not use `black` but the inherited
-    // `color` value. This is necessary because css-to-react-native automatically
-    // fallbacks to default color values.
-    if (resolved.borderColor === 'black' && !String(value).includes('black')) {
-      resolved.borderColor = currentColor
-    }
-
-    const purified = {
-      Width: purify(name + 'Width', resolved.borderWidth),
-      Style: v(
-        resolved.borderStyle,
-        {
-          solid: 'solid',
-          dashed: 'dashed',
-          dotted: 'dotted',
-          double: 'double',
-          groove: 'groove',
-          ridge: 'ridge',
-          inset: 'inset',
-          outset: 'outset',
-        },
-        'solid',
-        name + 'Style'
-      ),
-      Color: resolved.borderColor,
-    }
-
-    const full = {}
-    for (const k of name === 'border'
-      ? ['Top', 'Right', 'Bottom', 'Left']
-      : [name.slice(6)]) {
-      for (const p in purified) {
-        full['border' + k + p] = purified[p]
-      }
-    }
-    return full
-  }
-
-  if (name === 'boxShadow') {
-    if (!value) {
-      throw new Error('Invalid `boxShadow` value: "' + value + '".')
-    }
-    return {
-      [name]: typeof value === 'string' ? parseBoxShadow(value) : value,
-    }
-  }
-
-  if (name === 'transform') {
-    if (typeof value !== 'string') throw new Error('Invalid `transform` value.')
-
-    // Handle matrix() directly since css-to-react-native doesn't support it.
-    const matrixMatch = value.match(
-      /^matrix\(\s*(-?[\d.]+)\s*,\s*(-?[\d.]+)\s*,\s*(-?[\d.]+)\s*,\s*(-?[\d.]+)\s*,\s*(-?[\d.]+)\s*,\s*(-?[\d.]+)\s*\)$/
-    )
-    if (matrixMatch) {
-      return {
-        transform: [{ matrix: matrixMatch.slice(1).map(Number) }],
-      }
-    }
-    return parseTransformWithPercentageSupport(value)
-  }
-
-  if (name === 'background') {
-    value = value.toString().trim()
-    if (
-      /^(linear-gradient|radial-gradient|url|repeating-linear-gradient|repeating-radial-gradient)\(/.test(
-        value
-      )
-    ) {
-      return getStylesForProperty('backgroundImage', value, true)
-    }
-    return getStylesForProperty('background', value, true)
-  }
-
-  if (name === 'textShadow') {
-    // Handle multiple text shadows if provided.
-    value = value.toString().trim()
-    const result = {}
-
-    const shadows = splitEffects(value)
-
-    for (const shadow of shadows) {
-      const styles = getStylesForProperty('textShadow', shadow, true)
-      for (const k in styles) {
-        if (!result[k]) {
-          result[k] = [styles[k]]
-        } else {
-          result[k].push(styles[k])
-        }
-      }
-    }
-
-    return result
-  }
-
-  if (name === 'WebkitTextStroke') {
-    value = value.toString().trim()
-    const values = value.split(' ')
-    if (values.length !== 2) {
-      throw new Error('Invalid `WebkitTextStroke` value.')
-    }
-
-    return {
-      WebkitTextStrokeWidth: purify(name, values[0]),
-      WebkitTextStrokeColor: purify(name, values[1]),
-    }
-  }
-
-  if (name === 'textDecorationSkipInk') {
-    const normalized = value.toString().trim().toLowerCase()
-    if (!['auto', 'none', 'all'].includes(normalized)) {
-      throw new Error('Invalid `textDecorationSkipInk` value.')
-    }
-
-    return { textDecorationSkipInk: normalized }
-  }
-
-  return
 }
 
 function getErrorHint(name: string) {
