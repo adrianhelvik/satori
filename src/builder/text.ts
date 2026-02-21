@@ -111,6 +111,7 @@ export default function buildText(
       transform: matrix || undefined,
       'clip-path': clipPathId ? `url(#${clipPathId})` : undefined,
       style: textStyle.filter ? `filter:${textStyle.filter}` : undefined,
+      'pointer-events': textStyle.pointerEvents || undefined,
     }
     return [
       (filter ? `${filter}<g filter="url(#satori_s-${id})">` : '') +
@@ -141,6 +142,7 @@ export default function buildText(
     transform: matrix || undefined,
     'clip-path': clipPathId ? `url(#${clipPathId})` : undefined,
     style: textStyle.filter ? `filter:${textStyle.filter}` : undefined,
+    'pointer-events': textStyle.pointerEvents || undefined,
     'stroke-width': textStyle.WebkitTextStrokeWidth
       ? `${textStyle.WebkitTextStrokeWidth}px`
       : undefined,

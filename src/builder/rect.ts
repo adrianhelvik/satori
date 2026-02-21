@@ -1798,6 +1798,7 @@ export default async function rect(
   const compositingStyles = [
     shouldApplyNativeMixBlend ? `mix-blend-mode:${mixBlendMode}` : '',
     isolation && isolation !== 'auto' ? `isolation:${isolation}` : '',
+    style.pointerEvents ? `pointer-events:${style.pointerEvents}` : '',
   ]
     .filter(Boolean)
     .join(';')

@@ -1074,6 +1074,7 @@ export default async function* buildTextNodes(
             transform: matrix ? matrix : undefined,
             opacity: opacity !== 1 ? opacity : undefined,
             style: cssFilter ? `filter:${cssFilter}` : undefined,
+            'pointer-events': parentStyle.pointerEvents as string | undefined,
             'stroke-width': inheritedStyle.WebkitTextStrokeWidth
               ? `${inheritedStyle.WebkitTextStrokeWidth}px`
               : undefined,
