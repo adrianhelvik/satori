@@ -3,6 +3,23 @@ import { isNumber, segment, splitByBreakOpportunities } from '../utils.js'
 import { HorizontalEllipsis, Space } from './characters.js'
 import type { SerializedStyle } from '../handler/style-types.js'
 
+const FONT_VARIANT_CAPS_VALUES = new Set([
+  'normal',
+  'small-caps',
+  'all-small-caps',
+  'petite-caps',
+  'all-petite-caps',
+  'unicase',
+  'titling-caps',
+])
+
+const SYNTHETIC_SMALL_CAPS_VALUES = new Set([
+  'small-caps',
+  'all-small-caps',
+  'petite-caps',
+  'all-petite-caps',
+])
+
 export function preprocess(
   content: string,
   style: SerializedStyle,
@@ -20,6 +37,8 @@ export function preprocess(
 } {
   const {
     textTransform,
+    fontVariantCaps,
+    fontVariant,
     whiteSpace,
     wordBreak,
     overflowWrap,
@@ -28,7 +47,13 @@ export function preprocess(
     lineBreak,
   } = style
 
-  content = processTextTransform(content, textTransform, locale)
+  content = processTextTransform(
+    content,
+    textTransform,
+    fontVariantCaps,
+    fontVariant,
+    locale
+  )
 
   const {
     content: processedContent,
@@ -65,6 +90,8 @@ export function preprocess(
 function processTextTransform(
   content: string,
   textTransform: unknown,
+  fontVariantCaps: unknown,
+  fontVariant: unknown,
   locale?: Locale
 ): string {
   const normalized = typeof textTransform === 'string' ? textTransform : 'none'
@@ -88,7 +115,46 @@ function processTextTransform(
       .join('')
   }
 
+  const normalizedFontVariantCaps = resolveFontVariantCapsValue(
+    fontVariantCaps,
+    fontVariant
+  )
+  if (SYNTHETIC_SMALL_CAPS_VALUES.has(normalizedFontVariantCaps)) {
+    // Approximation: synthesize small caps by uppercasing content when
+    // dedicated small-caps glyphs are unavailable.
+    content = content.toLocaleUpperCase(locale)
+  }
+
   return content
+}
+
+function normalizeFontVariantCapsToken(value: unknown): string | undefined {
+  if (typeof value !== 'string') return
+  const normalized = value.trim().toLowerCase()
+  if (!FONT_VARIANT_CAPS_VALUES.has(normalized)) return
+  return normalized
+}
+
+function resolveFontVariantCapsValue(
+  fontVariantCaps: unknown,
+  fontVariant: unknown
+): string {
+  const explicit = normalizeFontVariantCapsToken(fontVariantCaps)
+  if (explicit) return explicit
+
+  if (Array.isArray(fontVariant)) {
+    for (const token of fontVariant) {
+      const normalized = normalizeFontVariantCapsToken(token)
+      if (normalized) return normalized
+    }
+  } else if (typeof fontVariant === 'string') {
+    for (const token of fontVariant.split(/\s+/).filter(Boolean)) {
+      const normalized = normalizeFontVariantCapsToken(token)
+      if (normalized) return normalized
+    }
+  }
+
+  return 'normal'
 }
 
 function processTextOverflow(

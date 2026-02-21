@@ -165,6 +165,48 @@ describe('Typography Extras', () => {
     })
   })
 
+  describe('font-variant-caps', () => {
+    it('should support fontVariantCaps: small-caps with synthetic fallback', async () => {
+      const svg = await satori(
+        <div
+          style={{
+            width: 240,
+            height: 90,
+            backgroundColor: 'white',
+            fontFamily: 'Playfair Display',
+            fontSize: 18,
+            fontVariantCaps: 'small-caps',
+          }}
+        >
+          Alpha beta gamma
+        </div>,
+        { width: 240, height: 90, fonts, embedFont: false }
+      )
+
+      expect(toImage(svg, 240)).toMatchImageSnapshot()
+    })
+
+    it('should support fontVariant: small-caps shorthand values', async () => {
+      const svg = await satori(
+        <div
+          style={{
+            width: 240,
+            height: 90,
+            backgroundColor: 'white',
+            fontFamily: 'Playfair Display',
+            fontSize: 18,
+            fontVariant: 'small-caps' as any,
+          }}
+        >
+          Alpha beta gamma
+        </div>,
+        { width: 240, height: 90, fonts, embedFont: false }
+      )
+
+      expect(toImage(svg, 240)).toMatchImageSnapshot()
+    })
+  })
+
   describe('overflow-wrap', () => {
     it('should break long words with overflow-wrap: break-word', async () => {
       const svg = await satori(

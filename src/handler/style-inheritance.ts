@@ -4,6 +4,8 @@ export const CSS_ALL_UNSET_INHERITED_PROPS = new Set([
   'fontSize',
   'fontStyle',
   'fontWeight',
+  'fontVariant',
+  'fontVariantCaps',
   'fontSizeAdjust',
   'letterSpacing',
   'lineHeight',

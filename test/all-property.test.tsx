@@ -105,4 +105,20 @@ describe('all property', () => {
 
     expect(expanded.hyphenateLimitChars).toBe('8 3 3')
   })
+
+  it('should treat fontVariantCaps as inherited when all is unset', () => {
+    const expanded = expand(
+      { all: 'unset' },
+      {
+        color: 'black',
+        fontSize: 16,
+        opacity: 1,
+        fontVariantCaps: 'small-caps',
+        _viewportWidth: 240,
+        _viewportHeight: 100,
+      }
+    )
+
+    expect(expanded.fontVariantCaps).toBe('small-caps')
+  })
 })

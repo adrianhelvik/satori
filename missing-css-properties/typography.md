@@ -3,6 +3,7 @@
 ## What Satori supports
 
 - `font-family`, `font-size`, `font-weight`, `font-style`
+- `font-variant-caps` (partial synthetic support for small-caps values)
 - `font-size-adjust` (numeric / `from-font`, approximate)
 - `font-kerning` (`auto` / `normal` / `none`)
 - `line-height`, `letter-spacing`, `tab-size`
@@ -26,7 +27,7 @@
 | Property | Feasibility | Notes |
 |----------|-------------|-------|
 | `font-variant` | Hard | opentype.js has limited OpenType feature support. Would need per-feature glyph substitution. |
-| `font-variant-caps` | Hard | Requires small-caps glyph lookup |
+| `font-variant-caps` | **Supported (partial)** | Supports `small-caps` / `all-small-caps` / `petite-caps` / `all-petite-caps` via synthetic uppercase fallback when dedicated OpenType small-caps glyph substitution is unavailable. Exact small-cap sizing and true feature-driven glyph selection remain approximate. |
 | `font-variant-ligatures` | Hard | Requires ligature table parsing in opentype.js |
 | `font-variant-numeric` | Hard | Requires numeral alternates from font tables |
 | `font-variant-east-asian` | Hard | Requires CJK variant glyph tables |
