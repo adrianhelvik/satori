@@ -1,5 +1,11 @@
 export type FontVariantPositionToken = 'normal' | 'sub' | 'super'
 
+export type ParsedFontVariantShorthand = {
+  tokens: string[]
+  fontVariantCaps?: string
+  fontVariantPosition?: FontVariantPositionToken
+}
+
 export const FONT_VARIANT_CAPS_VALUES = new Set([
   'normal',
   'small-caps',
@@ -64,19 +70,39 @@ export function normalizeFontVariantPositionToken(
 export function resolveFontVariantCapsFromShorthand(
   fontVariant: unknown
 ): string | undefined {
-  const tokens = tokenizeFontVariant(fontVariant)
-  for (const token of tokens) {
-    const normalized = normalizeFontVariantCapsToken(token)
-    if (normalized) return normalized
-  }
+  return parseFontVariantShorthand(fontVariant).fontVariantCaps
 }
 
 export function resolveFontVariantPositionFromShorthand(
   fontVariant: unknown
 ): FontVariantPositionToken | undefined {
+  return parseFontVariantShorthand(fontVariant).fontVariantPosition
+}
+
+export function parseFontVariantShorthand(
+  fontVariant: unknown
+): ParsedFontVariantShorthand {
   const tokens = tokenizeFontVariant(fontVariant)
+
+  let fontVariantCaps: string | undefined
+  let fontVariantPosition: FontVariantPositionToken | undefined
+
   for (const token of tokens) {
-    const normalized = normalizeFontVariantPositionToken(token)
-    if (normalized) return normalized
+    const normalizedCaps = normalizeFontVariantCapsToken(token)
+    if (normalizedCaps) {
+      fontVariantCaps = normalizedCaps
+      continue
+    }
+
+    const normalizedPosition = normalizeFontVariantPositionToken(token)
+    if (normalizedPosition) {
+      fontVariantPosition = normalizedPosition
+    }
+  }
+
+  return {
+    tokens,
+    fontVariantCaps,
+    fontVariantPosition,
   }
 }

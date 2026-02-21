@@ -14,9 +14,8 @@ import type { TransformDescriptor } from '../builder/transform.js'
 import { isTransformInput } from '../builder/transform.js'
 import { isString, lengthToNumber, v, splitEffects } from '../utils.js'
 import {
-  normalizeFontVariantCapsToken,
   normalizeFontVariantPositionToken,
-  tokenizeFontVariant,
+  parseFontVariantShorthand,
 } from '../text/font-variant.js'
 import { parseMask } from '../parser/mask.js'
 import {
@@ -578,25 +577,14 @@ function resolveFontVariantPosition(value: string | number): SpecialCaseResult {
 }
 
 function resolveFontVariant(value: string | number): SpecialCaseResult {
-  const tokens = tokenizeFontVariant(value)
+  const {
+    tokens,
+    fontVariantCaps = 'normal',
+    fontVariantPosition = 'normal',
+  } = parseFontVariantShorthand(value)
+
   if (!tokens.length) {
     throw new Error('Invalid `fontVariant` value.')
-  }
-
-  let fontVariantCaps = 'normal'
-  let fontVariantPosition: 'normal' | 'sub' | 'super' = 'normal'
-
-  for (const token of tokens) {
-    const caps = normalizeFontVariantCapsToken(token)
-    if (caps) {
-      fontVariantCaps = caps
-      continue
-    }
-
-    const position = normalizeFontVariantPositionToken(token)
-    if (position) {
-      fontVariantPosition = position
-    }
   }
 
   return {
