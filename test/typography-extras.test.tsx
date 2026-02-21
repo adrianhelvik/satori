@@ -207,6 +207,46 @@ describe('Typography Extras', () => {
     })
   })
 
+  describe('font-variant-position', () => {
+    it('should support fontVariantPosition: super', async () => {
+      const svg = await satori(
+        <div
+          style={{
+            width: 220,
+            height: 100,
+            backgroundColor: 'white',
+            fontFamily: 'Playfair Display',
+            fontSize: 32,
+            fontVariantPosition: 'super',
+          }}
+        >
+          Variant
+        </div>,
+        { width: 220, height: 100, fonts, embedFont: false }
+      )
+      expect(toImage(svg, 220)).toMatchImageSnapshot()
+    })
+
+    it('should support fontVariantPosition: sub', async () => {
+      const svg = await satori(
+        <div
+          style={{
+            width: 220,
+            height: 100,
+            backgroundColor: 'white',
+            fontFamily: 'Playfair Display',
+            fontSize: 32,
+            fontVariantPosition: 'sub',
+          }}
+        >
+          Variant
+        </div>,
+        { width: 220, height: 100, fonts, embedFont: false }
+      )
+      expect(toImage(svg, 220)).toMatchImageSnapshot()
+    })
+  })
+
   describe('overflow-wrap', () => {
     it('should break long words with overflow-wrap: break-word', async () => {
       const svg = await satori(

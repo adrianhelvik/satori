@@ -273,6 +273,7 @@ const LINE_BREAK_VALUES = new Set([
   'strict',
   'anywhere',
 ])
+const FONT_VARIANT_POSITION_VALUES = new Set(['normal', 'sub', 'super'])
 
 function resolveOverflowClipMargin(value: string | number): SpecialCaseResult {
   const raw = String(value).trim()
@@ -563,6 +564,15 @@ function resolveLineBreak(value: string | number): SpecialCaseResult {
   return { lineBreak: normalized }
 }
 
+function resolveFontVariantPosition(value: string | number): SpecialCaseResult {
+  const normalized = value.toString().trim().toLowerCase()
+  if (!FONT_VARIANT_POSITION_VALUES.has(normalized)) {
+    throw new Error('Invalid `fontVariantPosition` value.')
+  }
+
+  return { fontVariantPosition: normalized }
+}
+
 const complexSpecialCaseHandlers: Record<string, ComplexSpecialCaseHandler> = {
   flexFlow: (value) => {
     const parts = value.toString().trim().split(/\s+/)
@@ -627,6 +637,7 @@ const complexSpecialCaseHandlers: Record<string, ComplexSpecialCaseHandler> = {
   WebkitTextStroke: (value) => resolveWebkitTextStroke(value),
   textDecorationSkipInk: (value) => resolveTextDecorationSkipInk(value),
   lineBreak: (value) => resolveLineBreak(value),
+  fontVariantPosition: (value) => resolveFontVariantPosition(value),
 }
 
 function handleSpecialCase(

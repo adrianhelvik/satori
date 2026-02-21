@@ -19,6 +19,7 @@ function getAllInitialStyle(): SerializedStyle {
     fontStyle: 'normal',
     fontWeight: 'normal',
     fontVariantCaps: 'normal',
+    fontVariantPosition: 'normal',
     fontSizeAdjust: 'none',
     lineHeight: 'normal',
     letterSpacing: 0,

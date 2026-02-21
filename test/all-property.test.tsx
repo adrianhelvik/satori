@@ -121,4 +121,20 @@ describe('all property', () => {
 
     expect(expanded.fontVariantCaps).toBe('small-caps')
   })
+
+  it('should treat fontVariantPosition as inherited when all is unset', () => {
+    const expanded = expand(
+      { all: 'unset' },
+      {
+        color: 'black',
+        fontSize: 16,
+        opacity: 1,
+        fontVariantPosition: 'super',
+        _viewportWidth: 240,
+        _viewportHeight: 100,
+      }
+    )
+
+    expect(expanded.fontVariantPosition).toBe('super')
+  })
 })

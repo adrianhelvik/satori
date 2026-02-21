@@ -4,6 +4,7 @@
 
 - `font-family`, `font-size`, `font-weight`, `font-style`
 - `font-variant-caps` (partial synthetic support for small-caps values)
+- `font-variant-position` (`normal`, `sub`, `super`, approximate synthetic positioning)
 - `font-size-adjust` (numeric / `from-font`, approximate)
 - `font-kerning` (`auto` / `normal` / `none`)
 - `line-height`, `letter-spacing`, `tab-size`
@@ -32,7 +33,7 @@
 | `font-variant-numeric` | Hard | Requires numeral alternates from font tables |
 | `font-variant-east-asian` | Hard | Requires CJK variant glyph tables |
 | `font-variant-alternates` | Hard | Requires OpenType alternates feature |
-| `font-variant-position` | Hard | Superscript/subscript glyph positioning |
+| `font-variant-position` | **Supported (partial)** | Supports `normal`, `sub`, and `super` using synthetic size/offset approximation when dedicated OpenType glyphs are unavailable. Exact feature-driven glyph substitution/metrics remain approximate. |
 | `font-variant-emoji` | Hard | Emoji presentation selection |
 | `font-feature-settings` | Hard | Low-level OpenType feature control. opentype.js would need GSUB/GPOS table application. |
 | `font-variation-settings` | Hard | Variable font axis control — requires variable font rendering in opentype.js |

@@ -27,6 +27,10 @@ import {
 import { HorizontalEllipsis, Space, Tab } from './characters.js'
 import { genMeasurer } from './measurer.js'
 import { preprocess } from './processor.js'
+import {
+  getFontVariantPositionMetrics,
+  resolveFontVariantPosition,
+} from './font-variant-position.js'
 import { getLineIndent, resolveTextIndentConfig } from './text-indent.js'
 import cssColorParse from 'parse-css-color'
 
@@ -131,11 +135,21 @@ export default async function* buildTextNodes(
   } = parentStyle
 
   const fontAspect = font.getFontAspect(parentStyle, locale)
-  const resolvedFontSize = resolveAdjustedFontSize(
+  const resolvedFontSizeBase = resolveAdjustedFontSize(
     fontSize,
     parentStyle.fontSizeAdjust as number | string | undefined,
     fontAspect
   )
+  const fontVariantPosition = resolveFontVariantPosition(
+    parentStyle.fontVariantPosition
+  )
+  const fontVariantPositionMetrics = getFontVariantPositionMetrics(
+    fontVariantPosition,
+    resolvedFontSizeBase
+  )
+  const resolvedFontSize =
+    resolvedFontSizeBase * fontVariantPositionMetrics.fontSizeScale
+  const fontVariantBaselineShift = fontVariantPositionMetrics.baselineShift
   const textStyle =
     resolvedFontSize === fontSize
       ? parentStyle
@@ -724,6 +738,10 @@ export default async function* buildTextNodes(
       continue
     }
 
+    if (!image && fontVariantBaselineShift !== 0) {
+      topOffset += fontVariantBaselineShift
+    }
+
     // When `text-align` is `justify`, the width of the line will be adjusted.
     let extendedWidth = false
 
@@ -884,7 +902,7 @@ export default async function* buildTextNodes(
         texts[i + 1] &&
         nextLayout &&
         !nextLayout.isImage &&
-        topOffset === nextLayout.y &&
+        layout.y === nextLayout.y &&
         !isLastDisplayedBeforeEllipsis
       ) {
         if (wordBuffer === null) {
