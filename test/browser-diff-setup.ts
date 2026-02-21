@@ -16,6 +16,8 @@ interface DiffResult {
   diffPath: string
   satoriPath: string
   browserPath: string
+  comparable: boolean
+  comparabilityNote?: string
 }
 
 declare global {
@@ -38,6 +40,147 @@ const MOCK_PLACEHOLDER_PNG_BUFFER = Buffer.from(
 )
 const MOCK_PLACEHOLDER_SVG =
   '<svg width="116.15" height="100" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" clip-rule="evenodd" d="M57.5 0L115 100H0L57.5 0z"/></svg>'
+
+// Keep browser snapshots aligned with Satori's built-in element presets.
+const BROWSER_PRESET_CSS = `
+div, p, blockquote, center, hr, h1, h2, h3, h4, h5, h6, pre, ul, ol, li {
+  display: flex;
+}
+p {
+  margin-top: 1em;
+  margin-bottom: 1em;
+}
+blockquote {
+  margin-top: 1em;
+  margin-bottom: 1em;
+  margin-left: 40px;
+  margin-right: 40px;
+}
+center {
+  text-align: center;
+}
+hr {
+  margin-top: 0.5em;
+  margin-bottom: 0.5em;
+  margin-left: auto;
+  margin-right: auto;
+  border-width: 1px;
+  border-style: solid;
+}
+h1 {
+  font-size: 2em;
+  margin-top: 0.67em;
+  margin-bottom: 0.67em;
+  margin-left: 0;
+  margin-right: 0;
+  font-weight: bold;
+}
+h2 {
+  font-size: 1.5em;
+  margin-top: 0.83em;
+  margin-bottom: 0.83em;
+  margin-left: 0;
+  margin-right: 0;
+  font-weight: bold;
+}
+h3 {
+  font-size: 1.17em;
+  margin-top: 1em;
+  margin-bottom: 1em;
+  margin-left: 0;
+  margin-right: 0;
+  font-weight: bold;
+}
+h4 {
+  margin-top: 1.33em;
+  margin-bottom: 1.33em;
+  margin-left: 0;
+  margin-right: 0;
+  font-weight: bold;
+}
+h5 {
+  font-size: 0.83em;
+  margin-top: 1.67em;
+  margin-bottom: 1.67em;
+  margin-left: 0;
+  margin-right: 0;
+  font-weight: bold;
+}
+h6 {
+  font-size: 0.67em;
+  margin-top: 2.33em;
+  margin-bottom: 2.33em;
+  margin-left: 0;
+  margin-right: 0;
+  font-weight: bold;
+}
+pre {
+  font-family: monospace;
+  white-space: pre;
+  margin-top: 1em;
+  margin-bottom: 1em;
+}
+ul,
+ol {
+  flex-direction: column;
+  margin-top: 1em;
+  margin-bottom: 1em;
+  padding-left: 40px;
+}
+ul {
+  list-style-type: disc;
+  list-style-position: outside;
+}
+ol {
+  list-style-type: decimal;
+  list-style-position: outside;
+}
+u {
+  text-decoration: underline;
+}
+strong,
+b {
+  font-weight: bold;
+}
+i,
+em {
+  font-style: italic;
+}
+code,
+kbd {
+  font-family: monospace;
+}
+mark {
+  background-color: yellow;
+  color: black;
+}
+big {
+  font-size: larger;
+}
+small {
+  font-size: smaller;
+}
+s {
+  text-decoration: line-through;
+}
+`
+
+const NON_COMPARABLE_CASES: Array<{ pattern: RegExp; note: string }> = [
+  {
+    pattern:
+      /test\/image\.test\.tsx :: Image > should support ArrayBuffer as src$/,
+    note: 'ArrayBuffer src is a Satori-only runtime input and cannot be represented in static browser HTML.',
+  },
+  {
+    pattern:
+      /test\/emoji\.test\.tsx :: Emojis > should detect emojis correctly$/,
+    note: 'This verifies emoji-segmentation callbacks, not browser visual parity.',
+  },
+  {
+    pattern: /test\/line-clamp\.test\.tsx :: Line Clamp >/,
+    note: 'Satori lineClamp is a custom shorthand with non-browser clamping semantics.',
+  },
+]
 
 function slugify(name: string): string {
   const normalized = name
@@ -90,8 +233,49 @@ body {
   background: transparent;
   ${escapedDefaultFontFamily ? `font-family: ${escapedDefaultFontFamily};` : ''}
 }
+${BROWSER_PRESET_CSS}
 </style></head>
 <body>${html}</body></html>`
+}
+
+function classifyComparability(testName: string): {
+  comparable: boolean
+  note?: string
+} {
+  const match = NON_COMPARABLE_CASES.find(({ pattern }) =>
+    pattern.test(testName)
+  )
+  if (match) {
+    return { comparable: false, note: match.note }
+  }
+  return { comparable: true }
+}
+
+async function applyBrowserCaptureNormalizations(
+  capturePage: Page
+): Promise<void> {
+  await capturePage.evaluate(() => {
+    const elements = Array.from(document.querySelectorAll<HTMLElement>('*'))
+
+    for (const el of elements) {
+      const inlineDisplay = el.style.getPropertyValue('display').trim()
+      if (inlineDisplay !== 'block') continue
+
+      const rawLineClamp = el.style.getPropertyValue('line-clamp').trim()
+      if (!rawLineClamp) continue
+
+      const lineClampMatch = rawLineClamp.match(/^([1-9]\d*)/)
+      if (!lineClampMatch) continue
+
+      el.style.setProperty('display', '-webkit-box')
+      el.style.setProperty('-webkit-box-orient', 'vertical')
+      el.style.setProperty('-webkit-line-clamp', lineClampMatch[1])
+
+      if (!el.style.getPropertyValue('overflow')) {
+        el.style.setProperty('overflow', 'hidden')
+      }
+    }
+  })
 }
 
 function satoriPngFromSvg(svg: string, width: number): Buffer {
@@ -158,6 +342,7 @@ afterEach(async (ctx) => {
     ? `${relative(process.cwd(), testFilePath)} :: ${testName}`
     : testName
   const slug = slugify(displayName)
+  const comparability = classifyComparability(displayName)
 
   for (let i = 0; i < captures.length; i++) {
     const { element, options, svg } = captures[i]
@@ -185,6 +370,7 @@ afterEach(async (ctx) => {
       // Browser screenshot
       await page.setViewportSize({ width: w, height: h })
       await page.setContent(doc, { waitUntil: 'networkidle' })
+      await applyBrowserCaptureNormalizations(page)
       const browserPng = await page.screenshot({
         type: 'png',
         clip: { x: 0, y: 0, width: w, height: h },
@@ -233,6 +419,8 @@ afterEach(async (ctx) => {
         diffPath,
         satoriPath,
         browserPath,
+        comparable: comparability.comparable,
+        comparabilityNote: comparability.note,
       })
     } catch (err) {
       console.error(`[browser-diff] Error processing "${testName}":`, err)
@@ -277,12 +465,16 @@ afterAll(async () => {
   const GREEN = `${ESC}[32m`
   const YELLOW = `${ESC}[33m`
   const RED = `${ESC}[31m`
+  const CYAN = `${ESC}[36m`
   const RESET = `${ESC}[0m`
   const BOLD = `${ESC}[1m`
 
   const sorted = [...results].sort((a, b) => b.diffPercent - a.diffPercent)
+  const comparableResults = sorted.filter((r) => r.comparable)
+  const excludedResults = sorted.filter((r) => !r.comparable)
   const nameW = Math.max(40, ...sorted.map((r) => r.name.length + 2))
   const diffW = 10
+  const scopeW = 13
   const pathW = 50
 
   console.log(`\n${BOLD}Browser Diff Results${RESET}\n`)
@@ -291,6 +483,8 @@ afterAll(async () => {
       '─'.repeat(nameW) +
       '┬' +
       '─'.repeat(diffW) +
+      '┬' +
+      '─'.repeat(scopeW) +
       '┬' +
       '─'.repeat(pathW) +
       '┐'
@@ -301,6 +495,8 @@ afterAll(async () => {
       '│' +
       '  Diff %'.padEnd(diffW) +
       '│' +
+      ' Scope'.padEnd(scopeW) +
+      '│' +
       ' Diff Image'.padEnd(pathW) +
       '│'
   )
@@ -310,13 +506,22 @@ afterAll(async () => {
       '┼' +
       '─'.repeat(diffW) +
       '┼' +
+      '─'.repeat(scopeW) +
+      '┼' +
       '─'.repeat(pathW) +
       '┤'
   )
 
   for (const r of sorted) {
-    const color = r.diffPercent < 5 ? GREEN : r.diffPercent < 15 ? YELLOW : RED
+    const color = !r.comparable
+      ? CYAN
+      : r.diffPercent < 5
+      ? GREEN
+      : r.diffPercent < 15
+      ? YELLOW
+      : RED
     const relDiff = r.diffPath.replace(process.cwd() + '/', '')
+    const scope = r.comparable ? 'comparable' : 'excluded'
     console.log(
       '│' +
         ` ${r.name}`.padEnd(nameW) +
@@ -324,6 +529,8 @@ afterAll(async () => {
         color +
         ` ${r.diffPercent.toFixed(2)}%`.padStart(diffW - 1).padEnd(diffW) +
         RESET +
+        '│' +
+        ` ${scope}`.padEnd(scopeW) +
         '│' +
         ` ${relDiff}`.padEnd(pathW) +
         '│'
@@ -336,33 +543,53 @@ afterAll(async () => {
       '┴' +
       '─'.repeat(diffW) +
       '┴' +
+      '─'.repeat(scopeW) +
+      '┴' +
       '─'.repeat(pathW) +
       '┘'
   )
 
-  const withinThreshold = sorted.filter(
+  const withinThreshold = comparableResults.filter(
     (r) => r.diffPercent <= threshold
   ).length
-  const exceeded = sorted.length - withinThreshold
+  const exceeded = comparableResults.length - withinThreshold
   console.log(
-    `\n${withinThreshold}/${sorted.length} tests within threshold (${(
-      threshold / 100
-    ).toFixed(2)}), ${exceeded} exceeded\n`
+    `\n${withinThreshold}/${
+      comparableResults.length
+    } comparable tests within threshold (${(threshold / 100).toFixed(
+      2
+    )}), ${exceeded} exceeded\n`
   )
+
+  if (excludedResults.length > 0) {
+    console.log(
+      `${BOLD}Excluded from threshold stats (${excludedResults.length}):${RESET}`
+    )
+    for (const result of excludedResults) {
+      const note = result.comparabilityNote
+        ? ` - ${result.comparabilityNote}`
+        : ''
+      console.log(`  • ${result.name}${note}`)
+    }
+    console.log()
+  }
 
   // Generate HTML report
   generateHtmlReport(sorted, threshold)
 })
 
 function generateHtmlReport(results: DiffResult[], threshold: number) {
-  const passCount = results.filter((r) => r.diffPercent < 5).length
-  const warnCount = results.filter(
+  const comparableResults = results.filter((r) => r.comparable)
+  const excludedCount = results.length - comparableResults.length
+  const passCount = comparableResults.filter((r) => r.diffPercent < 5).length
+  const warnCount = comparableResults.filter(
     (r) => r.diffPercent >= 5 && r.diffPercent < 15
   ).length
-  const failCount = results.filter((r) => r.diffPercent >= 15).length
+  const failCount = comparableResults.filter((r) => r.diffPercent >= 15).length
   const avgDiff =
-    results.length > 0
-      ? results.reduce((s, r) => s + r.diffPercent, 0) / results.length
+    comparableResults.length > 0
+      ? comparableResults.reduce((s, r) => s + r.diffPercent, 0) /
+        comparableResults.length
       : 0
 
   const rows = results
@@ -370,8 +597,17 @@ function generateHtmlReport(results: DiffResult[], threshold: number) {
       const satoriB64 = safeReadBase64(r.satoriPath)
       const browserB64 = safeReadBase64(r.browserPath)
       const diffB64 = safeReadBase64(r.diffPath)
-      const statusClass =
-        r.diffPercent < 5 ? 'pass' : r.diffPercent < 15 ? 'warn' : 'fail'
+      const statusClass = !r.comparable
+        ? 'skip'
+        : r.diffPercent < 5
+        ? 'pass'
+        : r.diffPercent < 15
+        ? 'warn'
+        : 'fail'
+      const exclusionNote =
+        !r.comparable && r.comparabilityNote
+          ? `<div class="test-note">${escapeHtml(r.comparabilityNote)}</div>`
+          : ''
       return `
       <tr class="result-row ${statusClass}" data-diff="${
         r.diffPercent
@@ -379,6 +615,7 @@ function generateHtmlReport(results: DiffResult[], threshold: number) {
         <td class="cell-status"><span class="status-dot"></span></td>
         <td class="cell-name">
           <span class="test-name">${escapeHtml(r.name)}</span>
+          ${exclusionNote}
         </td>
         <td class="cell-diff">
           <span class="diff-value">${r.diffPercent.toFixed(
@@ -435,6 +672,8 @@ function generateHtmlReport(results: DiffResult[], threshold: number) {
   --warn-dim: rgba(251,191,36,0.12);
   --fail: #f87171;
   --fail-dim: rgba(248,113,113,0.12);
+  --skip: #22d3ee;
+  --skip-dim: rgba(34,211,238,0.12);
   --radius: 6px;
 }
 
@@ -522,6 +761,7 @@ h1 {
 .stat.pass .stat-value { color: var(--pass); }
 .stat.warn .stat-value { color: var(--warn); }
 .stat.fail .stat-value { color: var(--fail); }
+.stat.skip .stat-value { color: var(--skip); }
 
 /* ── Controls ── */
 .toolbar {
@@ -657,6 +897,7 @@ h1 {
 .pass .status-dot { background: var(--pass); box-shadow: 0 0 8px var(--pass-dim); }
 .warn .status-dot { background: var(--warn); box-shadow: 0 0 8px var(--warn-dim); }
 .fail .status-dot { background: var(--fail); box-shadow: 0 0 8px var(--fail-dim); }
+.skip .status-dot { background: var(--skip); box-shadow: 0 0 8px var(--skip-dim); }
 
 /* Name */
 .cell-name { min-width: 180px; }
@@ -667,6 +908,14 @@ h1 {
   font-weight: 500;
   color: var(--text);
   line-height: 1.5;
+}
+
+.test-note {
+  margin-top: 0.25rem;
+  font-family: var(--mono);
+  font-size: 0.625rem;
+  color: var(--text-dim);
+  line-height: 1.4;
 }
 
 /* Diff percentage */
@@ -689,6 +938,7 @@ h1 {
 .pass .diff-value { color: var(--pass); }
 .warn .diff-value { color: var(--warn); }
 .fail .diff-value { color: var(--fail); }
+.skip .diff-value { color: var(--skip); }
 
 .diff-bar {
   margin-top: 0.375rem;
@@ -708,6 +958,7 @@ h1 {
 .pass .diff-bar-fill { background: var(--pass); }
 .warn .diff-bar-fill { background: var(--warn); }
 .fail .diff-bar-fill { background: var(--fail); }
+.skip .diff-bar-fill { background: var(--skip); }
 
 /* Images */
 .cell-images { padding-left: 1.5rem; }
@@ -800,6 +1051,10 @@ h1 {
       <div class="stat"><span class="stat-value">${
         results.length
       }</span><span class="stat-label">tests</span></div>
+      <div class="stat"><span class="stat-value">${
+        comparableResults.length
+      }</span><span class="stat-label">comparable</span></div>
+      <div class="stat skip"><span class="stat-value">${excludedCount}</span><span class="stat-label">excluded</span></div>
       <div class="stat pass"><span class="stat-value">${passCount}</span><span class="stat-label">pass</span></div>
       <div class="stat warn"><span class="stat-value">${warnCount}</span><span class="stat-label">warn</span></div>
       <div class="stat fail"><span class="stat-value">${failCount}</span><span class="stat-label">fail</span></div>
@@ -818,6 +1073,7 @@ h1 {
       <button class="filter-btn" onclick="filter(this,'pass')">Pass</button>
       <button class="filter-btn" onclick="filter(this,'warn')">Warn</button>
       <button class="filter-btn" onclick="filter(this,'fail')">Fail</button>
+      <button class="filter-btn" onclick="filter(this,'skip')">Excluded</button>
     </div>
     <div class="search-box">
       <input type="text" placeholder="filter tests..." oninput="search(this.value)" />
