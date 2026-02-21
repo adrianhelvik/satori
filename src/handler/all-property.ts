@@ -1,4 +1,5 @@
 import { CSS_ALL_UNSET_INHERITED_PROPS } from './style-inheritance.js'
+import { CSS_ALL_INITIAL_STYLE } from './style-reset-config.js'
 import type { SerializedStyle } from './style-types.js'
 
 const allModes = new Set([
@@ -11,56 +12,16 @@ const allModes = new Set([
 
 const allExcludedProps = new Set(['direction', 'unicodeBidi'])
 
-function getAllInitialStyle(): SerializedStyle {
-  return {
-    color: 'black',
-    fontFamily: ['serif'],
-    fontSize: 16,
-    fontStyle: 'normal',
-    fontWeight: 'normal',
-    fontVariant: 'normal',
-    fontVariantCaps: 'normal',
-    fontVariantPosition: 'normal',
-    fontSizeAdjust: 'none',
-    lineHeight: 'normal',
-    letterSpacing: 0,
-    textAlign: 'start',
-    textAlignLast: 'auto',
-    textJustify: 'auto',
-    textTransform: 'none',
-    whiteSpace: 'normal',
-    wordBreak: 'normal',
-    overflowWrap: 'normal',
-    hyphenateLimitChars: 'auto',
-    tabSize: 8,
-    listStyleType: 'disc',
-    listStylePosition: 'outside',
-    listStyleImage: 'none',
-    counterReset: 'none',
-    counterIncrement: 'none',
-    counterSet: 'none',
-    wordSpacing: 0,
-    textIndent: 0,
-    visibility: 'visible',
-    cursor: 'auto',
-    touchAction: 'auto',
-    userSelect: 'auto',
-    opacity: 1,
-    filter: 'none',
-    textDecorationLine: 'none',
-    textDecorationStyle: 'solid',
-    textDecorationSkipInk: 'auto',
-    textUnderlinePosition: 'auto',
-    backgroundColor: 'transparent',
-    backgroundRepeat: 'repeat',
-    backgroundPosition: '0% 0%',
-    backgroundSize: 'auto',
-    backgroundClip: 'border-box',
-    backgroundOrigin: 'padding-box',
-    mixBlendMode: 'normal',
-    isolation: 'auto',
-    maskImage: 'none',
+function cloneResetValue(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.slice()
   }
+
+  if (value && typeof value === 'object') {
+    return { ...value }
+  }
+
+  return value
 }
 
 export function applyAllReset(
@@ -88,10 +49,11 @@ export function applyAllReset(
     }
   }
 
-  const initialStyle = getAllInitialStyle()
-  for (const prop in initialStyle) {
+  for (const prop in CSS_ALL_INITIAL_STYLE) {
     if (!allExcludedProps.has(prop)) {
-      serializedStyle[prop] = initialStyle[prop]
+      serializedStyle[prop] = cloneResetValue(
+        CSS_ALL_INITIAL_STYLE[prop]
+      ) as SerializedStyle[keyof SerializedStyle]
     }
   }
   Object.assign(serializedStyle, preservedBySpec)
@@ -116,8 +78,9 @@ export function applyAllReset(
   }
 
   for (const prop of CSS_ALL_UNSET_INHERITED_PROPS) {
-    if (typeof inheritedStyle[prop] !== 'undefined') {
-      serializedStyle[prop] = inheritedStyle[prop]
+    const inheritedValue = inheritedStyle[prop]
+    if (typeof inheritedValue !== 'undefined') {
+      serializedStyle[prop] = inheritedValue
     }
   }
 }

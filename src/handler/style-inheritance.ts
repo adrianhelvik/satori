@@ -1,44 +1,10 @@
-export const CSS_ALL_UNSET_INHERITED_PROPS = new Set([
-  'color',
-  'fontFamily',
-  'fontSize',
-  'fontStyle',
-  'fontWeight',
-  'fontVariant',
-  'fontVariantCaps',
-  'fontVariantPosition',
-  'fontSizeAdjust',
-  'letterSpacing',
-  'lineHeight',
-  'textAlign',
-  'textAlignLast',
-  'textJustify',
-  'textTransform',
-  'textShadowOffset',
-  'textShadowColor',
-  'textShadowRadius',
-  'WebkitTextStrokeWidth',
-  'WebkitTextStrokeColor',
-  'textDecorationLine',
-  'textDecorationStyle',
-  'textDecorationColor',
-  'textDecorationSkipInk',
-  'textUnderlinePosition',
-  'whiteSpace',
-  'wordBreak',
-  'overflowWrap',
-  'hyphenateLimitChars',
-  'tabSize',
-  'visibility',
-  'cursor',
-  'wordSpacing',
-  'textIndent',
-  'listStyleType',
-  'listStylePosition',
-  'listStyleImage',
-])
+import { CSS_ALL_UNSET_INHERITED_PROP_NAMES } from './style-reset-config.js'
 
-export const RUNTIME_INHERITED_PROPS = new Set([
+export const CSS_ALL_UNSET_INHERITED_PROPS: Set<string> = new Set(
+  CSS_ALL_UNSET_INHERITED_PROP_NAMES
+)
+
+export const RUNTIME_INHERITED_PROPS: Set<string> = new Set([
   ...CSS_ALL_UNSET_INHERITED_PROPS,
 
   // Extra properties that need manual propagation in Satori's rendering model.
