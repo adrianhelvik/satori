@@ -63,6 +63,54 @@ function splitSpaceValues(value: string | number): string[] {
   return value.toString().trim().split(/\s+/)
 }
 
+const TRANSFORM_PERCENTAGE_RE = /(-?[\d.]+%)/g
+const TRANSFORM_PLACEHOLDER_BASE = 987_654_000
+
+type ParsedTransformStyle = {
+  transform: { [type: string]: string | number | number[] }[]
+}
+
+function parseTransformWithPercentageSupport(
+  value: string
+): ParsedTransformStyle {
+  const placeholders = new Map<number, string>()
+  let placeholderIndex = 0
+  const replaced = value.replace(TRANSFORM_PERCENTAGE_RE, (_, percentage) => {
+    let placeholder = TRANSFORM_PLACEHOLDER_BASE + placeholderIndex++
+    while (
+      value.includes(`${placeholder}px`) ||
+      placeholders.has(placeholder)
+    ) {
+      placeholder = TRANSFORM_PLACEHOLDER_BASE + placeholderIndex++
+    }
+    placeholders.set(placeholder, percentage)
+    return `${placeholder}px`
+  })
+  const parsed = getStylesForProperty(
+    'transform',
+    replaced,
+    true
+  ) as ParsedTransformStyle
+
+  for (const transform of parsed.transform || []) {
+    for (const k in transform) {
+      const token = transform[k]
+      if (typeof token === 'number' && placeholders.has(token)) {
+        transform[k] = placeholders.get(token)!
+        continue
+      }
+      if (typeof token === 'string' && token.endsWith('px')) {
+        const numeric = Number.parseFloat(token)
+        if (!Number.isNaN(numeric) && placeholders.has(numeric)) {
+          transform[k] = placeholders.get(numeric)!
+        }
+      }
+    }
+  }
+
+  return parsed
+}
+
 function resolveLogicalProperty(
   name: string,
   value: string | number,
@@ -670,24 +718,7 @@ function handleSpecialCase(
         transform: [{ matrix: matrixMatch.slice(1).map(Number) }],
       }
     }
-
-    // To support percentages in transform (which is not supported in RN), we
-    // replace them with random symbols and then replace them back after parsing.
-    const symbols = {}
-    const replaced = value.replace(/(-?[\d.]+%)/g, (_, _v) => {
-      const symbol = ~~(Math.random() * 1e9)
-      symbols[symbol] = _v
-      return symbol + 'px'
-    })
-    const parsed = getStylesForProperty('transform', replaced, true)
-    for (const t of parsed.transform) {
-      for (const k in t) {
-        if (symbols[t[k]]) {
-          t[k] = symbols[t[k]]
-        }
-      }
-    }
-    return parsed
+    return parseTransformWithPercentageSupport(value)
   }
 
   if (name === 'background') {
