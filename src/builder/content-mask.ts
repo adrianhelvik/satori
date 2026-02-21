@@ -53,11 +53,18 @@ export default function contentMask(
   }
   const overflowXClip = style.overflow === 'clip' || style.overflowX === 'clip'
   const overflowYClip = style.overflow === 'clip' || style.overflowY === 'clip'
+  const overflowClipMarginBox = String(
+    style.overflowClipMarginBox || 'padding-box'
+  )
+    .trim()
+    .toLowerCase()
   const overflowXHidden =
     style.overflow === 'hidden' || style.overflowX === 'hidden'
   const overflowYHidden =
     style.overflow === 'hidden' || style.overflowY === 'hidden'
   const overflowClipMargin = parseOverflowClipMargin(style)
+  const keepBorderAreaForClipMarginBox =
+    overflowClipMarginBox === 'border-box' && (overflowXClip || overflowYClip)
 
   const clipRect = { ...contentArea }
   const clipBox = resolveOverflowClipBox(style, left, top, width, height)
@@ -113,20 +120,22 @@ export default function contentMask(
         ? `url(#${style._inheritedMaskId})`
         : undefined,
     }) +
-      border(
-        {
-          left,
-          top,
-          width,
-          height,
-          props: {
-            transform: matrix ? matrix : undefined,
-          },
-          asContentMask: true,
-          maskBorderOnly: borderOnly,
-        },
-        style
-      )
+      (keepBorderAreaForClipMarginBox
+        ? ''
+        : border(
+            {
+              left,
+              top,
+              width,
+              height,
+              props: {
+                transform: matrix ? matrix : undefined,
+              },
+              asContentMask: true,
+              maskBorderOnly: borderOnly,
+            },
+            style
+          ))
   )
 
   return _contentMask
