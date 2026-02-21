@@ -11,6 +11,11 @@ const regexMap = {
   xywh: /xywh\((.+)\)/,
 }
 
+type ParsedShape = { type: string; [key: string]: string | number | undefined }
+
+const HORIZONTAL_KEYWORDS = new Set(['left', 'right'])
+const VERTICAL_KEYWORDS = new Set(['top', 'bottom'])
+
 export function createShapeParser(
   {
     width,
@@ -22,6 +27,43 @@ export function createShapeParser(
   style: Record<string, string | number>,
   inheritedStyle: Record<string, string | number>
 ) {
+  const fontSize = inheritedStyle.fontSize as number
+  const diagonal = Math.hypot(width, height) / Math.sqrt(2)
+
+  function resolveLength(
+    value: string | number,
+    relativeTo: number
+  ): number | undefined {
+    return lengthToNumber(value, fontSize, relativeTo, inheritedStyle, true)
+  }
+
+  function resolveLengthOrZero(value: string | number, relativeTo: number) {
+    return resolveLength(value, relativeTo) ?? 0
+  }
+
+  function resolveDirectionalValues(
+    parsed: Record<string, string | number>
+  ): [number, number, number, number] {
+    const values = Object.values(parsed).map((token, index) =>
+      resolveLengthOrZero(
+        String(token),
+        index === 0 || index === 2 ? height : width
+      )
+    )
+    return [values[0] ?? 0, values[1] ?? 0, values[2] ?? 0, values[3] ?? 0]
+  }
+
+  function splitRoundValues(value: string): [string, string] {
+    const match = value.match(/\bround\b/i)
+    if (!match || typeof match.index !== 'number') {
+      return [value.trim(), '0']
+    }
+
+    const before = value.slice(0, match.index).trim()
+    const after = value.slice(match.index + match[0].length).trim()
+    return [before, after || '0']
+  }
+
   function parseCircle(str: string) {
     const res = str.match(regexMap['circle'])
 
@@ -33,29 +75,12 @@ export function createShapeParser(
 
     return {
       type: 'circle',
-      r: lengthToNumber(
-        radius,
-        inheritedStyle.fontSize as number,
-        Math.sqrt(Math.pow(width, 2) + Math.pow(height, 2)) / Math.sqrt(2),
-        inheritedStyle,
-        true
-      ),
-      cx: lengthToNumber(
-        x,
-        inheritedStyle.fontSize as number,
-        width,
-        inheritedStyle,
-        true
-      ),
-      cy: lengthToNumber(
-        y,
-        inheritedStyle.fontSize as number,
-        height,
-        inheritedStyle,
-        true
-      ),
+      r: resolveLength(radius, diagonal),
+      cx: resolveLength(x, width),
+      cy: resolveLength(y, height),
     }
   }
+
   function parseEllipse(str: string) {
     const res = str.match(regexMap['ellipse'])
 
@@ -68,36 +93,13 @@ export function createShapeParser(
 
     return {
       type: 'ellipse',
-      rx: lengthToNumber(
-        rx || '50%',
-        inheritedStyle.fontSize as number,
-        width,
-        inheritedStyle,
-        true
-      ),
-      ry: lengthToNumber(
-        ry || '50%',
-        inheritedStyle.fontSize as number,
-        height,
-        inheritedStyle,
-        true
-      ),
-      cx: lengthToNumber(
-        x,
-        inheritedStyle.fontSize as number,
-        width,
-        inheritedStyle,
-        true
-      ),
-      cy: lengthToNumber(
-        y,
-        inheritedStyle.fontSize as number,
-        height,
-        inheritedStyle,
-        true
-      ),
+      rx: resolveLength(rx || '50%', width),
+      ry: resolveLength(ry || '50%', height),
+      cx: resolveLength(x, width),
+      cy: resolveLength(y, height),
     }
   }
+
   function parsePath(str: string) {
     const res = str.match(regexMap['path'])
 
@@ -111,6 +113,7 @@ export function createShapeParser(
       'fill-rule': fillRule,
     }
   }
+
   function parsePolygon(str: string) {
     const res = str.match(regexMap['polygon'])
 
@@ -123,56 +126,30 @@ export function createShapeParser(
       'fill-rule': fillRule,
       points: points
         .split(',')
-        .map((v) =>
-          v
-            .split(' ')
-            .map((k, i) =>
-              lengthToNumber(
-                k,
-                inheritedStyle.fontSize as number,
-                i === 0 ? width : height,
-                inheritedStyle,
-                true
-              )
+        .map((point) =>
+          point
+            .trim()
+            .split(/\s+/)
+            .map((token, index) =>
+              resolveLength(token, index === 0 ? width : height)
             )
             .join(' ')
         )
         .join(','),
     }
   }
+
   function parseInset(str: string) {
     const res = str.match(regexMap['inset'])
 
     if (!res) return null
 
-    const [inset, radius] = (
-      res[1].includes('round') ? res[1] : `${res[1].trim()} round 0`
-    ).split('round')
-    const radiusMap = getStylesForProperty('borderRadius', radius, true)
-    const r = Object.values(radiusMap)
-      .map((s) => String(s))
-      .map(
-        (s, i) =>
-          lengthToNumber(
-            s,
-            inheritedStyle.fontSize as number,
-            i === 0 || i === 2 ? height : width,
-            inheritedStyle,
-            true
-          ) || 0
-      )
-    const offsets = Object.values(getStylesForProperty('margin', inset, true))
-      .map((s) => String(s))
-      .map(
-        (s, i) =>
-          lengthToNumber(
-            s,
-            inheritedStyle.fontSize as number,
-            i === 0 || i === 2 ? height : width,
-            inheritedStyle,
-            true
-          ) || 0
-      )
+    const [insetValue, radiusValue] = splitRoundValues(res[1])
+    const radiusMap = getStylesForProperty('borderRadius', radiusValue, true)
+    const r = resolveDirectionalValues(radiusMap)
+    const offsets = resolveDirectionalValues(
+      getStylesForProperty('margin', insetValue, true)
+    )
     const x = offsets[3]
     const y = offsets[0]
     const w = width - (offsets[1] + offsets[3])
@@ -205,38 +182,10 @@ export function createShapeParser(
     const tokens = boxPart.trim().split(/\s+/).filter(Boolean)
     if (tokens.length !== 4) return null
 
-    const x =
-      lengthToNumber(
-        tokens[0],
-        inheritedStyle.fontSize as number,
-        width,
-        inheritedStyle,
-        true
-      ) ?? 0
-    const y =
-      lengthToNumber(
-        tokens[1],
-        inheritedStyle.fontSize as number,
-        height,
-        inheritedStyle,
-        true
-      ) ?? 0
-    const w =
-      lengthToNumber(
-        tokens[2],
-        inheritedStyle.fontSize as number,
-        width,
-        inheritedStyle,
-        true
-      ) ?? 0
-    const h =
-      lengthToNumber(
-        tokens[3],
-        inheritedStyle.fontSize as number,
-        height,
-        inheritedStyle,
-        true
-      ) ?? 0
+    const x = resolveLengthOrZero(tokens[0], width)
+    const y = resolveLengthOrZero(tokens[1], height)
+    const w = resolveLengthOrZero(tokens[2], width)
+    const h = resolveLengthOrZero(tokens[3], height)
 
     if (!roundPart.trim()) {
       return {
@@ -275,28 +224,56 @@ function resolveFillRule(str: string) {
 }
 
 function resolvePosition(position: string, xDelta: number, yDelta: number) {
-  const pos = position.split(' ')
+  const pos = position.trim().split(/\s+/).filter(Boolean)
   const res: { x: number | string; y: number | string } = {
     x: pos[0] || '50%',
     y: pos[1] || '50%',
   }
 
-  pos.forEach((v) => {
+  if (pos.length === 0) return res
+
+  // `center` should be axis-aware. For example, `top center` and
+  // `center top` both mean top-centered, not fully centered.
+  let hasX = false
+  let hasY = false
+
+  // Single-token `center` maps to both axes.
+  if (pos.length === 1 && pos[0] === 'center') {
+    return { x: xDelta / 2, y: yDelta / 2 }
+  }
+
+  for (const v of pos) {
     if (v === 'top') {
       res.y = 0
+      hasY = true
     } else if (v === 'bottom') {
       res.y = yDelta
+      hasY = true
     } else if (v === 'left') {
       res.x = 0
+      hasX = true
     } else if (v === 'right') {
       res.x = xDelta
+      hasX = true
     } else if (v === 'center') {
-      res.x = xDelta / 2
-      res.y = yDelta / 2
+      if (!hasX) {
+        res.x = xDelta / 2
+        hasX = true
+      } else if (!hasY) {
+        res.y = yDelta / 2
+        hasY = true
+      }
     } else {
-      // do nothing
+      const axis = !hasX || (!hasY && VERTICAL_KEYWORDS.has(pos[0])) ? 'x' : 'y'
+      if (axis === 'x' && !HORIZONTAL_KEYWORDS.has(v)) {
+        res.x = v
+        hasX = true
+      } else if (axis === 'y' && !VERTICAL_KEYWORDS.has(v)) {
+        res.y = v
+        hasY = true
+      }
     }
-  })
+  }
 
   return res
 }
