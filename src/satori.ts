@@ -136,11 +136,9 @@ export default async function satori(
       return twStyles
     },
   })
+  const layoutSession = createLayoutSession(handler)
 
-  const segmentsMissingFont = (await handler.next()).value as {
-    word: string
-    locale?: Locale
-  }[]
+  const segmentsMissingFont = await layoutSession.collectMissingFontSegments()
 
   if (options.loadAdditionalAsset) {
     if (segmentsMissingFont.length) {
@@ -180,10 +178,10 @@ export default async function satori(
     }
   }
 
-  await handler.next()
+  await layoutSession.prepareForLayoutCalculation()
   root.calculateLayout(definedWidth, definedHeight, Yoga.DIRECTION_LTR)
 
-  const content = (await handler.next([0, 0])).value as string
+  const content = await layoutSession.render([0, 0])
 
   const computedWidth = root.getComputedWidth()
   const computedHeight = root.getComputedHeight()
@@ -191,6 +189,64 @@ export default async function satori(
   root.freeRecursive()
 
   return svg({ width: computedWidth, height: computedHeight, content })
+}
+
+type MissingFontSegment = { word: string; locale?: Locale }
+type LayoutIterator = ReturnType<typeof layout>
+
+function createLayoutSession(handler: LayoutIterator) {
+  let phase:
+    | 'awaitingMissingFonts'
+    | 'awaitingLayoutCalculation'
+    | 'awaitingRender'
+    | 'completed' = 'awaitingMissingFonts'
+
+  return {
+    async collectMissingFontSegments(): Promise<MissingFontSegment[]> {
+      if (phase !== 'awaitingMissingFonts') {
+        throw new Error(
+          `Unexpected layout session phase "${phase}" while collecting missing font segments.`
+        )
+      }
+
+      const result = await handler.next()
+      phase = 'awaitingLayoutCalculation'
+
+      if (!result.done && Array.isArray(result.value)) {
+        return result.value as MissingFontSegment[]
+      }
+      return []
+    },
+
+    async prepareForLayoutCalculation(): Promise<void> {
+      if (phase !== 'awaitingLayoutCalculation') {
+        throw new Error(
+          `Unexpected layout session phase "${phase}" while preparing layout calculation.`
+        )
+      }
+
+      const result = await handler.next()
+      if (result.done) {
+        throw new Error(
+          'Layout pipeline ended before Yoga layout calculation could run.'
+        )
+      }
+
+      phase = 'awaitingRender'
+    },
+
+    async render(offset: [number, number]): Promise<string> {
+      if (phase !== 'awaitingRender') {
+        throw new Error(
+          `Unexpected layout session phase "${phase}" while rendering.`
+        )
+      }
+
+      const result = await handler.next(offset as [number, number, any?])
+      phase = 'completed'
+      return typeof result.value === 'string' ? result.value : ''
+    },
+  }
 }
 
 function getRootNode(
