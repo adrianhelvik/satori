@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import {
   getListMarkerText,
+  isOrderedListMarkerType,
   parseListStylePositionValue,
   parseListStyleShorthand,
   parseListStyleTypeValue,
@@ -42,5 +43,12 @@ describe('list-style helpers', () => {
     expect(getListMarkerText('lower-roman', 4)).toBe('iv.')
     expect(getListMarkerText('"\\2192"', 1)).toBe('\u2192')
     expect(getListMarkerText('none', 1)).toBeNull()
+  })
+
+  it('should detect ordered list marker types', () => {
+    expect(isOrderedListMarkerType('decimal')).toBe(true)
+    expect(isOrderedListMarkerType('lower-hexadecimal')).toBe(true)
+    expect(isOrderedListMarkerType('disc')).toBe(false)
+    expect(isOrderedListMarkerType('"→"')).toBe(false)
   })
 })

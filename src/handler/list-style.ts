@@ -17,9 +17,27 @@ const listStyleTypes = new Set([
   'disclosure-closed',
 ])
 
+const orderedListStyleTypes = new Set([
+  'decimal',
+  'decimal-leading-zero',
+  'lower-hexadecimal',
+  'lower-alpha',
+  'upper-alpha',
+  'lower-latin',
+  'upper-latin',
+  'lower-greek',
+  'lower-roman',
+  'upper-roman',
+])
+
 const listStylePositions = new Set(['inside', 'outside'])
 
 export type ListStylePosition = 'inside' | 'outside'
+
+export function isOrderedListMarkerType(type: string | undefined): boolean {
+  const normalized = (type || '').trim().toLowerCase()
+  return orderedListStyleTypes.has(normalized)
+}
 
 export function parseListStyleTypeValue(
   value: string | number

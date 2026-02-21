@@ -18,7 +18,7 @@ Satori does not support table layout or multi-column layout. List markers are su
 
 | Property | Feasibility | Notes |
 |----------|-------------|-------|
-| `list-style` | **Supported (approx.)** | Parses shorthand into marker type/position/image for list items. |
+| `list-style` | **Supported (approx.)** | Parses shorthand into marker type/position/image for list items (`<li>` and `display: list-item` elements). |
 | `list-style-type` | **Supported (approx.)** | Supports common marker styles (`disc`, `circle`, `square`, `decimal`, `lower-hexadecimal`, alpha, roman), `lower-greek`, disclosure markers (`disclosure-open` / `disclosure-closed`), and quoted string markers (`"→"`). |
 | `list-style-position` | **Supported (approx.)** | Supports `inside` and `outside` marker placement. |
 | `list-style-image` | **Supported (approx.)** | Supports `url(...)` marker images. |

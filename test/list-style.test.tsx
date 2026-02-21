@@ -94,6 +94,81 @@ describe('list-style', () => {
     expect(toImage(svg, 260)).toMatchImageSnapshot()
   })
 
+  it('should render markers for display:list-item elements', async () => {
+    const nodes = []
+    const svg = await satori(
+      <div
+        style={{
+          width: 240,
+          height: 140,
+          backgroundColor: 'white',
+          fontSize: 20,
+          paddingLeft: 40,
+        }}
+      >
+        <div style={{ display: 'list-item' }}>Alpha</div>
+        <div style={{ display: 'list-item' }}>Beta</div>
+        <div style={{ display: 'list-item' }}>Gamma</div>
+      </div>,
+      {
+        width: 240,
+        height: 140,
+        fonts,
+        embedFont: false,
+        onNodeDetected: (node) => nodes.push(node),
+      }
+    )
+
+    const markerText = nodes
+      .filter(
+        (node) =>
+          node.key === '__satori-list-marker' &&
+          typeof node.textContent === 'string'
+      )
+      .map((node) => node.textContent)
+
+    expect(markerText).toEqual(['•', '•', '•'])
+    expect(toImage(svg, 240)).toMatchImageSnapshot()
+  })
+
+  it('should support ordered display:list-item markers from parent listStyleType', async () => {
+    const nodes = []
+    const svg = await satori(
+      <div
+        style={{
+          width: 260,
+          height: 140,
+          backgroundColor: 'white',
+          fontSize: 18,
+          listStyleType: 'decimal',
+          paddingLeft: 40,
+        }}
+      >
+        <div style={{ display: 'list-item' }}>First item</div>
+        <div style={{ display: 'list-item' }}>Second item</div>
+        <div style={{ display: 'list-item' }}>Third item</div>
+      </div>,
+      {
+        width: 260,
+        height: 140,
+        fonts,
+        embedFont: false,
+        onNodeDetected: (node) => nodes.push(node),
+      }
+    )
+
+    const markerText = nodes
+      .filter(
+        (node) =>
+          node.key === '__satori-list-marker' &&
+          typeof node.textContent === 'string'
+      )
+      .map((node) => node.textContent)
+
+    expect(markerText).toEqual(['1.', '2.', '3.'])
+    expect(toImage(svg, 260)).toMatchImageSnapshot()
+  })
+
   it('should support lower-greek listStyleType', async () => {
     const nodes = []
     const svg = await satori(

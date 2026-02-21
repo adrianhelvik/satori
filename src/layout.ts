@@ -25,7 +25,10 @@ import type { TransformInput } from './builder/transform.js'
 import rect, { type BlendPrimitive } from './builder/rect.js'
 import { Locale, normalizeLocale } from './language.js'
 import { SerializedStyle } from './handler/expand.js'
-import { getListMarkerText } from './handler/list-style.js'
+import {
+  getListMarkerText,
+  isOrderedListMarkerType,
+} from './handler/list-style.js'
 import { isClippedOverflow } from './overflow-semantics.js'
 import {
   createMissingFontsPhase,
@@ -241,9 +244,24 @@ function getChildSortMeta(
   originalIndex: number,
   getTwStyles: LayoutContext['getTwStyles']
 ): ChildSortMeta {
-  if (!isReactElement(child) || typeof child.type !== 'string') {
+  const childStyle = resolveElementStyle(child, getTwStyles)
+  if (!childStyle) {
     return { child, order: 0, zIndex: 0, originalIndex }
   }
+
+  return {
+    child,
+    order: parseStyleNumber(childStyle?.order, 0),
+    zIndex: parseStyleNumber(childStyle?.zIndex, 0),
+    originalIndex,
+  }
+}
+
+function resolveElementStyle(
+  child: ReactNode,
+  getTwStyles: LayoutContext['getTwStyles']
+) {
+  if (!isReactElement(child) || typeof child.type !== 'string') return
 
   const childProps = child.props || {}
   let childStyle = childProps.style
@@ -253,12 +271,19 @@ function getChildSortMeta(
     childStyle = Object.assign(twStyles, childStyle)
   }
 
-  return {
-    child,
-    order: parseStyleNumber(childStyle?.order, 0),
-    zIndex: parseStyleNumber(childStyle?.zIndex, 0),
-    originalIndex,
-  }
+  return childStyle
+}
+
+function isListItemElement(
+  child: ReactNode,
+  getTwStyles: LayoutContext['getTwStyles']
+) {
+  if (!isReactElement(child) || typeof child.type !== 'string') return false
+
+  if (child.type === 'li') return true
+
+  const childStyle = resolveElementStyle(child, getTwStyles)
+  return normalizeDisplayValue(childStyle?.display) === 'list-item'
 }
 
 function parseListImageURL(value: string | undefined): string | null {
@@ -540,7 +565,12 @@ export default async function* layout(
     }
   }
 
-  if (type === 'li' && listItemContext) {
+  const shouldApplyListMarker =
+    !!listItemContext &&
+    (type === 'li' ||
+      normalizeDisplayValue(computedStyle.display) === 'list-item')
+
+  if (shouldApplyListMarker && listItemContext) {
     const listStyleType =
       (computedStyle.listStyleType as string | undefined) ||
       listItemContext.styleType ||
@@ -621,7 +651,12 @@ export default async function* layout(
   const listStyleImage =
     ((computedStyle.listStyleImage as string | undefined) || 'none') + ''
   let orderedListCounter: OrderedListCounterState | undefined
-  if (isListContainer && type === 'ol') {
+  const hasOrderedListMarkers =
+    type === 'ol' ||
+    (type !== 'ul' &&
+      typeof listStyleType === 'string' &&
+      isOrderedListMarkerType(listStyleType))
+  if (hasOrderedListMarkers) {
     orderedListCounter = { value: 0 }
     applyListItemCounterStyles(orderedListCounter, computedStyle, 0)
   }
@@ -630,14 +665,9 @@ export default async function* layout(
   for (let orderIndex = 0; orderIndex < sortedChildren.length; orderIndex++) {
     const { child, zIndex } = sortedChildren[orderIndex]
     let childListItemContext: ListItemContext | undefined
-    if (
-      isListContainer &&
-      isReactElement(child) &&
-      typeof child.type === 'string' &&
-      child.type === 'li'
-    ) {
+    if (isListItemElement(child, getTwStyles)) {
       childListItemContext = {
-        listType: type as 'ul' | 'ol',
+        listType: isListContainer ? (type as 'ul' | 'ol') : 'ul',
         index: ++listItemIndex,
         styleType: listStyleType,
         stylePosition: listStylePosition,
