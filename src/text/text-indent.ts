@@ -1,4 +1,8 @@
 import { isString, lengthToNumber } from '../utils.js'
+import {
+  parseSimpleCalcTerms,
+  splitByWhitespaceOutsideParens,
+} from '../css-value-parser.js'
 
 export interface TextIndentConfig {
   width: number
@@ -10,41 +14,6 @@ const NO_TEXT_INDENT: TextIndentConfig = {
   width: 0,
   eachLine: false,
   hanging: false,
-}
-
-function splitByWhitespaceOutsideParens(input: string): string[] {
-  const tokens: string[] = []
-  let current = ''
-  let parenDepth = 0
-
-  for (let i = 0; i < input.length; i++) {
-    const char = input[i]
-
-    if (char === '(') {
-      parenDepth++
-      current += char
-      continue
-    }
-
-    if (char === ')') {
-      if (parenDepth > 0) parenDepth--
-      current += char
-      continue
-    }
-
-    if (/\s/.test(char) && parenDepth === 0) {
-      const token = current.trim()
-      if (token) tokens.push(token)
-      current = ''
-      continue
-    }
-
-    current += char
-  }
-
-  const token = current.trim()
-  if (token) tokens.push(token)
-  return tokens
 }
 
 function resolveTextIndentWidth(
@@ -62,42 +31,20 @@ function resolveTextIndentWidth(
   )
   if (typeof direct === 'number') return direct
 
-  const normalized = token.trim().toLowerCase()
-  if (!(normalized.startsWith('calc(') && normalized.endsWith(')'))) {
-    return
-  }
-
-  const expression = token.trim().slice(5, -1).trim()
-  if (!expression) return
-
-  const terms = expression.match(/[+-]?\s*[^+-]+/g)
-  if (!terms || !terms.length) return
+  const terms = parseSimpleCalcTerms(token)
+  if (!terms) return
 
   let result = 0
   for (const term of terms) {
-    const normalizedTerm = term.trim()
-    if (!normalizedTerm) continue
-
-    let sign = 1
-    let valueToken = normalizedTerm
-    if (valueToken.startsWith('+')) {
-      valueToken = valueToken.slice(1).trim()
-    } else if (valueToken.startsWith('-')) {
-      sign = -1
-      valueToken = valueToken.slice(1).trim()
-    }
-
-    if (!valueToken) return
-
     const resolved = lengthToNumber(
-      valueToken,
+      term.value,
       fontSize,
       containerWidth,
       inheritedStyle as Record<string, number | string>,
       true
     )
     if (typeof resolved !== 'number') return
-    result += sign * resolved
+    result += term.sign * resolved
   }
 
   return result

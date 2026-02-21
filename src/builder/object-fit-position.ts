@@ -1,4 +1,8 @@
 import { lengthToNumber } from '../utils.js'
+import {
+  parseSimpleCalcTerms,
+  splitByWhitespaceOutsideParens,
+} from '../css-value-parser.js'
 import CssDimension from '../vendor/parse-css-dimension/index.js'
 
 export interface ObjectPositionAxis {
@@ -46,7 +50,6 @@ function parseObjectPositionCoordinate(
   inheritedStyle: StyleValueMap
 ): ObjectPositionAxis | undefined {
   const raw = token.trim()
-  const normalized = raw.toLowerCase()
 
   let parsedDimension: CssDimension | undefined
   try {
@@ -61,35 +64,16 @@ function parseObjectPositionCoordinate(
     }
   }
 
-  if (normalized.startsWith('calc(') && normalized.endsWith(')')) {
-    const expression = raw.slice(5, -1).trim()
-    if (!expression) return
-
-    const terms = expression.match(/[+-]?\s*[^+-]+/g)
-    if (!terms || !terms.length) return
-
+  const terms = parseSimpleCalcTerms(raw)
+  if (terms) {
     let ratio = 0
     let offset = 0
 
     for (const term of terms) {
-      const normalizedTerm = term.trim()
-      if (!normalizedTerm) continue
-
-      let sign = 1
-      let valueToken = normalizedTerm
-      if (valueToken.startsWith('+')) {
-        valueToken = valueToken.slice(1).trim()
-      } else if (valueToken.startsWith('-')) {
-        sign = -1
-        valueToken = valueToken.slice(1).trim()
-      }
-
-      if (!valueToken) return
-
       try {
-        const parsedTerm = new CssDimension(valueToken)
+        const parsedTerm = new CssDimension(term.value)
         if (parsedTerm.type === 'percentage') {
-          ratio += (sign * parsedTerm.value) / 100
+          ratio += (term.sign * parsedTerm.value) / 100
           continue
         }
       } catch {
@@ -97,12 +81,12 @@ function parseObjectPositionCoordinate(
       }
 
       const lengthTerm = parseObjectPositionLength(
-        valueToken,
+        term.value,
         baseFontSize,
         inheritedStyle
       )
       if (typeof lengthTerm !== 'number') return
-      offset += sign * lengthTerm
+      offset += term.sign * lengthTerm
     }
 
     return {
@@ -219,29 +203,7 @@ export function parseObjectPosition(
     .trim()
     .toLowerCase()
   if (!raw) return defaults
-  const parts: string[] = []
-  let tokenStart = 0
-  let parenDepth = 0
-  const flush = (end: number) => {
-    const token = raw.slice(tokenStart, end).trim()
-    if (token) parts.push(token)
-  }
-
-  for (let index = 0; index < raw.length; index++) {
-    const char = raw[index]
-    if (char === '(') parenDepth++
-    if (char === ')' && parenDepth > 0) parenDepth--
-    if (parenDepth === 0 && /\s/.test(char)) {
-      flush(index)
-      tokenStart = index + 1
-      while (tokenStart < raw.length && /\s/.test(raw[tokenStart])) {
-        tokenStart++
-      }
-      index = tokenStart - 1
-    }
-  }
-  flush(raw.length)
-
+  const parts = splitByWhitespaceOutsideParens(raw)
   if (!parts.length) return defaults
 
   let x: ObjectPositionAxis | undefined
