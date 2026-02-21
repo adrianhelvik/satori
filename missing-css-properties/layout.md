@@ -29,8 +29,8 @@
 
 | Property | Feasibility | Notes |
 |----------|-------------|-------|
-| `position: fixed` | N/A | No viewport scrolling in static SVG |
-| `position: sticky` | N/A | Requires scroll context |
+| `position: fixed` | **Supported (approx.)** | Accepted and mapped to `absolute`. Viewport/scroll anchoring semantics are not modeled. |
+| `position: sticky` | **Supported (approx.)** | Accepted and mapped to `relative` in static SVG output (no scroll-stickiness behavior). |
 
 ### Overflow
 

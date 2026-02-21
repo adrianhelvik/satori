@@ -77,10 +77,34 @@ describe('Error', () => {
     expect(typeof svg).toBe('string')
   })
 
+  it('should not throw if position fixed is used', async () => {
+    const svg = await satori(
+      <div style={{ position: 'fixed', top: 1, left: 1 }}>Test</div>,
+      {
+        width: 10,
+        height: 10,
+        fonts,
+      }
+    )
+    expect(typeof svg).toBe('string')
+  })
+
+  it('should not throw if position sticky is used', async () => {
+    const svg = await satori(
+      <div style={{ position: 'sticky', top: 1 }}>Test</div>,
+      {
+        width: 10,
+        height: 10,
+        fonts,
+      }
+    )
+    expect(typeof svg).toBe('string')
+  })
+
   it('should throw if using invalid values', async () => {
     const result = satori(
       // @ts-expect-error
-      <div style={{ position: 'fixed ' }}>Test</div>,
+      <div style={{ position: 'bogus-position' }}>Test</div>,
       {
         width: 10,
         height: 10,
@@ -88,7 +112,7 @@ describe('Error', () => {
       }
     )
     expect(result).rejects.toThrowError(
-      `Invalid value for CSS property "position". Allowed values: "absolute" | "relative" | "static". Received: "fixed".`
+      `Invalid value for CSS property "position". Allowed values: "absolute" | "relative" | "static". Received: "bogus-position".`
     )
   })
 

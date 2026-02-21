@@ -36,6 +36,11 @@ const JUSTIFY_CONTENT_VALUE_ALIASES: Record<string, string> = {
   right: 'flex-end',
 }
 
+const POSITION_VALUE_ALIASES: Record<string, string> = {
+  fixed: 'absolute',
+  sticky: 'relative',
+}
+
 function normalizeBoxAlignmentValue(
   value: unknown,
   aliases: Record<string, string>
@@ -48,6 +53,12 @@ function normalizeBoxAlignmentValue(
   // CSS overflow-position prefix (`safe` / `unsafe`) has no Yoga equivalent.
   const withoutOverflowPosition = normalized.replace(/^(safe|unsafe)\s+/, '')
   return aliases[withoutOverflowPosition] || withoutOverflowPosition
+}
+
+function normalizePositionValue(value: unknown): unknown {
+  if (typeof value !== 'string') return value
+  const normalized = value.trim().toLowerCase()
+  return POSITION_VALUE_ALIASES[normalized] || normalized
 }
 
 function isAutoSize(value: unknown): boolean {
@@ -512,7 +523,7 @@ export default async function compute(
 
   node.setPositionType(
     v(
-      style.position,
+      normalizePositionValue(style.position),
       {
         absolute: Yoga.POSITION_TYPE_ABSOLUTE,
         relative: Yoga.POSITION_TYPE_RELATIVE,
