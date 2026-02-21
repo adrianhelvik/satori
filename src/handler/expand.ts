@@ -9,23 +9,20 @@ import { parse as parseBoxShadow } from 'css-box-shadow'
 import cssColorParse from 'parse-css-color'
 
 import CssDimension from '../vendor/parse-css-dimension/index.js'
-import parseTransformOrigin, {
-  ParsedTransformOrigin,
-} from '../transform-origin.js'
-import type {
-  TransformInput,
-  TransformDescriptor,
-} from '../builder/transform.js'
+import parseTransformOrigin from '../transform-origin.js'
+import type { TransformDescriptor } from '../builder/transform.js'
 import { isTransformInput } from '../builder/transform.js'
 import { isString, lengthToNumber, v, splitEffects } from '../utils.js'
-import { MaskProperty, parseMask } from '../parser/mask.js'
-import { FontWeight, FontStyle } from '../font.js'
+import { parseMask } from '../parser/mask.js'
 import {
   parseListStylePositionValue,
   parseListStyleShorthand,
   parseListStyleTypeValue,
 } from './list-style.js'
-import { CSS_ALL_UNSET_INHERITED_PROPS } from './style-inheritance.js'
+import { applyAllReset } from './all-property.js'
+import type { SerializedStyle } from './style-types.js'
+
+export type { BackgroundClipPathRef, SerializedStyle } from './style-types.js'
 
 // https://react-cn.github.io/react/tips/style-props-value-px.html
 const optOutPx = new Set([
@@ -397,6 +394,80 @@ function resolveLogicalProperty(
   }
 }
 
+type SimpleSpecialCaseResult =
+  | Record<string, string | number | object>
+  | undefined
+type SimpleSpecialCaseHandler = (
+  value: string | number
+) => SimpleSpecialCaseResult
+
+const simpleSpecialCaseHandlers: Record<string, SimpleSpecialCaseHandler> = {
+  outlineWidth: (value) => ({ outlineWidth: purify('outlineWidth', value) }),
+  outlineStyle: (value) => ({ outlineStyle: value }),
+  outlineColor: (value) => ({ outlineColor: value }),
+  outlineOffset: (value) => ({ outlineOffset: purify('outlineOffset', value) }),
+
+  listStyle: (value) => parseListStyleShorthand(value),
+  listStyleType: (value) => {
+    const parsedType = parseListStyleTypeValue(value)
+    if (parsedType) {
+      return { listStyleType: parsedType }
+    }
+  },
+  listStylePosition: (value) => {
+    const parsedPosition = parseListStylePositionValue(value)
+    if (parsedPosition) {
+      return { listStylePosition: parsedPosition }
+    }
+  },
+  listStyleImage: (value) => ({ listStyleImage: String(value).trim() }),
+
+  counterReset: (value) => ({ counterReset: String(value).trim() }),
+  counterIncrement: (value) => ({ counterIncrement: String(value).trim() }),
+  counterSet: (value) => ({ counterSet: String(value).trim() }),
+
+  overflowWrap: (value) => ({ overflowWrap: value }),
+  wordWrap: (value) => ({ overflowWrap: value }),
+  textDecorationThickness: (value) => ({
+    textDecorationThickness: purify('textDecorationThickness', value),
+  }),
+  textUnderlineOffset: (value) => ({
+    textUnderlineOffset: purify('textUnderlineOffset', value),
+  }),
+  textUnderlinePosition: (value) => ({ textUnderlinePosition: value }),
+  textDecorationLine: (value) => ({ textDecorationLine: value }),
+  textDecorationStyle: (value) => ({ textDecorationStyle: value }),
+  textDecorationColor: (value) => ({ textDecorationColor: value }),
+  textAlignLast: (value) => ({ textAlignLast: value }),
+  textJustify: (value) => ({ textJustify: value }),
+  visibility: (value) => ({ visibility: value }),
+  cursor: (value) => ({ cursor: String(value).trim() }),
+  touchAction: (value) => ({ touchAction: String(value).trim() }),
+  userSelect: (value) => ({ userSelect: String(value).trim() }),
+
+  mixBlendMode: (value) => ({ mixBlendMode: value }),
+  isolation: (value) => ({ isolation: value }),
+  imageRendering: (value) => ({ imageRendering: value }),
+  imageOrientation: (value) => ({ imageOrientation: value }),
+
+  backgroundPositionX: (value) => ({
+    backgroundPositionX: purify('backgroundPositionX', value),
+  }),
+  backgroundPositionY: (value) => ({
+    backgroundPositionY: purify('backgroundPositionY', value),
+  }),
+
+  maskMode: (value) => ({ maskMode: value }),
+  maskOrigin: (value) => ({ maskOrigin: value }),
+  maskClip: (value) => ({ maskClip: value }),
+  maskComposite: (value) => ({ maskComposite: value }),
+  maskType: (value) => ({ maskType: value }),
+
+  aspectRatio: (value) => ({ aspectRatio: value }),
+  zIndex: (value) => ({ zIndex: value }),
+  lineHeight: (value) => ({ lineHeight: purify('lineHeight', value) }),
+}
+
 function handleSpecialCase(
   name: string,
   value: string | number,
@@ -404,6 +475,9 @@ function handleSpecialCase(
 ) {
   const logical = resolveLogicalProperty(name, value, currentColor)
   if (logical) return logical
+
+  const simpleHandler = simpleSpecialCaseHandlers[name]
+  if (simpleHandler) return simpleHandler(value)
 
   // --- Shorthand expansions ---
 
@@ -523,13 +597,6 @@ function handleSpecialCase(
     }
     return result
   }
-  if (name === 'outlineWidth')
-    return { outlineWidth: purify('outlineWidth', value) }
-  if (name === 'outlineStyle') return { outlineStyle: value }
-  if (name === 'outlineColor') return { outlineColor: value }
-  if (name === 'outlineOffset')
-    return { outlineOffset: purify('outlineOffset', value) }
-
   // Pass-through properties that don't need special handling
   if (name === 'wordSpacing')
     return { wordSpacing: purify('wordSpacing', value) }
@@ -558,69 +625,6 @@ function handleSpecialCase(
       return { textWrap: normalized }
     }
   }
-  if (name === 'listStyle') {
-    return parseListStyleShorthand(value)
-  }
-  if (name === 'listStyleType') {
-    const parsedType = parseListStyleTypeValue(value)
-    if (parsedType) {
-      return { listStyleType: parsedType }
-    }
-    return
-  }
-  if (name === 'listStylePosition') {
-    const parsedPosition = parseListStylePositionValue(value)
-    if (parsedPosition) {
-      return { listStylePosition: parsedPosition }
-    }
-    return
-  }
-  if (name === 'listStyleImage') {
-    return { listStyleImage: String(value).trim() }
-  }
-  if (
-    name === 'counterReset' ||
-    name === 'counterIncrement' ||
-    name === 'counterSet'
-  ) {
-    return { [name]: String(value).trim() }
-  }
-  if (name === 'overflowWrap' || name === 'wordWrap')
-    return { overflowWrap: value }
-  if (name === 'textDecorationThickness')
-    return { textDecorationThickness: purify('textDecorationThickness', value) }
-  if (name === 'textUnderlineOffset')
-    return { textUnderlineOffset: purify('textUnderlineOffset', value) }
-  if (name === 'textUnderlinePosition') return { textUnderlinePosition: value }
-  if (name === 'textDecorationLine') return { textDecorationLine: value }
-  if (name === 'textDecorationStyle') return { textDecorationStyle: value }
-  if (name === 'textDecorationColor') return { textDecorationColor: value }
-  if (name === 'textAlignLast') return { textAlignLast: value }
-  if (name === 'textJustify') return { textJustify: value }
-  if (name === 'visibility') return { visibility: value }
-  if (name === 'cursor') return { cursor: String(value).trim() }
-  if (name === 'touchAction') return { touchAction: String(value).trim() }
-  if (name === 'userSelect') return { userSelect: String(value).trim() }
-
-  // mix-blend-mode, image-rendering: pass through to SVG attributes
-  if (name === 'mixBlendMode') return { mixBlendMode: value }
-  if (name === 'isolation') return { isolation: value }
-  if (name === 'imageRendering') return { imageRendering: value }
-  if (name === 'imageOrientation') return { imageOrientation: value }
-
-  // background-position-x / background-position-y
-  if (name === 'backgroundPositionX')
-    return { backgroundPositionX: purify('backgroundPositionX', value) }
-  if (name === 'backgroundPositionY')
-    return { backgroundPositionY: purify('backgroundPositionY', value) }
-
-  // mask sub-properties
-  if (name === 'maskMode') return { maskMode: value }
-  if (name === 'maskOrigin') return { maskOrigin: value }
-  if (name === 'maskClip') return { maskClip: value }
-  if (name === 'maskComposite') return { maskComposite: value }
-  if (name === 'maskType') return { maskType: value }
-
   // Individual transform properties (CSS Transforms Level 2)
   if (name === 'rotate') {
     const deg = typeof value === 'number' ? value : parseFloat(value as string)
@@ -640,16 +644,6 @@ function handleSpecialCase(
       result.push({ translateY: purify('translateY', parts[1]) } as any)
     }
     return { transform: result }
-  }
-
-  if (name === 'aspectRatio') return { aspectRatio: value }
-
-  if (name === 'zIndex') {
-    return { [name]: value }
-  }
-
-  if (name === 'lineHeight') {
-    return { lineHeight: purify(name, value) }
   }
 
   if (name === 'fontKerning') {
@@ -944,201 +938,6 @@ function mergeBackgroundPositionAxes(serializedStyle: SerializedStyle): void {
   }
 
   serializedStyle.backgroundPosition = merged.join(', ')
-}
-
-type MainStyle = {
-  color: string
-  fontSize: number
-  transform: TransformInput
-  transformOrigin: ParsedTransformOrigin
-  maskImage: MaskProperty[] | string
-  opacity: number
-  textTransform: string
-  whiteSpace: string
-  wordBreak: string
-  textAlign: string
-  textAlignLast: string
-  textJustify: string
-  lineHeight: number | string
-  letterSpacing: number
-  listStyleType: string
-  listStylePosition: string
-  listStyleImage: string
-  counterReset: string
-  counterIncrement: string
-  counterSet: string
-
-  fontFamily: string | string[]
-  fontWeight: FontWeight
-  fontStyle: FontStyle
-
-  borderTopWidth: number
-  borderLeftWidth: number
-  borderRightWidth: number
-  borderBottomWidth: number
-
-  paddingTop: number
-  paddingLeft: number
-  paddingRight: number
-  paddingBottom: number
-
-  flexGrow: number
-  flexShrink: number
-
-  gap: number
-  rowGap: number
-  columnGap: number
-
-  textShadowOffset: {
-    width: number
-    height: number
-  }[]
-  textShadowColor: string[]
-  textShadowRadius: number[]
-  cursor: string
-  touchAction: string
-  userSelect: string
-  WebkitTextStrokeWidth: number
-  WebkitTextStrokeColor: string
-  textDecorationSkipInk: 'auto' | 'none' | 'all'
-}
-
-export type BackgroundClipPathRef = { value: string }
-
-type InternalStyle = {
-  _viewportWidth: number
-  _viewportHeight: number
-  _inheritedClipPathId: string
-  _inheritedMaskId: string
-  _inheritedBackgroundClipTextPath: BackgroundClipPathRef
-  _inheritedBackgroundClipTextHasBackground: 'true'
-  _parentBackgroundColor: string
-  _textUnderlineOffsetFromFont: number
-  _textDecorationThicknessFromFont: number
-  __src: string
-  __srcWidth: number
-  __srcHeight: number
-}
-
-type StyleValue = string | number | object | undefined
-
-export type SerializedStyle = Partial<MainStyle & InternalStyle> &
-  Record<PropertyKey, StyleValue>
-
-const allModes = new Set([
-  'initial',
-  'inherit',
-  'unset',
-  'revert',
-  'revert-layer',
-])
-const allExcludedProps = new Set(['direction', 'unicodeBidi'])
-
-function getAllInitialStyle(): SerializedStyle {
-  return {
-    color: 'black',
-    fontFamily: ['serif'],
-    fontSize: 16,
-    fontStyle: 'normal',
-    fontWeight: 'normal',
-    fontSizeAdjust: 'none',
-    lineHeight: 'normal',
-    letterSpacing: 0,
-    textAlign: 'start',
-    textAlignLast: 'auto',
-    textJustify: 'auto',
-    textTransform: 'none',
-    whiteSpace: 'normal',
-    wordBreak: 'normal',
-    overflowWrap: 'normal',
-    tabSize: 8,
-    listStyleType: 'disc',
-    listStylePosition: 'outside',
-    listStyleImage: 'none',
-    counterReset: 'none',
-    counterIncrement: 'none',
-    counterSet: 'none',
-    wordSpacing: 0,
-    textIndent: 0,
-    visibility: 'visible',
-    cursor: 'auto',
-    touchAction: 'auto',
-    userSelect: 'auto',
-    opacity: 1,
-    filter: 'none',
-    textDecorationLine: 'none',
-    textDecorationStyle: 'solid',
-    textDecorationSkipInk: 'auto',
-    textUnderlinePosition: 'auto',
-    backgroundColor: 'transparent',
-    backgroundRepeat: 'repeat',
-    backgroundPosition: '0% 0%',
-    backgroundSize: 'auto',
-    backgroundClip: 'border-box',
-    backgroundOrigin: 'padding-box',
-    mixBlendMode: 'normal',
-    isolation: 'auto',
-    maskImage: 'none',
-  }
-}
-
-function applyAllReset(
-  serializedStyle: SerializedStyle,
-  inheritedStyle: SerializedStyle,
-  value: string | number
-) {
-  const mode = String(value).trim().toLowerCase()
-  if (!allModes.has(mode)) {
-    throw new Error('Invalid `all` value.')
-  }
-
-  const preservedBySpec: SerializedStyle = {}
-  for (const prop of allExcludedProps) {
-    if (typeof serializedStyle[prop] !== 'undefined') {
-      preservedBySpec[prop] = serializedStyle[prop]
-    } else if (typeof inheritedStyle[prop] !== 'undefined') {
-      preservedBySpec[prop] = inheritedStyle[prop]
-    }
-  }
-
-  for (const prop in serializedStyle) {
-    if (!prop.startsWith('_') && !allExcludedProps.has(prop)) {
-      delete serializedStyle[prop]
-    }
-  }
-
-  const initialStyle = getAllInitialStyle()
-  for (const prop in initialStyle) {
-    if (!allExcludedProps.has(prop)) {
-      serializedStyle[prop] = initialStyle[prop]
-    }
-  }
-  Object.assign(serializedStyle, preservedBySpec)
-
-  if (mode === 'initial') {
-    return
-  }
-
-  if (mode === 'revert' || mode === 'revert-layer') {
-    // `revert` / `revert-layer` depend on origin/layer cascade history, which
-    // Satori doesn't model. Approximate both as `initial`.
-    return
-  }
-
-  if (mode === 'inherit') {
-    for (const prop in inheritedStyle) {
-      if (!prop.startsWith('_') && !allExcludedProps.has(prop)) {
-        serializedStyle[prop] = inheritedStyle[prop]
-      }
-    }
-    return
-  }
-
-  for (const prop of CSS_ALL_UNSET_INHERITED_PROPS) {
-    if (typeof inheritedStyle[prop] !== 'undefined') {
-      serializedStyle[prop] = inheritedStyle[prop]
-    }
-  }
 }
 
 export default function expand(
