@@ -158,6 +158,19 @@ function shadeColorForTone(
   })
 }
 
+function blendColors(colorA: string, colorB: string, ratio = 0.5): string {
+  const first = parseRGBAColor(colorA)
+  const second = parseRGBAColor(colorB)
+  if (!first || !second) return colorA
+
+  return serializeRGBAColor({
+    r: first.r + (second.r - first.r) * ratio,
+    g: first.g + (second.g - first.g) * ratio,
+    b: first.b + (second.b - first.b) * ratio,
+    a: first.a + (second.a - first.a) * ratio,
+  })
+}
+
 function hslToRgb(h: number, s: number, l: number): [number, number, number] {
   const hue = ((h % 360) + 360) % 360
   const saturation = clamp01(s / 100)
@@ -1410,7 +1423,8 @@ export default async function rect(
       expand: number,
       strokeWidth: number,
       topLeftColor: string,
-      bottomRightColor: string
+      bottomRightColor: string,
+      cornerBlendColor?: string
     ) => {
       if (resolveOutlinePath(expand)) {
         // Rounded outlines fallback to a single-stroke approximation.
@@ -1428,7 +1442,7 @@ export default async function rect(
         'clip-path': clipPathId ? `url(#${clipPathId})` : undefined,
       }
 
-      return (
+      const lines =
         buildXMLString('line', {
           x1: x0,
           y1: y0,
@@ -1460,6 +1474,33 @@ export default async function rect(
           y2: y1,
           stroke: bottomRightColor,
           ...commonProps,
+        })
+
+      if (!cornerBlendColor) return lines
+
+      const cornerSize = Math.max(1, strokeWidth)
+      const cornerHalf = cornerSize / 2
+      const cornerProps = {
+        fill: cornerBlendColor,
+        transform: matrix ? matrix : undefined,
+        'clip-path': clipPathId ? `url(#${clipPathId})` : undefined,
+      }
+
+      return (
+        lines +
+        buildXMLString('rect', {
+          x: x1 - cornerHalf,
+          y: y0 - cornerHalf,
+          width: cornerSize,
+          height: cornerSize,
+          ...cornerProps,
+        }) +
+        buildXMLString('rect', {
+          x: x0 - cornerHalf,
+          y: y1 - cornerHalf,
+          width: cornerSize,
+          height: cornerSize,
+          ...cornerProps,
         })
       )
     }
@@ -1502,11 +1543,16 @@ export default async function rect(
           bevelStyle === 'inset' ? 'light' : 'dark',
           bevelStyle === 'inset' ? undefined : darkRatio
         )
+        const cornerBlendColor =
+          outlineStyle === 'groove' || outlineStyle === 'ridge'
+            ? blendColors(topLeftColor, bottomRightColor, 0.5)
+            : undefined
         outlineShape = makeBeveledOutline(
           expand,
           outlineWidth,
           topLeftColor,
-          bottomRightColor
+          bottomRightColor,
+          cornerBlendColor
         )
       } else {
         const outlineStrokeProps: Record<string, string | undefined> = {}
