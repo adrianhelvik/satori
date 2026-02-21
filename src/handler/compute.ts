@@ -367,6 +367,7 @@ export default async function compute(
         'space-between': Yoga.JUSTIFY_SPACE_BETWEEN,
         'space-around': Yoga.JUSTIFY_SPACE_AROUND,
         'space-evenly': Yoga.JUSTIFY_SPACE_EVENLY,
+        normal: Yoga.JUSTIFY_FLEX_START,
       },
       Yoga.JUSTIFY_FLEX_START,
       'justifyContent'

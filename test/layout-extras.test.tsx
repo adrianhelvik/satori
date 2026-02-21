@@ -484,7 +484,7 @@ describe('Layout Extras', () => {
   })
 
   describe('alignment keywords', () => {
-    it('should map justify-content start/end aliases', async () => {
+    it('should map justify-content compatibility aliases', async () => {
       const render = async (justifyContent: string) =>
         satori(
           <div
@@ -505,9 +505,15 @@ describe('Layout Extras', () => {
       const flexStart = await render('flex-start')
       const end = await render('end')
       const flexEnd = await render('flex-end')
+      const left = await render('left')
+      const right = await render('right')
+      const normal = await render('normal')
 
       expect(toImage(start, 120)).toEqual(toImage(flexStart, 120))
       expect(toImage(end, 120)).toEqual(toImage(flexEnd, 120))
+      expect(toImage(left, 120)).toEqual(toImage(flexStart, 120))
+      expect(toImage(right, 120)).toEqual(toImage(flexEnd, 120))
+      expect(toImage(normal, 120)).toEqual(toImage(flexStart, 120))
     })
 
     it('should normalize safe/unsafe alignment prefixes', async () => {
