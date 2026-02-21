@@ -8,6 +8,7 @@ import { join, relative } from 'path'
 import { mkdirSync, writeFileSync, readFileSync } from 'fs'
 import { Resvg } from '@resvg/resvg-js'
 import { resolveBrowserCaptureSize } from './browser-diff-utils.js'
+import { classifyComparability } from './browser-diff-comparability.js'
 
 const DIFF_DIR = join(process.cwd(), 'test', '__browser_diffs__')
 
@@ -166,23 +167,6 @@ s {
 }
 `
 
-const NON_COMPARABLE_CASES: Array<{ pattern: RegExp; note: string }> = [
-  {
-    pattern:
-      /test\/image\.test\.tsx :: Image > should support ArrayBuffer as src$/,
-    note: 'ArrayBuffer src is a Satori-only runtime input and cannot be represented in static browser HTML.',
-  },
-  {
-    pattern:
-      /test\/emoji\.test\.tsx :: Emojis > should detect emojis correctly$/,
-    note: 'This verifies emoji-segmentation callbacks, not browser visual parity.',
-  },
-  {
-    pattern: /test\/line-clamp\.test\.tsx :: Line Clamp >/,
-    note: 'Satori lineClamp is a custom shorthand with non-browser clamping semantics.',
-  },
-]
-
 function slugify(name: string): string {
   const normalized = name
     .toLowerCase()
@@ -237,19 +221,6 @@ body {
 ${BROWSER_PRESET_CSS}
 </style></head>
 <body>${html}</body></html>`
-}
-
-function classifyComparability(testName: string): {
-  comparable: boolean
-  note?: string
-} {
-  const match = NON_COMPARABLE_CASES.find(({ pattern }) =>
-    pattern.test(testName)
-  )
-  if (match) {
-    return { comparable: false, note: match.note }
-  }
-  return { comparable: true }
 }
 
 async function applyBrowserCaptureNormalizations(
