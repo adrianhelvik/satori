@@ -14,6 +14,10 @@ import {
 } from './utils.js'
 import { getYoga, YogaNode } from './yoga.js'
 import { SVGNodeToImage } from './handler/preprocess.js'
+import {
+  isSupportedDisplayValue,
+  normalizeDisplayValue,
+} from './handler/display.js'
 import computeStyle from './handler/compute.js'
 import FontLoader from './font.js'
 import buildTextNodes from './text/index.js'
@@ -730,22 +734,14 @@ export default async function* layout(
       parentBackgroundColor
     )
   } else {
-    const display = String(style?.display || computedStyle.display || '')
-      .trim()
-      .toLowerCase()
+    const display = normalizeDisplayValue(
+      style?.display || computedStyle.display
+    )
     if (
       type === 'div' &&
       children &&
       typeof children !== 'string' &&
-      display !== 'flex' &&
-      display !== 'block' &&
-      display !== 'inline' &&
-      display !== 'inline-block' &&
-      display !== 'inline-flex' &&
-      display !== 'list-item' &&
-      display !== '-webkit-box' &&
-      display !== 'none' &&
-      display !== 'contents'
+      !isSupportedDisplayValue(display)
     ) {
       throw new Error(
         `Expected <div> to have explicit "display: flex", "display: contents", or "display: none" if it has more than one child node.`

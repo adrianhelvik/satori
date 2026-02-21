@@ -7,6 +7,7 @@
 import presets from './presets.js'
 import inheritable from './inheritable.js'
 import expand, { SerializedStyle } from './expand.js'
+import { DISPLAY_VALUE_TO_CANONICAL, normalizeDisplayValue } from './display.js'
 import {
   asPointAutoPercentageLength,
   asPointPercentageLength,
@@ -241,19 +242,20 @@ export default async function compute(
   }
 
   // Set properties for Yoga.
+  const normalizedDisplay = normalizeDisplayValue(style.display)
+  const display = v(
+    normalizedDisplay || undefined,
+    DISPLAY_VALUE_TO_CANONICAL,
+    'flex',
+    'display'
+  )
   node.setDisplay(
     v(
-      style.display,
+      display,
       {
         flex: Yoga.DISPLAY_FLEX,
-        block: Yoga.DISPLAY_FLEX,
-        inline: Yoga.DISPLAY_FLEX,
-        'inline-block': Yoga.DISPLAY_FLEX,
-        'inline-flex': Yoga.DISPLAY_FLEX,
-        'list-item': Yoga.DISPLAY_FLEX,
         contents: Yoga.DISPLAY_CONTENTS,
         none: Yoga.DISPLAY_NONE,
-        '-webkit-box': Yoga.DISPLAY_FLEX,
       },
       Yoga.DISPLAY_FLEX,
       'display'
