@@ -12,6 +12,97 @@ const NO_TEXT_INDENT: TextIndentConfig = {
   hanging: false,
 }
 
+function splitByWhitespaceOutsideParens(input: string): string[] {
+  const tokens: string[] = []
+  let current = ''
+  let parenDepth = 0
+
+  for (let i = 0; i < input.length; i++) {
+    const char = input[i]
+
+    if (char === '(') {
+      parenDepth++
+      current += char
+      continue
+    }
+
+    if (char === ')') {
+      if (parenDepth > 0) parenDepth--
+      current += char
+      continue
+    }
+
+    if (/\s/.test(char) && parenDepth === 0) {
+      const token = current.trim()
+      if (token) tokens.push(token)
+      current = ''
+      continue
+    }
+
+    current += char
+  }
+
+  const token = current.trim()
+  if (token) tokens.push(token)
+  return tokens
+}
+
+function resolveTextIndentWidth(
+  token: string,
+  containerWidth: number,
+  fontSize: number,
+  inheritedStyle: Record<string, number | string | object>
+): number | undefined {
+  const direct = lengthToNumber(
+    token,
+    fontSize,
+    containerWidth,
+    inheritedStyle as Record<string, number | string>,
+    true
+  )
+  if (typeof direct === 'number') return direct
+
+  const normalized = token.trim().toLowerCase()
+  if (!(normalized.startsWith('calc(') && normalized.endsWith(')'))) {
+    return
+  }
+
+  const expression = token.trim().slice(5, -1).trim()
+  if (!expression) return
+
+  const terms = expression.match(/[+-]?\s*[^+-]+/g)
+  if (!terms || !terms.length) return
+
+  let result = 0
+  for (const term of terms) {
+    const normalizedTerm = term.trim()
+    if (!normalizedTerm) continue
+
+    let sign = 1
+    let valueToken = normalizedTerm
+    if (valueToken.startsWith('+')) {
+      valueToken = valueToken.slice(1).trim()
+    } else if (valueToken.startsWith('-')) {
+      sign = -1
+      valueToken = valueToken.slice(1).trim()
+    }
+
+    if (!valueToken) return
+
+    const resolved = lengthToNumber(
+      valueToken,
+      fontSize,
+      containerWidth,
+      inheritedStyle as Record<string, number | string>,
+      true
+    )
+    if (typeof resolved !== 'number') return
+    result += sign * resolved
+  }
+
+  return result
+}
+
 export function resolveTextIndentConfig(
   textIndent: unknown,
   containerWidth: number,
@@ -30,7 +121,7 @@ export function resolveTextIndentConfig(
     return NO_TEXT_INDENT
   }
 
-  const tokens = textIndent.trim().split(/\s+/).filter(Boolean)
+  const tokens = splitByWhitespaceOutsideParens(textIndent.trim())
   let indentToken: string | null = null
   let eachLine = false
   let hanging = false
@@ -52,12 +143,11 @@ export function resolveTextIndentConfig(
   }
   if (!indentToken) return NO_TEXT_INDENT
 
-  const resolved = lengthToNumber(
+  const resolved = resolveTextIndentWidth(
     indentToken,
-    fontSize,
     containerWidth,
-    inheritedStyle as Record<string, number | string>,
-    true
+    fontSize,
+    inheritedStyle
   )
   if (typeof resolved !== 'number') return NO_TEXT_INDENT
 

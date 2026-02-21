@@ -52,7 +52,7 @@
 
 | Property | Feasibility | Notes |
 |----------|-------------|-------|
-| `text-indent` | **Supported (partial)** | Supports length/percentage values and keyword modifiers (`each-line`, `hanging`). Writing-mode and bidi-dependent behavior remains limited. |
+| `text-indent` | **Supported (partial)** | Supports length/percentage values, simple `calc(<length-percentage>)` expressions, and keyword modifiers (`each-line`, `hanging`). Writing-mode and bidi-dependent behavior remains limited. |
 | `text-justify` | **Supported (approx.)** | Supports `auto`, `none`, `inter-word`, and `inter-character` for `text-align: justify`. Language/script-specific nuances remain approximate. |
 | `hyphens` | **Supported (partial)** | Supports `manual`/`auto` soft-hyphen (`U+00AD`) discretionary breaks and `none` to disable them. Dictionary-based automatic hyphenation is not implemented. |
 | `hyphenate-character` | **Supported (partial)** | Supports explicit replacement characters for discretionary soft-hyphen breaks. Dictionary-based hyphenation controls are not implemented. |

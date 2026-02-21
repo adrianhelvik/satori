@@ -104,6 +104,25 @@ describe('Typography Extras', () => {
       expect(toImage(svg, 180)).toMatchImageSnapshot()
     })
 
+    it('should support text-indent calc values', async () => {
+      const svg = await satori(
+        <div
+          style={{
+            width: 180,
+            height: 60,
+            backgroundColor: 'white',
+            fontFamily: 'Playfair Display',
+            fontSize: 20,
+            textIndent: 'calc(25% - 5px)',
+          }}
+        >
+          Indented
+        </div>,
+        { width: 180, height: 60, fonts }
+      )
+      expect(toImage(svg, 180)).toMatchImageSnapshot()
+    })
+
     it('should support text-indent: each-line for forced line breaks', async () => {
       const svg = await satori(
         <div

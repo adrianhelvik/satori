@@ -35,6 +35,29 @@ describe('text-indent helpers', () => {
     })
   })
 
+  it('supports calc() length-percentage expressions', () => {
+    expect(
+      resolveTextIndentConfig('calc(25% - 10px)', 200, 16, inheritedStyle)
+    ).toEqual({
+      width: 40,
+      eachLine: false,
+      hanging: false,
+    })
+
+    expect(
+      resolveTextIndentConfig(
+        'calc(10% + 8px) each-line',
+        200,
+        16,
+        inheritedStyle
+      )
+    ).toEqual({
+      width: 28,
+      eachLine: true,
+      hanging: false,
+    })
+  })
+
   it('returns no indent for invalid text-indent syntax', () => {
     expect(
       resolveTextIndentConfig('30px 40px', 200, 16, inheritedStyle)
@@ -51,6 +74,14 @@ describe('text-indent helpers', () => {
         16,
         inheritedStyle
       )
+    ).toEqual({
+      width: 0,
+      eachLine: false,
+      hanging: false,
+    })
+
+    expect(
+      resolveTextIndentConfig('calc(25% - bogus)', 200, 16, inheritedStyle)
     ).toEqual({
       width: 0,
       eachLine: false,
