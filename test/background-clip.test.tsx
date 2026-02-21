@@ -3,6 +3,9 @@ import { it, describe, expect } from 'vitest'
 import { initFonts, toImage } from './utils.js'
 import satori from '../src/index.js'
 
+const PIXEL_ART_2X2_PNG =
+  'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAYAAABytg0kAAAAGElEQVR4AQXBAQEAAAjDIG7/zhNE0k3CAz7tBf7utunjAAAAAElFTkSuQmCC'
+
 describe('backgroundClip', () => {
   let fonts
   initFonts((f) => (fonts = f))
@@ -124,5 +127,99 @@ describe('backgroundClip', () => {
     )
 
     expect(toImage(svg)).toMatchImageSnapshot()
+  })
+
+  it('should support background-clip: padding-box and content-box', async () => {
+    const svg = await satori(
+      <div
+        style={{
+          width: 120,
+          height: 80,
+          display: 'flex',
+          gap: 8,
+          backgroundColor: '#eee',
+        }}
+      >
+        <div
+          style={{
+            width: 56,
+            height: 56,
+            boxSizing: 'border-box',
+            border: '8px solid red',
+            padding: 8,
+            backgroundColor: 'blue',
+            backgroundClip: 'padding-box',
+          }}
+        />
+        <div
+          style={{
+            width: 56,
+            height: 56,
+            boxSizing: 'border-box',
+            border: '8px solid red',
+            padding: 8,
+            backgroundColor: 'blue',
+            backgroundClip: 'content-box',
+          }}
+        />
+      </div>,
+      {
+        width: 120,
+        height: 80,
+        fonts,
+      }
+    )
+
+    expect(toImage(svg, 120)).toMatchImageSnapshot()
+  })
+
+  it('should position background-image using background-origin boxes', async () => {
+    const svg = await satori(
+      <div
+        style={{
+          width: 140,
+          height: 84,
+          display: 'flex',
+          gap: 8,
+          backgroundColor: '#eee',
+        }}
+      >
+        <div
+          style={{
+            width: 64,
+            height: 64,
+            boxSizing: 'border-box',
+            border: '8px solid red',
+            padding: 8,
+            backgroundColor: '#ddd',
+            backgroundImage: `url(${PIXEL_ART_2X2_PNG})`,
+            backgroundRepeat: 'no-repeat',
+            backgroundSize: '16px 16px',
+            backgroundOrigin: 'padding-box',
+          }}
+        />
+        <div
+          style={{
+            width: 64,
+            height: 64,
+            boxSizing: 'border-box',
+            border: '8px solid red',
+            padding: 8,
+            backgroundColor: '#ddd',
+            backgroundImage: `url(${PIXEL_ART_2X2_PNG})`,
+            backgroundRepeat: 'no-repeat',
+            backgroundSize: '16px 16px',
+            backgroundOrigin: 'content-box',
+          }}
+        />
+      </div>,
+      {
+        width: 140,
+        height: 84,
+        fonts,
+      }
+    )
+
+    expect(toImage(svg, 140)).toMatchImageSnapshot()
   })
 })

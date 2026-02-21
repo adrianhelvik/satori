@@ -41,6 +41,14 @@ interface ResolvedObjectPosition {
 }
 
 type ObjectPositionAxisName = 'x' | 'y'
+type BackgroundBox = 'border-box' | 'padding-box' | 'content-box'
+
+interface BackgroundBoxRect {
+  left: number
+  top: number
+  width: number
+  height: number
+}
 
 const supportedBackgroundBlendModes = new Set([
   'normal',
@@ -135,6 +143,89 @@ function isSolidBlendEligibleBackgroundLayer(layer: {
     position === 'top left'
 
   return repeatDefault && sizeDefault && positionDefault
+}
+
+function toStyleNumber(value: unknown): number {
+  if (typeof value === 'number' && Number.isFinite(value)) return value
+  if (typeof value === 'string') {
+    const parsed = Number(value)
+    if (Number.isFinite(parsed)) return parsed
+  }
+  return 0
+}
+
+function normalizeBackgroundBoxValue(
+  value: unknown,
+  fallback: BackgroundBox,
+  useLastLayer = false
+): BackgroundBox {
+  if (typeof value !== 'string') return fallback
+
+  const tokens = value
+    .split(',')
+    .map((token) => token.trim().toLowerCase())
+    .filter(Boolean)
+  if (!tokens.length) return fallback
+
+  const token = useLastLayer ? tokens[tokens.length - 1] : tokens[0]
+  if (
+    token === 'border-box' ||
+    token === 'padding-box' ||
+    token === 'content-box'
+  ) {
+    return token
+  }
+  return fallback
+}
+
+function resolveBackgroundBoxRect(
+  borderBox: BackgroundBoxRect,
+  style: Record<string, number | string | object>,
+  box: BackgroundBox
+): BackgroundBoxRect {
+  const borderLeft = toStyleNumber(style.borderLeftWidth)
+  const borderRight = toStyleNumber(style.borderRightWidth)
+  const borderTop = toStyleNumber(style.borderTopWidth)
+  const borderBottom = toStyleNumber(style.borderBottomWidth)
+  const paddingLeft = toStyleNumber(style.paddingLeft)
+  const paddingRight = toStyleNumber(style.paddingRight)
+  const paddingTop = toStyleNumber(style.paddingTop)
+  const paddingBottom = toStyleNumber(style.paddingBottom)
+
+  let next: BackgroundBoxRect = { ...borderBox }
+
+  if (box !== 'border-box') {
+    next = {
+      left: next.left + borderLeft,
+      top: next.top + borderTop,
+      width: Math.max(0, next.width - borderLeft - borderRight),
+      height: Math.max(0, next.height - borderTop - borderBottom),
+    }
+  }
+
+  if (box === 'content-box') {
+    next = {
+      left: next.left + paddingLeft,
+      top: next.top + paddingTop,
+      width: Math.max(0, next.width - paddingLeft - paddingRight),
+      height: Math.max(0, next.height - paddingTop - paddingBottom),
+    }
+  }
+
+  return next
+}
+
+function isSameBackgroundBoxRect(
+  first: BackgroundBoxRect,
+  second: BackgroundBoxRect
+): boolean {
+  const epsilon = 0.0001
+  return (
+    Math.abs(first.left - second.left) < epsilon &&
+    Math.abs(first.top - second.top) < epsilon &&
+    Math.abs(first.width - second.width) < epsilon &&
+    Math.abs(first.height - second.height) < epsilon
+  )
 }
 
 function clamp01(value: number): number {
@@ -1009,14 +1100,36 @@ export default async function rect(
     fill: string
     blendMode?: string
     solidColor?: string
+    clipBox: BackgroundBoxRect
   }[] = []
   let opacity = 1
   let extra = ''
+
+  const borderBox: BackgroundBoxRect = { left, top, width, height }
+  const {
+    backgroundClip,
+    filter: cssFilter,
+    mixBlendMode,
+    isolation,
+    imageRendering,
+    imageOrientation,
+  } = style
+
+  const colorClipBox = resolveBackgroundBoxRect(
+    borderBox,
+    style,
+    normalizeBackgroundBoxValue(
+      backgroundClip === 'text' ? undefined : backgroundClip,
+      'border-box',
+      true
+    )
+  )
 
   if (style.backgroundColor) {
     fillLayers.push({
       fill: style.backgroundColor as string,
       solidColor: style.backgroundColor as string,
+      clipBox: colorClipBox,
     })
   }
 
@@ -1058,6 +1171,7 @@ export default async function rect(
       repeat?: string
       size?: string
       position?: string
+      clipBox: BackgroundBoxRect
     }[] = []
 
     for (
@@ -1066,8 +1180,27 @@ export default async function rect(
       index++
     ) {
       const background = (style.backgroundImage as any)[index]
+      const layerClipBox = resolveBackgroundBoxRect(
+        borderBox,
+        style,
+        normalizeBackgroundBoxValue(
+          background.clip || backgroundClip,
+          'border-box'
+        )
+      )
+      const layerOriginBox = resolveBackgroundBoxRect(
+        borderBox,
+        style,
+        normalizeBackgroundBoxValue(background.origin, 'border-box')
+      )
       const image = await backgroundImage(
-        { id: id + '_' + index, width, height, left, top },
+        {
+          id: id + '_' + index,
+          width: layerOriginBox.width,
+          height: layerOriginBox.height,
+          left: layerOriginBox.left,
+          top: layerOriginBox.top,
+        },
         background,
         primitiveInheritedStyle,
         'background',
@@ -1085,6 +1218,7 @@ export default async function rect(
           repeat: background.repeat,
           size: background.size,
           position: background.position,
+          clipBox: layerClipBox,
         })
       }
     }
@@ -1107,6 +1241,7 @@ export default async function rect(
         solidColor: canUseSolidLayerForBlend
           ? background.solidColor
           : undefined,
+        clipBox: background.clipBox,
       })
       if (!canUseSolidLayerForBlend) {
         defs += background.defs
@@ -1154,15 +1289,6 @@ export default async function rect(
     })
   }
 
-  const {
-    backgroundClip,
-    filter: cssFilter,
-    mixBlendMode,
-    isolation,
-    imageRendering,
-    imageOrientation,
-  } = style
-
   const currentClipPath =
     backgroundClip === 'text'
       ? `url(#satori_bct-${id})`
@@ -1190,18 +1316,21 @@ export default async function rect(
       fillLayers.splice(0, fillLayers.length, {
         fill: blendedSolidFill,
         solidColor: blendedSolidFill,
+        clipBox: borderBox,
       })
     }
   }
   const backgroundLayerShape = fillLayers
-    .map(({ fill, blendMode }) => {
-      const layerShape = buildXMLString(type, {
-        x: left,
-        y: top,
-        width,
-        height,
+    .map(({ fill, blendMode, clipBox }) => {
+      const useBorderShape = isSameBackgroundBoxRect(clipBox, borderBox)
+      const layerType = useBorderShape ? type : 'rect'
+      const layerShape = buildXMLString(layerType, {
+        x: clipBox.left,
+        y: clipBox.top,
+        width: clipBox.width,
+        height: clipBox.height,
         fill,
-        d: path ? path : undefined,
+        d: useBorderShape && path ? path : undefined,
         transform: matrix ? matrix : undefined,
         'clip-path': style.transform ? undefined : currentClipPath,
         style: cssFilter ? `filter:${cssFilter}` : undefined,
@@ -1617,6 +1746,7 @@ export default async function rect(
     !currentClipPath &&
     !maskId &&
     fillLayers.length === 1 &&
+    isSameBackgroundBoxRect(fillLayers[0].clipBox, borderBox) &&
     !!fillLayers[0].solidColor &&
     !style.backgroundImage &&
     !style.borderLeftWidth &&
@@ -1630,7 +1760,7 @@ export default async function rect(
       ? resolveRectBlendFallbackOverlays(
           normalizedMixBlendMode,
           fillLayers[0].solidColor,
-          { left, top, width, height },
+          fillLayers[0].clipBox,
           siblingBlendBackdrops,
           parentBackgroundColor
         )
