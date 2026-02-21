@@ -145,6 +145,7 @@ export default async function* buildTextNodes(
   const {
     words,
     requiredBreaks,
+    softHyphenBreaks,
     allowSoftWrap,
     allowBreakWord,
     processedContent,
@@ -473,6 +474,25 @@ export default async function* buildTextNodes(
         // Start a new line, spaces can be ignored.
         if (shouldCollapseTabsAndSpaces && word === Space) {
           w = 0
+        }
+
+        if (willWrap && softHyphenBreaks[i]) {
+          const discretionaryHyphen = '-'
+          const hyphenWidth = measureText(discretionaryHyphen)
+          if (hyphenWidth > 0) {
+            const hyphenX = currentWidth
+            texts.push(discretionaryHyphen)
+            wordPositionInLayout.push({
+              y: height,
+              x: hyphenX,
+              width: hyphenWidth,
+              line: lines,
+              lineIndex,
+              isImage: false,
+            })
+            currentWidth += hyphenWidth
+            maxWidth = Math.max(maxWidth, currentWidth)
+          }
         }
 
         lineWidths.push(currentWidth - prevLineEndingSpacesWidth)

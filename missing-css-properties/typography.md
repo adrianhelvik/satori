@@ -51,7 +51,7 @@
 |----------|-------------|-------|
 | `text-indent` | **Supported (partial)** | Supports length/percentage values and keyword modifiers (`each-line`, `hanging`). Writing-mode and bidi-dependent behavior remains limited. |
 | `text-justify` | **Supported (approx.)** | Supports `auto`, `none`, `inter-word`, and `inter-character` for `text-align: justify`. Language/script-specific nuances remain approximate. |
-| `hyphens` | Hard | Requires hyphenation dictionaries per language |
+| `hyphens` | **Supported (partial)** | Supports `manual`/`auto` soft-hyphen (`U+00AD`) discretionary breaks and `none` to disable them. Dictionary-based automatic hyphenation is not implemented. |
 | `hyphenate-character` | Hard | Depends on `hyphens` |
 | `hyphenate-limit-chars` | Hard | Depends on `hyphens` |
 | `line-break` | Hard | CJK line-breaking strictness levels |

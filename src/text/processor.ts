@@ -10,6 +10,7 @@ export function preprocess(
 ): {
   words: string[]
   requiredBreaks: boolean[]
+  softHyphenBreaks: boolean[]
   allowSoftWrap: boolean
   allowBreakWord: boolean
   processedContent: string
@@ -17,7 +18,7 @@ export function preprocess(
   lineLimit: number
   blockEllipsis: string
 } {
-  const { textTransform, whiteSpace, wordBreak, overflowWrap } = style
+  const { textTransform, whiteSpace, wordBreak, overflowWrap, hyphens } = style
 
   content = processTextTransform(content, textTransform, locale)
 
@@ -27,17 +28,15 @@ export function preprocess(
     allowSoftWrap,
   } = processWhiteSpace(content, whiteSpace)
 
-  const { words, requiredBreaks, allowBreakWord } = processWordBreak(
-    processedContent,
-    wordBreak,
-    overflowWrap
-  )
+  const { words, requiredBreaks, softHyphenBreaks, allowBreakWord } =
+    processWordBreak(processedContent, wordBreak, overflowWrap, hyphens)
 
   const [lineLimit, blockEllipsis] = processTextOverflow(style, allowSoftWrap)
 
   return {
     words,
     requiredBreaks,
+    softHyphenBreaks,
     allowSoftWrap,
     allowBreakWord,
     processedContent,
@@ -124,23 +123,35 @@ function processTextOverflow(
 function processWordBreak(
   content,
   wordBreak: unknown,
-  overflowWrap?: unknown
-): { words: string[]; requiredBreaks: boolean[]; allowBreakWord: boolean } {
+  overflowWrap?: unknown,
+  hyphens?: unknown
+): {
+  words: string[]
+  requiredBreaks: boolean[]
+  softHyphenBreaks: boolean[]
+  allowBreakWord: boolean
+} {
   const normalizedWordBreak =
     typeof wordBreak === 'string' ? wordBreak : 'normal'
   const normalizedOverflowWrap =
     typeof overflowWrap === 'string' ? overflowWrap : 'normal'
+  const normalizedHyphens =
+    typeof hyphens === 'string' ? hyphens.trim().toLowerCase() : 'manual'
 
   const allowBreakWord =
     ['break-all', 'break-word'].includes(normalizedWordBreak) ||
     ['break-word', 'anywhere'].includes(normalizedOverflowWrap)
 
-  const { words, requiredBreaks } = splitByBreakOpportunities(
+  if (normalizedHyphens === 'none') {
+    content = content.replace(/\u00ad/g, '')
+  }
+
+  const { words, requiredBreaks, softHyphenBreaks } = splitByBreakOpportunities(
     content,
     normalizedWordBreak
   )
 
-  return { words, requiredBreaks, allowBreakWord }
+  return { words, requiredBreaks, softHyphenBreaks, allowBreakWord }
 }
 
 function processWhiteSpace(

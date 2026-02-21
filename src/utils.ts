@@ -420,13 +420,24 @@ export function splitByBreakOpportunities(
 ): {
   words: string[]
   requiredBreaks: boolean[]
+  softHyphenBreaks: boolean[]
 } {
+  const SOFT_HYPHEN = '\u00ad'
+
   if (wordBreak === 'break-all') {
-    return { words: segment(content, 'grapheme'), requiredBreaks: [] }
+    return {
+      words: segment(content, 'grapheme'),
+      requiredBreaks: [],
+      softHyphenBreaks: [],
+    }
   }
 
   if (wordBreak === 'keep-all') {
-    return { words: segment(content, 'word'), requiredBreaks: [] }
+    return {
+      words: segment(content, 'word'),
+      requiredBreaks: [],
+      softHyphenBreaks: [],
+    }
   }
 
   const breaker = new LineBreaker(content)
@@ -434,9 +445,16 @@ export function splitByBreakOpportunities(
   let bk = breaker.nextBreak()
   const words = []
   const requiredBreaks = [false]
+  const softHyphenBreaks = [false]
 
   while (bk) {
-    const word = content.slice(last, bk.position)
+    let word = content.slice(last, bk.position)
+    const hasSoftHyphenBreak = word.endsWith(SOFT_HYPHEN)
+    if (hasSoftHyphenBreak) {
+      // Soft hyphen is only rendered when a line break is actually taken.
+      // Keep the break opportunity, but hide the glyph by default.
+      word = word.slice(0, -SOFT_HYPHEN.length)
+    }
     words.push(word)
 
     if (bk.required) {
@@ -444,12 +462,13 @@ export function splitByBreakOpportunities(
     } else {
       requiredBreaks.push(false)
     }
+    softHyphenBreaks.push(!bk.required && hasSoftHyphenBreak)
 
     last = bk.position
     bk = breaker.nextBreak()
   }
 
-  return { words, requiredBreaks }
+  return { words, requiredBreaks, softHyphenBreaks }
 }
 
 export const midline = (s: string) => {
