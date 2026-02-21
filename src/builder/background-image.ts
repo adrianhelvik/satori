@@ -24,6 +24,30 @@ interface Background {
 
 export type BackgroundImageBuildResult = [string, string, string?, string?]
 
+function decodeBase64SvgDataUri(src: string): string | null {
+  const prefix = 'data:image/svg+xml;base64,'
+  if (!src.startsWith(prefix)) return null
+
+  try {
+    return atob(src.slice(prefix.length))
+  } catch {
+    return null
+  }
+}
+
+function svgHasExplicitDimensions(src: string): boolean {
+  const svg = decodeBase64SvgDataUri(src)
+  if (!svg) return true
+
+  const svgTag = svg.match(/<svg[^>]*>/i)?.[0]
+  if (!svgTag) return true
+
+  return (
+    /(?:^|\s)width\s*=\s*['"][^'"]+['"]/i.test(svgTag) &&
+    /(?:^|\s)height\s*=\s*['"][^'"]+['"]/i.test(svgTag)
+  )
+}
+
 function toAbsoluteValue(v: string | number, base: number) {
   if (typeof v === 'string' && v.endsWith('%')) {
     return (base * parseFloat(v)) / 100
@@ -139,14 +163,41 @@ export default async function backgroundImage(
     const [src, imageWidth, imageHeight] = await resolveImageData(
       image.slice(4, -1)
     )
-    const resolvedWidth =
+    let resolvedWidth =
       from === 'mask' && !maskSizeIsExplicit
         ? imageWidth || dimensionsWithoutFallback[0]
         : dimensionsWithoutFallback[0] || imageWidth
-    const resolvedHeight =
+    let resolvedHeight =
       from === 'mask' && !maskSizeIsExplicit
         ? imageHeight || dimensionsWithoutFallback[1]
         : dimensionsWithoutFallback[1] || imageHeight
+
+    const isAutoBackgroundSize =
+      !dimensionsWithoutFallback[0] && !dimensionsWithoutFallback[1]
+
+    if (
+      isAutoBackgroundSize &&
+      from === 'background' &&
+      typeof src === 'string' &&
+      src.startsWith('data:image/svg+xml;base64,') &&
+      !svgHasExplicitDimensions(src) &&
+      typeof imageWidth === 'number' &&
+      typeof imageHeight === 'number' &&
+      imageWidth > 0 &&
+      imageHeight > 0
+    ) {
+      const intrinsicRatio = imageWidth / imageHeight
+      let fittedWidth = width
+      let fittedHeight = fittedWidth / intrinsicRatio
+
+      if (fittedHeight > height) {
+        fittedHeight = height
+        fittedWidth = fittedHeight * intrinsicRatio
+      }
+
+      resolvedWidth = fittedWidth
+      resolvedHeight = fittedHeight
+    }
 
     const normalizedMaskMode = String(maskMode || '')
       .trim()
