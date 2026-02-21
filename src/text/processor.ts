@@ -18,7 +18,14 @@ export function preprocess(
   lineLimit: number
   blockEllipsis: string
 } {
-  const { textTransform, whiteSpace, wordBreak, overflowWrap, hyphens } = style
+  const {
+    textTransform,
+    whiteSpace,
+    wordBreak,
+    overflowWrap,
+    hyphens,
+    lineBreak,
+  } = style
 
   content = processTextTransform(content, textTransform, locale)
 
@@ -29,7 +36,13 @@ export function preprocess(
   } = processWhiteSpace(content, whiteSpace)
 
   const { words, requiredBreaks, softHyphenBreaks, allowBreakWord } =
-    processWordBreak(processedContent, wordBreak, overflowWrap, hyphens)
+    processWordBreak(
+      processedContent,
+      wordBreak,
+      overflowWrap,
+      hyphens,
+      lineBreak
+    )
 
   const [lineLimit, blockEllipsis] = processTextOverflow(style, allowSoftWrap)
 
@@ -124,7 +137,8 @@ function processWordBreak(
   content,
   wordBreak: unknown,
   overflowWrap?: unknown,
-  hyphens?: unknown
+  hyphens?: unknown,
+  lineBreak?: unknown
 ): {
   words: string[]
   requiredBreaks: boolean[]
@@ -137,9 +151,15 @@ function processWordBreak(
     typeof overflowWrap === 'string' ? overflowWrap : 'normal'
   const normalizedHyphens =
     typeof hyphens === 'string' ? hyphens.trim().toLowerCase() : 'manual'
+  const normalizedLineBreak =
+    typeof lineBreak === 'string' ? lineBreak.trim().toLowerCase() : 'auto'
+  const effectiveWordBreak =
+    normalizedLineBreak === 'anywhere' && normalizedWordBreak === 'normal'
+      ? 'break-all'
+      : normalizedWordBreak
 
   const allowBreakWord =
-    ['break-all', 'break-word'].includes(normalizedWordBreak) ||
+    ['break-all', 'break-word'].includes(effectiveWordBreak) ||
     ['break-word', 'anywhere'].includes(normalizedOverflowWrap)
 
   if (normalizedHyphens === 'none') {
@@ -148,7 +168,7 @@ function processWordBreak(
 
   const { words, requiredBreaks, softHyphenBreaks } = splitByBreakOpportunities(
     content,
-    normalizedWordBreak
+    effectiveWordBreak
   )
 
   return { words, requiredBreaks, softHyphenBreaks, allowBreakWord }

@@ -263,6 +263,13 @@ const BACKGROUND_IMAGE_FUNCTION_RE =
   /^(linear-gradient|radial-gradient|url|repeating-linear-gradient|repeating-radial-gradient)\(/
 const MATRIX_TRANSFORM_RE =
   /^matrix\(\s*(-?[\d.]+)\s*,\s*(-?[\d.]+)\s*,\s*(-?[\d.]+)\s*,\s*(-?[\d.]+)\s*,\s*(-?[\d.]+)\s*,\s*(-?[\d.]+)\s*\)$/
+const LINE_BREAK_VALUES = new Set([
+  'auto',
+  'normal',
+  'loose',
+  'strict',
+  'anywhere',
+])
 
 function resolveOverflowClipMargin(value: string | number): SpecialCaseResult {
   const raw = String(value).trim()
@@ -544,6 +551,15 @@ function resolveTextDecorationSkipInk(
   return { textDecorationSkipInk: normalized }
 }
 
+function resolveLineBreak(value: string | number): SpecialCaseResult {
+  const normalized = value.toString().trim().toLowerCase()
+  if (!LINE_BREAK_VALUES.has(normalized)) {
+    throw new Error('Invalid `lineBreak` value.')
+  }
+
+  return { lineBreak: normalized }
+}
+
 const complexSpecialCaseHandlers: Record<string, ComplexSpecialCaseHandler> = {
   flexFlow: (value) => {
     const parts = value.toString().trim().split(/\s+/)
@@ -607,6 +623,7 @@ const complexSpecialCaseHandlers: Record<string, ComplexSpecialCaseHandler> = {
   textShadow: (value) => resolveTextShadow(value),
   WebkitTextStroke: (value) => resolveWebkitTextStroke(value),
   textDecorationSkipInk: (value) => resolveTextDecorationSkipInk(value),
+  lineBreak: (value) => resolveLineBreak(value),
 }
 
 function handleSpecialCase(

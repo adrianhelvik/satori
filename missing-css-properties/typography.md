@@ -7,6 +7,7 @@
 - `font-kerning` (`auto` / `normal` / `none`)
 - `line-height`, `letter-spacing`, `tab-size`
 - `word-spacing`, `text-indent` (length/percentage values with `each-line`/`hanging` modifiers)
+- `line-break` (partial; accepts `auto`/`normal`/`loose`/`strict` and approximates `anywhere`)
 - `text-align` (start, end, left, right, center, justify)
 - `text-transform` (none, lowercase, uppercase, capitalize)
 - `text-overflow` (clip, ellipsis)
@@ -54,7 +55,7 @@
 | `hyphens` | **Supported (partial)** | Supports `manual`/`auto` soft-hyphen (`U+00AD`) discretionary breaks and `none` to disable them. Dictionary-based automatic hyphenation is not implemented. |
 | `hyphenate-character` | **Supported (partial)** | Supports explicit replacement characters for discretionary soft-hyphen breaks. Dictionary-based hyphenation controls are not implemented. |
 | `hyphenate-limit-chars` | Hard | Depends on `hyphens` |
-| `line-break` | Hard | CJK line-breaking strictness levels |
+| `line-break` | **Supported (partial)** | Accepts `auto`, `normal`, `loose`, `strict`, and `anywhere`. `anywhere` is approximated by enabling break-all style opportunities; full CJK strictness behavior is not modeled. |
 | `hanging-punctuation` | Hard | Punctuation outside line box |
 
 ### Text decoration (missing values/properties)
