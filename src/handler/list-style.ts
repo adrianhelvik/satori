@@ -7,6 +7,10 @@ const listStyleTypes = new Set([
   'decimal-leading-zero',
   'lower-hexadecimal',
   'upper-hexadecimal',
+  'armenian',
+  'lower-armenian',
+  'upper-armenian',
+  'georgian',
   'lower-alpha',
   'upper-alpha',
   'lower-greek',
@@ -23,6 +27,10 @@ const orderedListStyleTypes = new Set([
   'decimal-leading-zero',
   'lower-hexadecimal',
   'upper-hexadecimal',
+  'armenian',
+  'lower-armenian',
+  'upper-armenian',
+  'georgian',
   'lower-alpha',
   'upper-alpha',
   'lower-latin',
@@ -192,6 +200,142 @@ function toRomanIndex(index: number, upper: boolean): string {
   return upper ? result : result.toLowerCase()
 }
 
+function toAdditiveIndex(
+  index: number,
+  symbols: Array<[value: number, symbol: string]>
+): string {
+  if (index <= 0) return String(index)
+
+  let remaining = index
+  let result = ''
+  for (const [value, symbol] of symbols) {
+    if (remaining < value) continue
+    result += symbol
+    remaining -= value
+    if (remaining === 0) return result
+  }
+
+  return String(index)
+}
+
+const upperArmenianSymbols: Array<[number, string]> = [
+  [9000, 'Ք'],
+  [8000, 'Փ'],
+  [7000, 'Ւ'],
+  [6000, 'Ց'],
+  [5000, 'Ր'],
+  [4000, 'Տ'],
+  [3000, 'Վ'],
+  [2000, 'Ս'],
+  [1000, 'Ռ'],
+  [900, 'Ջ'],
+  [800, 'Պ'],
+  [700, 'Չ'],
+  [600, 'Ո'],
+  [500, 'Շ'],
+  [400, 'Ն'],
+  [300, 'Յ'],
+  [200, 'Մ'],
+  [100, 'Ճ'],
+  [90, 'Ղ'],
+  [80, 'Ձ'],
+  [70, 'Հ'],
+  [60, 'Կ'],
+  [50, 'Ծ'],
+  [40, 'Խ'],
+  [30, 'Լ'],
+  [20, 'Ի'],
+  [10, 'Ժ'],
+  [9, 'Թ'],
+  [8, 'Ը'],
+  [7, 'Է'],
+  [6, 'Զ'],
+  [5, 'Ե'],
+  [4, 'Դ'],
+  [3, 'Գ'],
+  [2, 'Բ'],
+  [1, 'Ա'],
+]
+
+const lowerArmenianSymbols: Array<[number, string]> = [
+  [9000, 'ք'],
+  [8000, 'փ'],
+  [7000, 'ւ'],
+  [6000, 'ց'],
+  [5000, 'ր'],
+  [4000, 'տ'],
+  [3000, 'վ'],
+  [2000, 'ս'],
+  [1000, 'ռ'],
+  [900, 'ջ'],
+  [800, 'պ'],
+  [700, 'չ'],
+  [600, 'ո'],
+  [500, 'շ'],
+  [400, 'ն'],
+  [300, 'յ'],
+  [200, 'մ'],
+  [100, 'ճ'],
+  [90, 'ղ'],
+  [80, 'ձ'],
+  [70, 'հ'],
+  [60, 'կ'],
+  [50, 'ծ'],
+  [40, 'խ'],
+  [30, 'լ'],
+  [20, 'ի'],
+  [10, 'ժ'],
+  [9, 'թ'],
+  [8, 'ը'],
+  [7, 'է'],
+  [6, 'զ'],
+  [5, 'ե'],
+  [4, 'դ'],
+  [3, 'գ'],
+  [2, 'բ'],
+  [1, 'ա'],
+]
+
+const georgianSymbols: Array<[number, string]> = [
+  [10000, 'ჶ'],
+  [9000, 'ჵ'],
+  [8000, 'ჰ'],
+  [7000, 'ჯ'],
+  [6000, 'ხ'],
+  [5000, 'ჭ'],
+  [4000, 'წ'],
+  [3000, 'ძ'],
+  [2000, 'ც'],
+  [1000, 'ჩ'],
+  [900, 'შ'],
+  [800, 'ყ'],
+  [700, 'ღ'],
+  [600, 'ქ'],
+  [500, 'ფ'],
+  [400, 'უ'],
+  [300, 'ტ'],
+  [200, 'ს'],
+  [100, 'რ'],
+  [90, 'ჟ'],
+  [80, 'პ'],
+  [70, 'ო'],
+  [60, 'ჲ'],
+  [50, 'ნ'],
+  [40, 'მ'],
+  [30, 'ლ'],
+  [20, 'კ'],
+  [10, 'ი'],
+  [9, 'თ'],
+  [8, 'ჱ'],
+  [7, 'ზ'],
+  [6, 'ვ'],
+  [5, 'ე'],
+  [4, 'დ'],
+  [3, 'გ'],
+  [2, 'ბ'],
+  [1, 'ა'],
+]
+
 export function getListMarkerText(
   type: string | undefined,
   index: number
@@ -218,6 +362,13 @@ export function getListMarkerText(
       return `${index > 0 ? index.toString(16) : String(index)}.`
     case 'upper-hexadecimal':
       return `${index > 0 ? index.toString(16).toUpperCase() : String(index)}.`
+    case 'armenian':
+    case 'upper-armenian':
+      return `${toAdditiveIndex(index, upperArmenianSymbols)}.`
+    case 'lower-armenian':
+      return `${toAdditiveIndex(index, lowerArmenianSymbols)}.`
+    case 'georgian':
+      return `${toAdditiveIndex(index, georgianSymbols)}.`
     case 'upper-alpha':
     case 'upper-latin':
       return `${toAlphabeticIndex(index, true)}.`

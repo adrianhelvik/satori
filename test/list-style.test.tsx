@@ -207,6 +207,52 @@ describe('list-style', () => {
     expect(toImage(svg, 260)).toMatchImageSnapshot()
   })
 
+  it('should support armenian and georgian listStyleType values', async () => {
+    const nodes = []
+    const svg = await satori(
+      <div
+        style={{
+          width: 280,
+          height: 180,
+          display: 'flex',
+          gap: 20,
+          backgroundColor: 'white',
+          fontSize: 18,
+          margin: 0,
+        }}
+      >
+        <ol style={{ margin: 0, listStyleType: 'armenian' }}>
+          <li>First</li>
+          <li>Second</li>
+        </ol>
+        <ol style={{ margin: 0, listStyleType: 'georgian' }}>
+          <li>First</li>
+          <li>Second</li>
+        </ol>
+      </div>,
+      {
+        width: 280,
+        height: 180,
+        fonts,
+        embedFont: false,
+        onNodeDetected: (node) => nodes.push(node),
+      }
+    )
+
+    const markerText = nodes
+      .filter(
+        (node) =>
+          node.key === '__satori-list-marker' &&
+          typeof node.textContent === 'string'
+      )
+      .map((node) => node.textContent)
+    expect(markerText).toContain('Ա.')
+    expect(markerText).toContain('Բ.')
+    expect(markerText).toContain('ა.')
+    expect(markerText).toContain('ბ.')
+    expect(toImage(svg, 280)).toMatchImageSnapshot()
+  })
+
   it('should size outside text markers using marker text metrics', async () => {
     const nodes = []
     await satori(
