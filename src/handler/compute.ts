@@ -22,6 +22,7 @@ import { isClippedOverflow } from '../overflow-semantics.js'
 type SatoriElement = keyof typeof presets
 const TRANSPARENT_PIXEL_DATA_URI =
   'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw=='
+const BROKEN_IMAGE_FALLBACK_SIZE = 16
 
 const ALIGNMENT_VALUE_ALIASES: Record<string, string> = {
   start: 'flex-start',
@@ -149,22 +150,29 @@ export default async function compute(
     let [resolvedSrc, imageWidth, imageHeight] = await resolveImageData(
       props.src
     )
+    const imageResolutionFailed = typeof resolvedSrc !== 'string'
 
     // Keep rendering when image fetch/parsing fails. Browsers still layout the
     // <img> box in this case, while the bitmap itself is empty/broken.
-    if (typeof resolvedSrc !== 'string') {
+    if (imageResolutionFailed) {
       resolvedSrc = TRANSPARENT_PIXEL_DATA_URI
     }
 
     // Cannot parse the image size (e.g. base64 data URI).
     if (imageWidth === undefined && imageHeight === undefined) {
       if (props.width === undefined || props.height === undefined) {
-        throw new Error(
-          'Image size cannot be determined. Please provide the width and height of the image.'
-        )
+        if (imageResolutionFailed) {
+          imageWidth = BROKEN_IMAGE_FALLBACK_SIZE
+          imageHeight = BROKEN_IMAGE_FALLBACK_SIZE
+        } else {
+          throw new Error(
+            'Image size cannot be determined. Please provide the width and height of the image.'
+          )
+        }
+      } else {
+        imageWidth = parseInt(props.width)
+        imageHeight = parseInt(props.height)
       }
-      imageWidth = parseInt(props.width)
-      imageHeight = parseInt(props.height)
     }
     const r = imageHeight / imageWidth
 

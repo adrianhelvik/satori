@@ -69,6 +69,20 @@ export function resetImageResolutionState() {
   inflightRequests.clear()
 }
 
+function normalizeDataUriSource(src: string): string {
+  try {
+    // Match browser URL parsing behavior for raw data URLs.
+    // Unescaped '#' starts a fragment and should not be treated as image data.
+    const parsed = new URL(src)
+    if (parsed.hash) {
+      return parsed.href.slice(0, -parsed.hash.length)
+    }
+    return parsed.href
+  } catch {
+    return src
+  }
+}
+
 const ALLOWED_IMAGE_TYPES = [PNG, APNG, JPEG, GIF, SVG]
 
 function arrayBufferToBase64(buffer) {
@@ -175,6 +189,8 @@ export async function resolveImageData(
   }
 
   if (src.startsWith('data:')) {
+    src = normalizeDataUriSource(src)
+
     let decodedURI: { imageType; encodingType; dataString }
 
     try {
@@ -189,17 +205,30 @@ export async function resolveImageData(
 
     const { imageType, encodingType, dataString } = decodedURI
     if (imageType === SVG) {
-      const utf8Src =
-        encodingType === 'base64'
-          ? atob(dataString)
-          : decodeURIComponent(dataString.replace(/ /g, '%20'))
-      const base64Src =
-        encodingType === 'base64'
-          ? src
-          : `data:image/svg+xml;base64,${btoa(utf8Src)}`
-      let imageSize = parseSvgImageSize(src, utf8Src)
-      cache.set(src, [base64Src, ...imageSize])
-      return [base64Src, ...imageSize]
+      try {
+        const utf8Src =
+          encodingType === 'base64'
+            ? atob(dataString)
+            : decodeURIComponent(dataString.replace(/ /g, '%20'))
+
+        // Avoid passing malformed SVG payloads downstream to resvg, which can
+        // panic on invalid XML inputs.
+        if (!/<\/svg\s*>/i.test(utf8Src)) {
+          throw new Error('Malformed SVG data URI')
+        }
+
+        const base64Src =
+          encodingType === 'base64'
+            ? src
+            : `data:image/svg+xml;base64,${btoa(utf8Src)}`
+        const imageSize = parseSvgImageSize(src, utf8Src)
+        cache.set(src, [base64Src, ...imageSize])
+        return [base64Src, ...imageSize]
+      } catch (err) {
+        console.warn(`Image data URI resolved without size:${src}`)
+        cache.set(src, [])
+        return []
+      }
     } else if (encodingType === 'base64') {
       let imageSize: [number, number]
       const data = base64ToArrayBuffer(dataString)
