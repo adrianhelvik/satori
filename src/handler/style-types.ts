@@ -6,6 +6,7 @@ import type { FontStyle, FontWeight } from '../font.js'
 export type MainStyle = {
   color: string
   fontSize: number
+  fontVariant: string | string[]
   fontVariantCaps: string
   fontVariantPosition: string
   transform: TransformInput

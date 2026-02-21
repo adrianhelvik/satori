@@ -1,15 +1,9 @@
 import { segment } from '../utils.js'
 import type { Locale } from '../language.js'
-
-const FONT_VARIANT_CAPS_VALUES = new Set([
-  'normal',
-  'small-caps',
-  'all-small-caps',
-  'petite-caps',
-  'all-petite-caps',
-  'unicase',
-  'titling-caps',
-])
+import {
+  normalizeFontVariantCapsToken,
+  resolveFontVariantCapsFromShorthand,
+} from './font-variant.js'
 
 const SYNTHETIC_SMALL_CAPS_VALUES = new Set([
   'small-caps',
@@ -18,13 +12,6 @@ const SYNTHETIC_SMALL_CAPS_VALUES = new Set([
   'all-petite-caps',
 ])
 
-function normalizeFontVariantCapsToken(value: unknown): string | undefined {
-  if (typeof value !== 'string') return
-  const normalized = value.trim().toLowerCase()
-  if (!FONT_VARIANT_CAPS_VALUES.has(normalized)) return
-  return normalized
-}
-
 export function resolveFontVariantCapsValue(
   fontVariantCaps: unknown,
   fontVariant: unknown
@@ -32,19 +19,7 @@ export function resolveFontVariantCapsValue(
   const explicit = normalizeFontVariantCapsToken(fontVariantCaps)
   if (explicit) return explicit
 
-  if (Array.isArray(fontVariant)) {
-    for (const token of fontVariant) {
-      const normalized = normalizeFontVariantCapsToken(token)
-      if (normalized) return normalized
-    }
-  } else if (typeof fontVariant === 'string') {
-    for (const token of fontVariant.split(/\s+/).filter(Boolean)) {
-      const normalized = normalizeFontVariantCapsToken(token)
-      if (normalized) return normalized
-    }
-  }
-
-  return 'normal'
+  return resolveFontVariantCapsFromShorthand(fontVariant) || 'normal'
 }
 
 export function processTextTransform(

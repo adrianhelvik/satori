@@ -13,6 +13,11 @@ import parseTransformOrigin from '../transform-origin.js'
 import type { TransformDescriptor } from '../builder/transform.js'
 import { isTransformInput } from '../builder/transform.js'
 import { isString, lengthToNumber, v, splitEffects } from '../utils.js'
+import {
+  normalizeFontVariantCapsToken,
+  normalizeFontVariantPositionToken,
+  tokenizeFontVariant,
+} from '../text/font-variant.js'
 import { parseMask } from '../parser/mask.js'
 import {
   parseListStylePositionValue,
@@ -273,7 +278,6 @@ const LINE_BREAK_VALUES = new Set([
   'strict',
   'anywhere',
 ])
-const FONT_VARIANT_POSITION_VALUES = new Set(['normal', 'sub', 'super'])
 
 function resolveOverflowClipMargin(value: string | number): SpecialCaseResult {
   const raw = String(value).trim()
@@ -565,12 +569,41 @@ function resolveLineBreak(value: string | number): SpecialCaseResult {
 }
 
 function resolveFontVariantPosition(value: string | number): SpecialCaseResult {
-  const normalized = value.toString().trim().toLowerCase()
-  if (!FONT_VARIANT_POSITION_VALUES.has(normalized)) {
+  const normalized = normalizeFontVariantPositionToken(value)
+  if (!normalized) {
     throw new Error('Invalid `fontVariantPosition` value.')
   }
 
   return { fontVariantPosition: normalized }
+}
+
+function resolveFontVariant(value: string | number): SpecialCaseResult {
+  const tokens = tokenizeFontVariant(value)
+  if (!tokens.length) {
+    throw new Error('Invalid `fontVariant` value.')
+  }
+
+  let fontVariantCaps = 'normal'
+  let fontVariantPosition: 'normal' | 'sub' | 'super' = 'normal'
+
+  for (const token of tokens) {
+    const caps = normalizeFontVariantCapsToken(token)
+    if (caps) {
+      fontVariantCaps = caps
+      continue
+    }
+
+    const position = normalizeFontVariantPositionToken(token)
+    if (position) {
+      fontVariantPosition = position
+    }
+  }
+
+  return {
+    fontVariant: tokens,
+    fontVariantCaps,
+    fontVariantPosition,
+  }
 }
 
 const complexSpecialCaseHandlers: Record<string, ComplexSpecialCaseHandler> = {
@@ -638,6 +671,7 @@ const complexSpecialCaseHandlers: Record<string, ComplexSpecialCaseHandler> = {
   textDecorationSkipInk: (value) => resolveTextDecorationSkipInk(value),
   lineBreak: (value) => resolveLineBreak(value),
   fontVariantPosition: (value) => resolveFontVariantPosition(value),
+  fontVariant: (value) => resolveFontVariant(value),
 }
 
 function handleSpecialCase(

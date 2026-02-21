@@ -1,3 +1,8 @@
+import {
+  normalizeFontVariantPositionToken,
+  resolveFontVariantPositionFromShorthand,
+} from './font-variant.js'
+
 export type FontVariantPosition = 'normal' | 'sub' | 'super'
 
 export type FontVariantPositionMetrics = {
@@ -6,14 +11,15 @@ export type FontVariantPositionMetrics = {
 }
 
 export function resolveFontVariantPosition(
-  value: unknown
+  value: unknown,
+  fontVariant?: unknown
 ): FontVariantPosition {
-  if (typeof value !== 'string') return 'normal'
+  const explicit = normalizeFontVariantPositionToken(value)
+  if (explicit) return explicit
 
-  const normalized = value.trim().toLowerCase()
-  if (normalized === 'sub' || normalized === 'super') {
-    return normalized
-  }
+  const shorthand = resolveFontVariantPositionFromShorthand(fontVariant)
+  if (shorthand) return shorthand
+
   return 'normal'
 }
 

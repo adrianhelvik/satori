@@ -141,7 +141,8 @@ export default async function* buildTextNodes(
     fontAspect
   )
   const fontVariantPosition = resolveFontVariantPosition(
-    parentStyle.fontVariantPosition
+    parentStyle.fontVariantPosition,
+    parentStyle.fontVariant
   )
   const fontVariantPositionMetrics = getFontVariantPositionMetrics(
     fontVariantPosition,

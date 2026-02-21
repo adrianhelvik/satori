@@ -12,9 +12,23 @@ describe('font-variant-position helpers', () => {
     expect(resolveFontVariantPosition('SUPER')).toBe('super')
   })
 
+  it('resolves shorthand position tokens when longhand is missing', () => {
+    expect(resolveFontVariantPosition(undefined, 'sub')).toBe('sub')
+    expect(resolveFontVariantPosition(undefined, ['super'])).toBe('super')
+    expect(resolveFontVariantPosition(undefined, 'small-caps super')).toBe(
+      'super'
+    )
+  })
+
+  it('prefers longhand over shorthand tokens', () => {
+    expect(resolveFontVariantPosition('normal', 'super')).toBe('normal')
+    expect(resolveFontVariantPosition('sub', 'super')).toBe('sub')
+  })
+
   it('falls back to normal for unsupported values', () => {
     expect(resolveFontVariantPosition(undefined)).toBe('normal')
     expect(resolveFontVariantPosition('invalid')).toBe('normal')
+    expect(resolveFontVariantPosition(undefined, 'invalid')).toBe('normal')
   })
 
   it('computes synthetic metrics for sub/super', () => {

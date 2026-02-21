@@ -27,7 +27,7 @@
 
 | Property | Feasibility | Notes |
 |----------|-------------|-------|
-| `font-variant` | Hard | opentype.js has limited OpenType feature support. Would need per-feature glyph substitution. |
+| `font-variant` | **Supported (partial)** | Supports shorthand parsing for currently supported subfeatures (`font-variant-caps` values and `sub`/`super` position tokens). Other subproperties (ligatures, numeric, east-asian, alternates, emoji, etc.) remain unsupported. |
 | `font-variant-caps` | **Supported (partial)** | Supports `small-caps` / `all-small-caps` / `petite-caps` / `all-petite-caps` via synthetic uppercase fallback when dedicated OpenType small-caps glyph substitution is unavailable. Exact small-cap sizing and true feature-driven glyph selection remain approximate. |
 | `font-variant-ligatures` | Hard | Requires ligature table parsing in opentype.js |
 | `font-variant-numeric` | Hard | Requires numeral alternates from font tables |
