@@ -27,6 +27,7 @@ import {
 import { HorizontalEllipsis, Space, Tab } from './characters.js'
 import { genMeasurer } from './measurer.js'
 import { preprocess } from './processor.js'
+import { getLineIndent, resolveTextIndentConfig } from './text-indent.js'
 import cssColorParse from 'parse-css-color'
 
 const skippedWordWhenFindingMissingFont = new Set([Tab])
@@ -247,66 +248,6 @@ export default async function* buildTextNodes(
   }
 
   const discretionaryHyphenCharacter = resolveHyphenateCharacter()
-
-  function resolveTextIndent(width: number): {
-    width: number
-    eachLine: boolean
-    hanging: boolean
-  } {
-    const noIndent = {
-      width: 0,
-      eachLine: false,
-      hanging: false,
-    }
-
-    if (typeof textIndent === 'number') {
-      return {
-        width: textIndent,
-        eachLine: false,
-        hanging: false,
-      }
-    }
-    if (!isString(textIndent)) {
-      return noIndent
-    }
-
-    const tokens = textIndent.trim().split(/\s+/).filter(Boolean)
-    let indentToken: string | null = null
-    let eachLine = false
-    let hanging = false
-
-    for (const token of tokens) {
-      const normalizedToken = token.toLowerCase()
-      if (normalizedToken === 'each-line') {
-        if (eachLine) return noIndent
-        eachLine = true
-        continue
-      }
-      if (normalizedToken === 'hanging') {
-        if (hanging) return noIndent
-        hanging = true
-        continue
-      }
-      if (indentToken !== null) return noIndent
-      indentToken = token
-    }
-    if (!indentToken) return noIndent
-
-    const resolved = lengthToNumber(
-      indentToken,
-      resolvedFontSize,
-      width,
-      parentStyle as Record<string, number | string>,
-      true
-    )
-    if (typeof resolved !== 'number') return noIndent
-
-    return {
-      width: resolved,
-      eachLine,
-      hanging,
-    }
-  }
   const kerning = fontKerning !== 'none'
 
   const { measureGrapheme, measureGraphemeArray, measureText } = genMeasurer(
@@ -385,24 +326,12 @@ export default async function* buildTextNodes(
 
   // With the given container width, compute the text layout.
   function flow(width: number) {
-    const textIndentConfig = resolveTextIndent(width)
-
-    function getLineIndent(
-      lineNumber: number,
-      startsAfterForcedBreak: boolean
-    ): number {
-      if (!textIndentConfig.width) return 0
-
-      let shouldIndent = lineNumber === 0
-      if (textIndentConfig.eachLine && startsAfterForcedBreak) {
-        shouldIndent = true
-      }
-      if (textIndentConfig.hanging) {
-        shouldIndent = !shouldIndent
-      }
-
-      return shouldIndent ? textIndentConfig.width : 0
-    }
+    const textIndentConfig = resolveTextIndentConfig(
+      textIndent,
+      width,
+      resolvedFontSize,
+      parentStyle as Record<string, number | string | object>
+    )
 
     let lines = 0
     let maxWidth = 0
@@ -417,7 +346,7 @@ export default async function* buildTextNodes(
     texts = []
     wordPositionInLayout = []
 
-    currentWidth = getLineIndent(0, false)
+    currentWidth = getLineIndent(0, false, textIndentConfig)
 
     // We naively implement the width calculation without proper kerning.
     // @TODO: Support different writing modes.
@@ -463,7 +392,7 @@ export default async function* buildTextNodes(
       // - we have break-word
       // - the word is wider than the container width
       // - the word will be put at the beginning of the line
-      const currentLineIndent = getLineIndent(lines, false)
+      const currentLineIndent = getLineIndent(lines, false, textIndentConfig)
       const isAtLineStart =
         currentWidth === currentLineIndent || currentWidth === 0
 
@@ -480,7 +409,7 @@ export default async function* buildTextNodes(
           baselines.push(currentBaselineOffset)
           lines++
           height += currentLineHeight
-          currentWidth = getLineIndent(lines, false)
+          currentWidth = getLineIndent(lines, false, textIndentConfig)
           currentLineHeight = 0
           currentBaselineOffset = 0
           lineSegmentNumber.push(justifyByCharacter ? 0 : 1)
@@ -517,7 +446,7 @@ export default async function* buildTextNodes(
         baselines.push(currentBaselineOffset)
         lines++
         height += currentLineHeight
-        const lineIndent = getLineIndent(lines, forceBreak)
+        const lineIndent = getLineIndent(lines, forceBreak, textIndentConfig)
         currentWidth = lineIndent + w
         currentLineHeight = w ? Math.round(engine.height(word)) : 0
         currentBaselineOffset = w ? Math.round(engine.baseline(word)) : 0
