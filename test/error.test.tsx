@@ -63,6 +63,20 @@ describe('Error', () => {
     expect(typeof svg).toBe('string')
   })
 
+  it('should not throw if display table-row on div that has children', async () => {
+    const svg = await satori(
+      <div style={{ display: 'table-row' }}>
+        Test <span>satori</span> with space
+      </div>,
+      {
+        width: 10,
+        height: 10,
+        fonts,
+      }
+    )
+    expect(typeof svg).toBe('string')
+  })
+
   it('should throw if using invalid values', async () => {
     const result = satori(
       // @ts-expect-error
