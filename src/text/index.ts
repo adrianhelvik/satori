@@ -46,14 +46,6 @@ function isFullyTransparent(color: string): boolean {
   return parsed ? parsed.alpha === 0 : false
 }
 
-function isOpaqueWhite(color: string): boolean {
-  if (!color) return false
-  const parsed = cssColorParse(color)
-  if (!parsed) return false
-  const [r, g, b, a] = parsed.values
-  return r === 255 && g === 255 && b === 255 && (a === undefined || a === 1)
-}
-
 function resolveFontSizeAdjustTarget(
   value: number | string | undefined,
   fontAspect: number | undefined
@@ -136,7 +128,6 @@ export default async function* buildTextNodes(
     hyphenateCharacter,
     fontKerning,
     _inheritedBackgroundClipTextPath,
-    _inheritedBackgroundClipTextHasBackground,
     flexShrink,
   } = parentStyle
 
@@ -697,9 +688,7 @@ export default async function* buildTextNodes(
         shadowOffset: textShadowOffset,
         shadowRadius: textShadowRadius,
       },
-      isFullyTransparent(parentStyle.color) ||
-        (_inheritedBackgroundClipTextHasBackground &&
-          isOpaqueWhite(parentStyle.color))
+      isFullyTransparent(parentStyle.color)
     )
 
     filter = buildXMLString('defs', {}, filter)
@@ -1073,10 +1062,7 @@ export default async function* buildTextNodes(
           }>` +
           buildXMLString('path', {
             fill:
-              filter &&
-              (isFullyTransparent(parentStyle.color) ||
-                (_inheritedBackgroundClipTextHasBackground &&
-                  isOpaqueWhite(parentStyle.color)))
+              filter && isFullyTransparent(parentStyle.color)
                 ? 'black'
                 : parentStyle.color,
             d: mergedPath,
