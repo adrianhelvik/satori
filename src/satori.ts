@@ -6,11 +6,18 @@ import layout from './layout.js'
 import FontLoader, { FontOptions } from './font.js'
 import svg from './builder/svg.js'
 import { getYoga, TYoga } from './yoga.js'
-import { detectLanguageCode, LangCode, Locale } from './language.js'
+import { detectLanguageCode } from './language.js'
+import type { LangCode } from './language.js'
 import getTw from './handler/tailwind.js'
 import { preProcessNode } from './handler/preprocess.js'
 import { resetImageResolutionState } from './handler/image.js'
 import { segment } from './utils.js'
+import {
+  createRenderInput,
+  expectMissingFontsPhase,
+  expectReadyForRenderPhase,
+  type MissingFontSegment,
+} from './layout-protocol.js'
 
 // We don't need to initialize the opentype instances every time.
 const fontCache = new WeakMap()
@@ -190,7 +197,6 @@ export default async function satori(
   return svg({ width: computedWidth, height: computedHeight, content })
 }
 
-type MissingFontSegment = { word: string; locale?: Locale }
 type LayoutIterator = ReturnType<typeof layout>
 
 function createLayoutSession(handler: LayoutIterator) {
@@ -210,11 +216,7 @@ function createLayoutSession(handler: LayoutIterator) {
 
       const result = await handler.next()
       phase = 'awaitingLayoutCalculation'
-
-      if (!result.done && Array.isArray(result.value)) {
-        return result.value as MissingFontSegment[]
-      }
-      return []
+      return expectMissingFontsPhase(result, 'root')
     },
 
     async prepareForLayoutCalculation(): Promise<void> {
@@ -225,11 +227,7 @@ function createLayoutSession(handler: LayoutIterator) {
       }
 
       const result = await handler.next()
-      if (result.done) {
-        throw new Error(
-          'Layout pipeline ended before Yoga layout calculation could run.'
-        )
-      }
+      expectReadyForRenderPhase(result, 'root')
 
       phase = 'awaitingRender'
     },
@@ -241,9 +239,12 @@ function createLayoutSession(handler: LayoutIterator) {
         )
       }
 
-      const result = await handler.next(offset as [number, number, any?])
+      const result = await handler.next(createRenderInput(offset))
       phase = 'completed'
-      return typeof result.value === 'string' ? result.value : ''
+      if (!result.done) {
+        throw new Error('Layout pipeline did not complete during render phase.')
+      }
+      return result.value
     },
   }
 }
@@ -262,7 +263,7 @@ function getRootNode(
 }
 
 function convertToLanguageCodes(
-  segmentsMissingFont: { word: string; locale?: Locale }[]
+  segmentsMissingFont: MissingFontSegment[]
 ): Partial<Record<LangCode, string[]>> {
   const languageCodes = {}
   let wordsByCode = {}

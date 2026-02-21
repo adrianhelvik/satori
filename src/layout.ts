@@ -27,6 +27,16 @@ import { Locale, normalizeLocale } from './language.js'
 import { SerializedStyle } from './handler/expand.js'
 import { getListMarkerText } from './handler/list-style.js'
 import { isClippedOverflow } from './overflow-semantics.js'
+import {
+  createMissingFontsPhase,
+  createRenderInput,
+  expectMissingFontsPhase,
+  expectReadyForRenderPhase,
+  READY_FOR_RENDER_PHASE,
+  type LayoutPhase,
+  type LayoutRenderInput,
+  type MissingFontSegment,
+} from './layout-protocol.js'
 import cssColorParse from 'parse-css-color'
 
 interface ListItemContext {
@@ -374,11 +384,7 @@ function measureListMarkerTextWidth(
 export default async function* layout(
   element: ReactNode,
   context: LayoutContext
-): AsyncGenerator<
-  { word: string; locale?: string }[],
-  string,
-  [number, number, BlendPrimitive[]?]
-> {
+): AsyncGenerator<LayoutPhase, string, LayoutRenderInput> {
   const Yoga = await getYoga()
   const {
     id,
@@ -397,8 +403,8 @@ export default async function* layout(
 
   // 1. Pre-process the node.
   if (element === null || typeof element === 'undefined') {
-    yield
-    yield
+    yield createMissingFontsPhase([])
+    yield READY_FOR_RENDER_PHASE
     return ''
   }
 
@@ -409,7 +415,12 @@ export default async function* layout(
     if (!isReactElement(element)) {
       // Process as text node.
       iter = buildTextNodes(String(element), context)
-      yield (await iter.next()).value as { word: string; locale?: Locale }[]
+      const missingFontsResult = await iter.next()
+      const missingFonts = expectMissingFontsPhase(
+        missingFontsResult,
+        `text node ${id}`
+      )
+      yield createMissingFontsPhase(missingFonts)
     } else {
       if (isClass(element.type as Function)) {
         throw new Error('Class component is not supported.')
@@ -430,12 +441,25 @@ export default async function* layout(
       // So we can safely evaluate it to render. Otherwise, an error will be
       // thrown by React.
       iter = layout(await render(element.props), context)
-      yield (await iter.next()).value as { word: string; locale?: string }[]
+      const missingFontsResult = await iter.next()
+      const missingFonts = expectMissingFontsPhase(
+        missingFontsResult,
+        `custom component ${id}`
+      )
+      yield createMissingFontsPhase(missingFonts)
     }
 
-    await iter.next()
-    const offset = yield
-    return (await iter.next(offset)).value as string
+    const readyResult = await iter.next()
+    expectReadyForRenderPhase(readyResult, `custom component ${id}`)
+
+    const renderInput = yield READY_FOR_RENDER_PHASE
+    const renderResult = await iter.next(renderInput)
+    if (!renderResult.done) {
+      throw new Error(
+        `Layout pipeline did not complete during render phase (custom component ${id}).`
+      )
+    }
+    return renderResult.value
   }
 
   // Process as element.
@@ -601,7 +625,7 @@ export default async function* layout(
     applyListItemCounterStyles(orderedListCounter, computedStyle, 0)
   }
   let listItemIndex = 0
-  const segmentsMissingFont: { word: string; locale?: string }[] = []
+  const segmentsMissingFont: MissingFontSegment[] = []
   for (let orderIndex = 0; orderIndex < sortedChildren.length; orderIndex++) {
     const { child, zIndex } = sortedChildren[orderIndex]
     let childListItemContext: ListItemContext | undefined
@@ -638,18 +662,26 @@ export default async function* layout(
       listItemContext: childListItemContext,
       childRenderMeta: renderMeta,
     })
+    const childMissingFontsResult = await iter.next()
+    const childMissingFonts = expectMissingFontsPhase(
+      childMissingFontsResult,
+      `child ${id}-${orderIndex}`
+    )
     if (canLoadAdditionalAssets) {
-      segmentsMissingFont.push(...(((await iter.next()).value as any) || []))
-    } else {
-      await iter.next()
+      segmentsMissingFont.push(...childMissingFonts)
     }
     iterators.push({ iter, orderIndex, zIndex, renderMeta })
   }
-  yield segmentsMissingFont
-  for (const { iter } of iterators) await iter.next()
+  yield createMissingFontsPhase(segmentsMissingFont)
+  for (const { iter, orderIndex } of iterators) {
+    const readyResult = await iter.next()
+    expectReadyForRenderPhase(readyResult, `child ${id}-${orderIndex}`)
+  }
 
   // 3. Post-process the node.
-  const [x, y, siblingBlendBackdrops = []] = yield
+  const renderInput = yield READY_FOR_RENDER_PHASE
+  const [x, y] = renderInput.offset
+  const siblingBlendBackdrops = renderInput.siblingBlendBackdrops || []
   let { left, top, width, height } = node.getComputedLayout()
   // Attach offset to the current node.
   left += x
@@ -772,10 +804,16 @@ export default async function* layout(
     (a, b) => a.zIndex - b.zIndex || a.orderIndex - b.orderIndex
   )
   const paintedBlendPrimitives: BlendPrimitive[] = []
-  for (const { iter, renderMeta } of paintIterators) {
-    childrenRenderResult += (
-      await iter.next([left, top, paintedBlendPrimitives])
-    ).value
+  for (const { iter, renderMeta, orderIndex } of paintIterators) {
+    const childRenderResult = await iter.next(
+      createRenderInput([left, top], paintedBlendPrimitives)
+    )
+    if (!childRenderResult.done) {
+      throw new Error(
+        `Layout pipeline did not complete during child render (${id}-${orderIndex}).`
+      )
+    }
+    childrenRenderResult += childRenderResult.value
     const primitive = resolveBlendPrimitive(renderMeta, left, top)
     if (primitive) {
       paintedBlendPrimitives.push(primitive)

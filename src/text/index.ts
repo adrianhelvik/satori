@@ -18,7 +18,12 @@ import type { TransformInput } from '../builder/transform.js'
 import { buildDropShadow } from '../builder/shadow.js'
 import buildDecoration from '../builder/text-decoration.js'
 import type { GlyphBox } from '../font.js'
-import { Locale } from '../language.js'
+import {
+  createMissingFontsPhase,
+  READY_FOR_RENDER_PHASE,
+  type LayoutPhase,
+  type LayoutRenderInput,
+} from '../layout-protocol.js'
 import { HorizontalEllipsis, Space, Tab } from './characters.js'
 import { genMeasurer } from './measurer.js'
 import { preprocess } from './processor.js'
@@ -88,7 +93,7 @@ function resolveAdjustedFontSize(
 export default async function* buildTextNodes(
   content: string,
   context: LayoutContext
-): AsyncGenerator<{ word: string; locale?: Locale }[], string, [any, any]> {
+): AsyncGenerator<LayoutPhase, string, LayoutRenderInput> {
   const Yoga = await getYoga()
 
   const {
@@ -175,12 +180,14 @@ export default async function* buildTextNodes(
       )
     : []
 
-  yield wordsMissingFont.map((word) => {
-    return {
-      word,
-      locale,
-    }
-  })
+  yield createMissingFontsPhase(
+    wordsMissingFont.map((word) => {
+      return {
+        word,
+        locale,
+      }
+    })
+  )
 
   if (wordsMissingFont.length) {
     // Reload the engine with additional fonts.
@@ -643,7 +650,8 @@ export default async function* buildTextNodes(
     return { width: _width, height }
   })
 
-  const [x, y] = yield
+  const renderInput = yield READY_FOR_RENDER_PHASE
+  const [x, y] = renderInput.offset
 
   let result = ''
   let backgroundClipDef = ''
