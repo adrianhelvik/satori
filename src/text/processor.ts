@@ -1,24 +1,12 @@
 import { Locale } from '../language.js'
-import { isNumber, segment, splitByBreakOpportunities } from '../utils.js'
+import { isNumber, splitByBreakOpportunities } from '../utils.js'
 import { HorizontalEllipsis, Space } from './characters.js'
 import type { SerializedStyle } from '../handler/style-types.js'
-
-const FONT_VARIANT_CAPS_VALUES = new Set([
-  'normal',
-  'small-caps',
-  'all-small-caps',
-  'petite-caps',
-  'all-petite-caps',
-  'unicase',
-  'titling-caps',
-])
-
-const SYNTHETIC_SMALL_CAPS_VALUES = new Set([
-  'small-caps',
-  'all-small-caps',
-  'petite-caps',
-  'all-petite-caps',
-])
+import { processTextTransform } from './text-case.js'
+import {
+  applyHyphenateLimitChars,
+  parseHyphenateLimitChars,
+} from './hyphenation.js'
 
 export function preprocess(
   content: string,
@@ -85,76 +73,6 @@ export function preprocess(
     lineLimit,
     blockEllipsis,
   }
-}
-
-function processTextTransform(
-  content: string,
-  textTransform: unknown,
-  fontVariantCaps: unknown,
-  fontVariant: unknown,
-  locale?: Locale
-): string {
-  const normalized = typeof textTransform === 'string' ? textTransform : 'none'
-
-  if (normalized === 'uppercase') {
-    content = content.toLocaleUpperCase(locale)
-  } else if (normalized === 'lowercase') {
-    content = content.toLocaleLowerCase(locale)
-  } else if (normalized === 'capitalize') {
-    content = segment(content, 'word', locale)
-      // For each word...
-      .map((word) => {
-        // ...split into graphemes...
-        return segment(word, 'grapheme', locale)
-          .map((grapheme, index) => {
-            // ...and make the first grapheme uppercase
-            return index === 0 ? grapheme.toLocaleUpperCase(locale) : grapheme
-          })
-          .join('')
-      })
-      .join('')
-  }
-
-  const normalizedFontVariantCaps = resolveFontVariantCapsValue(
-    fontVariantCaps,
-    fontVariant
-  )
-  if (SYNTHETIC_SMALL_CAPS_VALUES.has(normalizedFontVariantCaps)) {
-    // Approximation: synthesize small caps by uppercasing content when
-    // dedicated small-caps glyphs are unavailable.
-    content = content.toLocaleUpperCase(locale)
-  }
-
-  return content
-}
-
-function normalizeFontVariantCapsToken(value: unknown): string | undefined {
-  if (typeof value !== 'string') return
-  const normalized = value.trim().toLowerCase()
-  if (!FONT_VARIANT_CAPS_VALUES.has(normalized)) return
-  return normalized
-}
-
-function resolveFontVariantCapsValue(
-  fontVariantCaps: unknown,
-  fontVariant: unknown
-): string {
-  const explicit = normalizeFontVariantCapsToken(fontVariantCaps)
-  if (explicit) return explicit
-
-  if (Array.isArray(fontVariant)) {
-    for (const token of fontVariant) {
-      const normalized = normalizeFontVariantCapsToken(token)
-      if (normalized) return normalized
-    }
-  } else if (typeof fontVariant === 'string') {
-    for (const token of fontVariant.split(/\s+/).filter(Boolean)) {
-      const normalized = normalizeFontVariantCapsToken(token)
-      if (normalized) return normalized
-    }
-  }
-
-  return 'normal'
 }
 
 function processTextOverflow(
@@ -251,108 +169,6 @@ function processWordBreak(
 
   return { words, requiredBreaks, softHyphenBreaks, allowBreakWord }
 }
-
-type HyphenateLimitChars = {
-  total?: number
-  before?: number
-  after?: number
-}
-
-function parseHyphenateLimitChars(value: unknown): HyphenateLimitChars | null {
-  if (typeof value === 'number') {
-    return Number.isInteger(value) && value > 0 ? { total: value } : null
-  }
-
-  if (typeof value !== 'string') return null
-
-  const tokens = value.trim().toLowerCase().split(/\s+/).filter(Boolean)
-  if (!tokens.length || (tokens.length === 1 && tokens[0] === 'auto')) {
-    return null
-  }
-  if (tokens.length > 3) return null
-
-  const parsedTokens: Array<number | undefined> = []
-  for (const token of tokens) {
-    if (token === 'auto') {
-      parsedTokens.push(undefined)
-      continue
-    }
-    if (!/^\d+$/.test(token)) return null
-    const parsed = Number.parseInt(token, 10)
-    if (parsed <= 0) return null
-    parsedTokens.push(parsed)
-  }
-
-  if (parsedTokens.length === 1) {
-    return { total: parsedTokens[0] }
-  }
-  if (parsedTokens.length === 2) {
-    return {
-      total: parsedTokens[0],
-      before: parsedTokens[1],
-    }
-  }
-  return {
-    total: parsedTokens[0],
-    before: parsedTokens[1],
-    after: parsedTokens[2],
-  }
-}
-
-function countGraphemes(value: string, locale?: Locale): number {
-  if (!value) return 0
-  return segment(value, 'grapheme', locale).length
-}
-
-function shouldKeepSoftHyphenBreak(
-  previousWord: string,
-  nextWord: string,
-  limits: HyphenateLimitChars,
-  locale?: Locale
-): boolean {
-  const before = countGraphemes(previousWord, locale)
-  const after = countGraphemes(nextWord, locale)
-  const total = before + after
-
-  if (typeof limits.total === 'number' && total < limits.total) {
-    return false
-  }
-  if (typeof limits.before === 'number' && before < limits.before) {
-    return false
-  }
-  if (typeof limits.after === 'number' && after < limits.after) {
-    return false
-  }
-
-  return true
-}
-
-function applyHyphenateLimitChars(
-  words: string[],
-  requiredBreaks: boolean[],
-  softHyphenBreaks: boolean[],
-  limits: HyphenateLimitChars | null,
-  locale?: Locale
-) {
-  if (!limits) return
-
-  for (let i = 1; i < words.length; i++) {
-    if (!softHyphenBreaks[i]) continue
-
-    const previousWord = words[i - 1] || ''
-    const nextWord = words[i] || ''
-    if (shouldKeepSoftHyphenBreak(previousWord, nextWord, limits, locale)) {
-      continue
-    }
-
-    words[i - 1] = previousWord + nextWord
-    words.splice(i, 1)
-    requiredBreaks.splice(i, 1)
-    softHyphenBreaks.splice(i, 1)
-    i -= 1
-  }
-}
-
 function processWhiteSpace(
   content: string,
   whiteSpace: unknown
