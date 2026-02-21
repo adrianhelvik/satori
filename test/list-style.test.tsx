@@ -345,6 +345,52 @@ describe('list-style', () => {
     expect(toImage(svg, 320)).toMatchImageSnapshot()
   })
 
+  it('should support hiragana-iroha and katakana-iroha listStyleType values', async () => {
+    const nodes = []
+    const svg = await satori(
+      <div
+        style={{
+          width: 360,
+          height: 180,
+          display: 'flex',
+          gap: 20,
+          backgroundColor: 'white',
+          fontSize: 18,
+          margin: 0,
+        }}
+      >
+        <ol style={{ margin: 0, listStyleType: 'hiragana-iroha' as any }}>
+          <li>First</li>
+          <li>Second</li>
+        </ol>
+        <ol style={{ margin: 0, listStyleType: 'katakana-iroha' as any }}>
+          <li>First</li>
+          <li>Second</li>
+        </ol>
+      </div>,
+      {
+        width: 360,
+        height: 180,
+        fonts,
+        embedFont: false,
+        onNodeDetected: (node) => nodes.push(node),
+      }
+    )
+
+    const markerText = nodes
+      .filter(
+        (node) =>
+          node.key === '__satori-list-marker' &&
+          typeof node.textContent === 'string'
+      )
+      .map((node) => node.textContent)
+    expect(markerText).toContain('い.')
+    expect(markerText).toContain('ろ.')
+    expect(markerText).toContain('イ.')
+    expect(markerText).toContain('ロ.')
+    expect(toImage(svg, 360)).toMatchImageSnapshot()
+  })
+
   it('should size outside text markers using marker text metrics', async () => {
     const nodes = []
     await satori(
