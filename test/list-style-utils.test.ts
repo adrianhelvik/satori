@@ -10,6 +10,9 @@ import {
 describe('list-style helpers', () => {
   it('should parse list-style-type keywords and quoted strings', () => {
     expect(parseListStyleTypeValue('SQUARE')).toBe('square')
+    expect(parseListStyleTypeValue('lower-hexadecimal')).toBe(
+      'lower-hexadecimal'
+    )
     expect(parseListStyleTypeValue('"->"')).toBe('"->"')
     expect(parseListStyleTypeValue('unknown')).toBeUndefined()
   })
@@ -35,6 +38,7 @@ describe('list-style helpers', () => {
 
   it('should format marker text for counters and strings', () => {
     expect(getListMarkerText('decimal', 3)).toBe('3.')
+    expect(getListMarkerText('lower-hexadecimal', 16)).toBe('10.')
     expect(getListMarkerText('lower-roman', 4)).toBe('iv.')
     expect(getListMarkerText('"\\2192"', 1)).toBe('\u2192')
     expect(getListMarkerText('none', 1)).toBeNull()

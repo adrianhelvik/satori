@@ -53,6 +53,47 @@ describe('list-style', () => {
     expect(toImage(svg, 260)).toMatchImageSnapshot()
   })
 
+  it('should support lower-hexadecimal listStyleType values', async () => {
+    const nodes = []
+    const svg = await satori(
+      <ol
+        style={{
+          width: 260,
+          height: 220,
+          backgroundColor: 'white',
+          fontSize: 18,
+          listStyleType: 'lower-hexadecimal',
+          paddingLeft: 40,
+          margin: 0,
+        }}
+      >
+        {Array.from({ length: 18 }, (_, i) => (
+          <li key={i}>Hex marker text</li>
+        ))}
+      </ol>,
+      {
+        width: 260,
+        height: 220,
+        fonts,
+        embedFont: false,
+        onNodeDetected: (node) => nodes.push(node),
+      }
+    )
+
+    const markerText = nodes
+      .filter(
+        (node) =>
+          node.key === '__satori-list-marker' &&
+          typeof node.textContent === 'string'
+      )
+      .map((node) => node.textContent)
+
+    expect(markerText).toContain('a.')
+    expect(markerText).toContain('10.')
+    expect(markerText).toContain('12.')
+    expect(toImage(svg, 260)).toMatchImageSnapshot()
+  })
+
   it('should support lower-greek listStyleType', async () => {
     const nodes = []
     const svg = await satori(
