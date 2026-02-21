@@ -11,6 +11,7 @@
 - `visibility`: `visible`, `hidden`
 - `box-sizing`: `border-box`, `content-box`
 - Flexbox: `flex-direction`, `flex-wrap`, `flex-grow`, `flex-shrink`, `flex-basis`, `flex`, `align-items`, `align-self`, `align-content`, `justify-content`, `gap`, `row-gap`, `column-gap`
+  - Alignment values include `start`/`end` aliases, `space-evenly` (for `justify-content` / `align-content`), and `safe`/`unsafe` prefixes (normalized to Yoga-compatible values).
 - Alignment shorthands: `place-content`, `place-items`, `place-self`
 - `order`
 

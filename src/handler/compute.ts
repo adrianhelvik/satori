@@ -23,6 +23,33 @@ type SatoriElement = keyof typeof presets
 const TRANSPARENT_PIXEL_DATA_URI =
   'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw=='
 
+const ALIGNMENT_VALUE_ALIASES: Record<string, string> = {
+  start: 'flex-start',
+  end: 'flex-end',
+  'self-start': 'flex-start',
+  'self-end': 'flex-end',
+}
+
+const JUSTIFY_CONTENT_VALUE_ALIASES: Record<string, string> = {
+  ...ALIGNMENT_VALUE_ALIASES,
+  left: 'flex-start',
+  right: 'flex-end',
+}
+
+function normalizeBoxAlignmentValue(
+  value: unknown,
+  aliases: Record<string, string>
+): unknown {
+  if (typeof value !== 'string') return value
+
+  const normalized = value.trim().toLowerCase()
+  if (!normalized) return normalized
+
+  // CSS overflow-position prefix (`safe` / `unsafe`) has no Yoga equivalent.
+  const withoutOverflowPosition = normalized.replace(/^(safe|unsafe)\s+/, '')
+  return aliases[withoutOverflowPosition] || withoutOverflowPosition
+}
+
 function isAutoSize(value: unknown): boolean {
   return typeof value === 'undefined' || value === 'auto'
 }
@@ -263,9 +290,13 @@ export default async function compute(
     )
   )
 
+  const alignContentValue = normalizeBoxAlignmentValue(
+    style.alignContent,
+    ALIGNMENT_VALUE_ALIASES
+  )
   node.setAlignContent(
     v(
-      style.alignContent,
+      alignContentValue,
       {
         stretch: Yoga.ALIGN_STRETCH,
         center: Yoga.ALIGN_CENTER,
@@ -273,6 +304,7 @@ export default async function compute(
         'flex-end': Yoga.ALIGN_FLEX_END,
         'space-between': Yoga.ALIGN_SPACE_BETWEEN,
         'space-around': Yoga.ALIGN_SPACE_AROUND,
+        'space-evenly': Yoga.ALIGN_SPACE_EVENLY,
         baseline: Yoga.ALIGN_BASELINE,
         normal: Yoga.ALIGN_STRETCH,
       },
@@ -281,9 +313,13 @@ export default async function compute(
     )
   )
 
+  const alignItemsValue = normalizeBoxAlignmentValue(
+    style.alignItems,
+    ALIGNMENT_VALUE_ALIASES
+  )
   node.setAlignItems(
     v(
-      style.alignItems,
+      alignItemsValue,
       {
         stretch: Yoga.ALIGN_STRETCH,
         center: Yoga.ALIGN_CENTER,
@@ -296,9 +332,14 @@ export default async function compute(
       'alignItems'
     )
   )
+
+  const alignSelfValue = normalizeBoxAlignmentValue(
+    style.alignSelf,
+    ALIGNMENT_VALUE_ALIASES
+  )
   node.setAlignSelf(
     v(
-      style.alignSelf,
+      alignSelfValue,
       {
         stretch: Yoga.ALIGN_STRETCH,
         center: Yoga.ALIGN_CENTER,
@@ -311,15 +352,21 @@ export default async function compute(
       'alignSelf'
     )
   )
+
+  const justifyContentValue = normalizeBoxAlignmentValue(
+    style.justifyContent,
+    JUSTIFY_CONTENT_VALUE_ALIASES
+  )
   node.setJustifyContent(
     v(
-      style.justifyContent,
+      justifyContentValue,
       {
         center: Yoga.JUSTIFY_CENTER,
         'flex-start': Yoga.JUSTIFY_FLEX_START,
         'flex-end': Yoga.JUSTIFY_FLEX_END,
         'space-between': Yoga.JUSTIFY_SPACE_BETWEEN,
         'space-around': Yoga.JUSTIFY_SPACE_AROUND,
+        'space-evenly': Yoga.JUSTIFY_SPACE_EVENLY,
       },
       Yoga.JUSTIFY_FLEX_START,
       'justifyContent'

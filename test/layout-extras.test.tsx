@@ -369,6 +369,120 @@ describe('Layout Extras', () => {
     })
   })
 
+  describe('alignment keywords', () => {
+    it('should map justify-content start/end aliases', async () => {
+      const render = async (justifyContent: string) =>
+        satori(
+          <div
+            style={{
+              width: 120,
+              height: 60,
+              display: 'flex',
+              justifyContent,
+              backgroundColor: 'white',
+            }}
+          >
+            <div style={{ width: 30, height: 30, backgroundColor: 'red' }} />
+          </div>,
+          { width: 120, height: 60, fonts }
+        )
+
+      const start = await render('start')
+      const flexStart = await render('flex-start')
+      const end = await render('end')
+      const flexEnd = await render('flex-end')
+
+      expect(toImage(start, 120)).toEqual(toImage(flexStart, 120))
+      expect(toImage(end, 120)).toEqual(toImage(flexEnd, 120))
+    })
+
+    it('should normalize safe/unsafe alignment prefixes', async () => {
+      const safe = await satori(
+        <div
+          style={{
+            width: 120,
+            height: 80,
+            display: 'flex',
+            justifyContent: 'safe center',
+            alignItems: 'unsafe end',
+            backgroundColor: 'white',
+          }}
+        >
+          <div style={{ width: 30, height: 30, backgroundColor: 'blue' }} />
+        </div>,
+        { width: 120, height: 80, fonts }
+      )
+
+      const normalized = await satori(
+        <div
+          style={{
+            width: 120,
+            height: 80,
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'flex-end',
+            backgroundColor: 'white',
+          }}
+        >
+          <div style={{ width: 30, height: 30, backgroundColor: 'blue' }} />
+        </div>,
+        { width: 120, height: 80, fonts }
+      )
+
+      expect(toImage(safe, 120)).toEqual(toImage(normalized, 120))
+    })
+
+    it('should support justify-content: space-evenly', async () => {
+      const nodes: any[] = []
+
+      await satori(
+        <div
+          style={{
+            width: 100,
+            height: 40,
+            display: 'flex',
+            justifyContent: 'space-evenly',
+            backgroundColor: 'white',
+          }}
+        >
+          <div
+            key='a'
+            style={{ width: 10, height: 10, backgroundColor: 'red' }}
+          />
+          <div
+            key='b'
+            style={{ width: 10, height: 10, backgroundColor: 'green' }}
+          />
+          <div
+            key='c'
+            style={{ width: 10, height: 10, backgroundColor: 'blue' }}
+          />
+        </div>,
+        { width: 100, height: 40, fonts, onNodeDetected: (n) => nodes.push(n) }
+      )
+
+      const a = nodes.find((n) => n.key === 'a')
+      const b = nodes.find((n) => n.key === 'b')
+      const c = nodes.find((n) => n.key === 'c')
+
+      expect(a).toBeTruthy()
+      expect(b).toBeTruthy()
+      expect(c).toBeTruthy()
+
+      if (!a || !b || !c) return
+
+      const itemWidth = 10
+      const startGap = a.left
+      const gap1 = b.left - (a.left + itemWidth)
+      const gap2 = c.left - (b.left + itemWidth)
+      const endGap = 100 - (c.left + itemWidth)
+
+      expect(Math.abs(startGap - gap1)).toBeLessThanOrEqual(1)
+      expect(Math.abs(gap1 - gap2)).toBeLessThanOrEqual(1)
+      expect(Math.abs(gap2 - endGap)).toBeLessThanOrEqual(1)
+    })
+  })
+
   describe('overflow-x / overflow-y', () => {
     it('should clip when overflow-x is hidden', async () => {
       const svg = await satori(
