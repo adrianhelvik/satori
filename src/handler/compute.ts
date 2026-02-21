@@ -204,8 +204,18 @@ export default async function compute(
     let height = normalizeSvgSize(props.height)
 
     if (typeof width === 'undefined' && typeof height === 'undefined') {
-      width = viewBoxSize?.[2]
-      height = viewBoxSize?.[3]
+      if (hasIntrinsicRatio) {
+        // Match browser behavior for <svg> without explicit size: it expands
+        // to the available width and preserves the intrinsic viewBox ratio.
+        width = '100%'
+        if (typeof style.aspectRatio === 'undefined') {
+          style.aspectRatio = 1 / ratio
+        }
+      } else {
+        // Fallback intrinsic dimensions from HTML replaced-element defaults.
+        width = 300
+        height = 150
+      }
     } else if (
       hasIntrinsicRatio &&
       typeof style.aspectRatio === 'undefined' &&
