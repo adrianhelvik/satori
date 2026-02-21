@@ -221,6 +221,8 @@ const georgianSymbols: Array<[number, string]> = [
 
 const lowerLatinSymbols = 'abcdefghijklmnopqrstuvwxyz'.split('')
 const upperLatinSymbols = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('')
+const lowerNorwegianSymbols = 'abcdefghijklmnopqrstuvwxyzæøå'.split('')
+const upperNorwegianSymbols = 'ABCDEFGHIJKLMNOPQRSTUVWXYZÆØÅ'.split('')
 const lowerGreekSymbols = [
   '\u03b1',
   '\u03b2',
@@ -507,6 +509,22 @@ const registry: Record<string, ListStyleDefinition> = {
   'upper-latin': { ordered: true, format: markerAlphabetic(upperLatinSymbols) },
   'lower-alpha': { ordered: true, format: markerAlphabetic(lowerLatinSymbols) },
   'lower-latin': { ordered: true, format: markerAlphabetic(lowerLatinSymbols) },
+  'lower-norwegian': {
+    ordered: true,
+    format: markerAlphabetic(lowerNorwegianSymbols),
+  },
+  'upper-norwegian': {
+    ordered: true,
+    format: markerAlphabetic(upperNorwegianSymbols),
+  },
+  'lower-danish': {
+    ordered: true,
+    format: markerAlphabetic(lowerNorwegianSymbols),
+  },
+  'upper-danish': {
+    ordered: true,
+    format: markerAlphabetic(upperNorwegianSymbols),
+  },
   'lower-greek': { ordered: true, format: markerAlphabetic(lowerGreekSymbols) },
   'lower-cyrillic': {
     ordered: true,

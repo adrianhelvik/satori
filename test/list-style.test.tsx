@@ -391,6 +391,68 @@ describe('list-style', () => {
     expect(toImage(svg, 360)).toMatchImageSnapshot()
   })
 
+  it('should support norwegian and danish listStyleType values', async () => {
+    const nodes = []
+    const svg = await satori(
+      <div
+        style={{
+          width: 320,
+          height: 150,
+          display: 'flex',
+          gap: 20,
+          backgroundColor: 'white',
+          fontSize: 18,
+          margin: 0,
+        }}
+      >
+        <ol
+          style={{
+            margin: 0,
+            listStyleType: 'lower-norwegian' as any,
+            counterReset: 'list-item 26',
+          }}
+        >
+          <li>item</li>
+          <li>item</li>
+          <li>item</li>
+        </ol>
+        <ol
+          style={{
+            margin: 0,
+            listStyleType: 'upper-danish' as any,
+            counterReset: 'list-item 26',
+          }}
+        >
+          <li>item</li>
+          <li>item</li>
+          <li>item</li>
+        </ol>
+      </div>,
+      {
+        width: 320,
+        height: 150,
+        fonts,
+        embedFont: false,
+        onNodeDetected: (node) => nodes.push(node),
+      }
+    )
+
+    const markerText = nodes
+      .filter(
+        (node) =>
+          node.key === '__satori-list-marker' &&
+          typeof node.textContent === 'string'
+      )
+      .map((node) => node.textContent)
+    expect(markerText).toContain('æ.')
+    expect(markerText).toContain('ø.')
+    expect(markerText).toContain('å.')
+    expect(markerText).toContain('Æ.')
+    expect(markerText).toContain('Ø.')
+    expect(markerText).toContain('Å.')
+    expect(toImage(svg, 320)).toMatchImageSnapshot()
+  })
+
   it('should size outside text markers using marker text metrics', async () => {
     const nodes = []
     await satori(
