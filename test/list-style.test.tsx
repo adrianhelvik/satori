@@ -127,6 +127,112 @@ describe('list-style', () => {
     expect(markerNodes[9].width).toBeGreaterThan(markerNodes[8].width)
   })
 
+  it('should keep outside markers out of normal content flow', async () => {
+    const outsideNodes = []
+    await satori(
+      <ol
+        style={{
+          width: 280,
+          height: 120,
+          backgroundColor: 'white',
+          fontSize: 18,
+          listStyleType: 'decimal',
+          listStylePosition: 'outside',
+          paddingLeft: 40,
+          margin: 0,
+        }}
+      >
+        <li>Aligned marker text</li>
+      </ol>,
+      {
+        width: 280,
+        height: 120,
+        fonts,
+        onNodeDetected: (node) => outsideNodes.push(node),
+      }
+    )
+
+    const markerNode = outsideNodes.find(
+      (node) => node.key === '__satori-list-marker'
+    )
+    const contentNode = outsideNodes.find(
+      (node) => node.key === '__satori-list-content'
+    )
+
+    expect(markerNode).toBeTruthy()
+    expect(contentNode).toBeTruthy()
+    if (!markerNode || !contentNode) {
+      throw new Error('Expected marker and content nodes to be present.')
+    }
+    expect(markerNode.left).toBeLessThan(contentNode.left)
+  })
+
+  it('should indent inside markers by participating in content flow', async () => {
+    const outsideNodes = []
+    await satori(
+      <ol
+        style={{
+          width: 280,
+          height: 120,
+          backgroundColor: 'white',
+          fontSize: 18,
+          listStyleType: 'decimal',
+          listStylePosition: 'outside',
+          paddingLeft: 40,
+          margin: 0,
+        }}
+      >
+        <li>Aligned marker text</li>
+      </ol>,
+      {
+        width: 280,
+        height: 120,
+        fonts,
+        onNodeDetected: (node) => outsideNodes.push(node),
+      }
+    )
+
+    const insideNodes = []
+    await satori(
+      <ol
+        style={{
+          width: 280,
+          height: 120,
+          backgroundColor: 'white',
+          fontSize: 18,
+          listStyleType: 'decimal',
+          listStylePosition: 'inside',
+          paddingLeft: 40,
+          margin: 0,
+        }}
+      >
+        <li>Aligned marker text</li>
+      </ol>,
+      {
+        width: 280,
+        height: 120,
+        fonts,
+        onNodeDetected: (node) => insideNodes.push(node),
+      }
+    )
+
+    const outsideContentNode = outsideNodes.find(
+      (node) => node.key === '__satori-list-content'
+    )
+    const insideContentNode = insideNodes.find(
+      (node) => node.key === '__satori-list-content'
+    )
+
+    expect(outsideContentNode).toBeTruthy()
+    expect(insideContentNode).toBeTruthy()
+    if (!outsideContentNode || !insideContentNode) {
+      throw new Error(
+        'Expected outside and inside content nodes to be present.'
+      )
+    }
+    expect(insideContentNode.left).toBeGreaterThan(outsideContentNode.left)
+  })
+
   it('should support list-style shorthand', async () => {
     const svg = await satori(
       <ul

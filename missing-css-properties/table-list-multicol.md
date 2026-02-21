@@ -26,7 +26,7 @@ Satori does not support table layout or multi-column layout. List markers are su
 | `counter-increment` | **Supported (partial)** | Supports `list-item` counter increments on ordered list items, including integer step values and `none`. |
 | `counter-set` | **Supported (partial)** | Supports assigning `list-item` counter values for ordered list marker numbering. |
 
-> Marker rendering is implemented as prepended list-item content. Text marker width uses font metric measurement, while marker gap/icon sizing remain SVG-friendly approximations. CSS counters are currently limited to `list-item` marker numbering in ordered lists.
+> Marker rendering is implemented as prepended list-item content. `list-style-position: outside` markers are rendered out of flow (absolute marker box) so content alignment better matches browser behavior. Text marker width uses font metric measurement, while marker gap/icon sizing remain SVG-friendly approximations. CSS counters are currently limited to `list-item` marker numbering in ordered lists.
 
 ## Multi-column layout
 

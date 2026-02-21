@@ -260,7 +260,7 @@ function buildListItemChildren(
   marker: { text: string | null; image: string | null; position: string },
   fontSize: number,
   markerTextWidth?: number
-): ReactNode[] {
+): { children: ReactNode[]; requiresRelativePosition: boolean } {
   const markerGap = Math.max(4, Math.round(fontSize * 0.25))
   const markerBoxWidth =
     marker.position === 'inside'
@@ -274,16 +274,25 @@ function buildListItemChildren(
         )
   const markerSize = Math.max(8, Math.round(fontSize * 0.75))
 
-  const markerWrapper: Record<string, string | number> = {
-    display: 'flex',
-    flexShrink: 0,
-    marginRight: markerGap,
-    justifyContent: marker.position === 'inside' ? 'flex-start' : 'flex-end',
-    alignItems: 'flex-start',
-  }
-  if (typeof markerBoxWidth !== 'undefined') {
-    markerWrapper.width = markerBoxWidth
-  }
+  const isOutsideMarker = marker.position !== 'inside'
+  const markerWrapper: Record<string, string | number> = isOutsideMarker
+    ? {
+        display: 'flex',
+        position: 'absolute',
+        left: -((markerBoxWidth || markerSize) + markerGap),
+        top: 0,
+        width: markerBoxWidth || markerSize,
+        justifyContent: 'flex-end',
+        alignItems: 'flex-start',
+        flexShrink: 0,
+      }
+    : {
+        display: 'flex',
+        flexShrink: 0,
+        marginRight: markerGap,
+        justifyContent: 'flex-start',
+        alignItems: 'flex-start',
+      }
 
   const markerNode =
     marker.image !== null
@@ -321,7 +330,10 @@ function buildListItemChildren(
     children
   )
 
-  return [markerNode, contentNode]
+  return {
+    children: [markerNode, contentNode],
+    requiresRelativePosition: isOutsideMarker,
+  }
 }
 
 function measureListMarkerTextWidth(
@@ -537,16 +549,25 @@ export default async function* layout(
         font,
         newLocale
       )
-      children = buildListItemChildren(
+      const normalizedMarkerPosition = listStylePosition.trim().toLowerCase()
+      const listItemChildren = buildListItemChildren(
         children,
         {
           text: markerText,
           image: listStyleImage,
-          position: listStylePosition.trim().toLowerCase(),
+          position: normalizedMarkerPosition,
         },
         markerFontSize,
         markerTextWidth
       )
+      children = listItemChildren.children
+
+      if (
+        listItemChildren.requiresRelativePosition &&
+        (!computedStyle.position || computedStyle.position === 'static')
+      ) {
+        computedStyle.position = 'relative'
+      }
     }
   }
 
