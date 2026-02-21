@@ -17,6 +17,7 @@ import {
 } from '../utils.js'
 import { getYoga, YogaNode } from '../yoga.js'
 import { resolveImageData } from './image.js'
+import { isClippedOverflow } from '../overflow-semantics.js'
 
 type SatoriElement = keyof typeof presets
 const TRANSPARENT_PIXEL_DATA_URI =
@@ -395,19 +396,11 @@ export default async function compute(
     node.setMinWidth(asPointPercentageLength(style.minWidth, 'minWidth'))
   }
 
-  // Merge overflow-x/overflow-y into overflow: hidden if either axis is hidden.
+  // Merge overflow-x/overflow-y into overflow: hidden if either axis clips.
+  const overflowHasClippedAxis =
+    isClippedOverflow(style.overflowX) || isClippedOverflow(style.overflowY)
   const effectiveOverflow =
-    style.overflow ||
-    (style.overflowX === 'hidden' ||
-    style.overflowY === 'hidden' ||
-    style.overflowX === 'clip' ||
-    style.overflowY === 'clip' ||
-    style.overflowX === 'auto' ||
-    style.overflowY === 'auto' ||
-    style.overflowX === 'scroll' ||
-    style.overflowY === 'scroll'
-      ? 'hidden'
-      : undefined)
+    style.overflow || (overflowHasClippedAxis ? 'hidden' : undefined)
 
   node.setOverflow(
     v(

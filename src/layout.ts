@@ -26,6 +26,7 @@ import rect, { type BlendPrimitive } from './builder/rect.js'
 import { Locale, normalizeLocale } from './language.js'
 import { SerializedStyle } from './handler/expand.js'
 import { getListMarkerText } from './handler/list-style.js'
+import { isClippedOverflow } from './overflow-semantics.js'
 import cssColorParse from 'parse-css-color'
 
 interface ListItemContext {
@@ -82,15 +83,6 @@ interface ChildSortMeta {
   order: number
   zIndex: number
   originalIndex: number
-}
-
-function isClippedOverflow(value: unknown): boolean {
-  return (
-    value === 'hidden' ||
-    value === 'clip' ||
-    value === 'auto' ||
-    value === 'scroll'
-  )
 }
 
 function resolveBlendPrimitive(

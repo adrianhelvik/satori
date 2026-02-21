@@ -10,15 +10,7 @@ import {
   parseOverflowClipMargin,
   resolveOverflowClipBox,
 } from './overflow-utils.js'
-
-function isClippedOverflow(value: unknown): boolean {
-  return (
-    value === 'hidden' ||
-    value === 'clip' ||
-    value === 'auto' ||
-    value === 'scroll'
-  )
-}
+import { isClippedOverflow } from '../overflow-semantics.js'
 
 export default function overflow(
   {

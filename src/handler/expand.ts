@@ -20,6 +20,7 @@ import {
   parseListStyleShorthand,
   parseListStyleTypeValue,
 } from './list-style.js'
+import { CSS_ALL_UNSET_INHERITED_PROPS } from './style-inheritance.js'
 
 // https://react-cn.github.io/react/tips/style-props-value-px.html
 const optOutPx = new Set([
@@ -948,42 +949,6 @@ type StyleValue = string | number | object | undefined
 export type SerializedStyle = Partial<MainStyle & InternalStyle> &
   Record<PropertyKey, StyleValue>
 
-const allInheritedProps = new Set([
-  'color',
-  'fontFamily',
-  'fontSize',
-  'fontStyle',
-  'fontWeight',
-  'fontSizeAdjust',
-  'letterSpacing',
-  'lineHeight',
-  'textAlign',
-  'textAlignLast',
-  'textJustify',
-  'textTransform',
-  'textShadowOffset',
-  'textShadowColor',
-  'textShadowRadius',
-  'WebkitTextStrokeWidth',
-  'WebkitTextStrokeColor',
-  'textDecorationLine',
-  'textDecorationStyle',
-  'textDecorationColor',
-  'textDecorationSkipInk',
-  'textUnderlinePosition',
-  'whiteSpace',
-  'wordBreak',
-  'overflowWrap',
-  'tabSize',
-  'visibility',
-  'cursor',
-  'wordSpacing',
-  'textIndent',
-  'listStyleType',
-  'listStylePosition',
-  'listStyleImage',
-])
-
 const allModes = new Set([
   'initial',
   'inherit',
@@ -1093,7 +1058,7 @@ function applyAllReset(
     return
   }
 
-  for (const prop of allInheritedProps) {
+  for (const prop of CSS_ALL_UNSET_INHERITED_PROPS) {
     if (typeof inheritedStyle[prop] !== 'undefined') {
       serializedStyle[prop] = inheritedStyle[prop]
     }
