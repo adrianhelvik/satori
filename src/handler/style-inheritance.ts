@@ -24,6 +24,7 @@ export const CSS_ALL_UNSET_INHERITED_PROPS = new Set([
   'whiteSpace',
   'wordBreak',
   'overflowWrap',
+  'hyphenateLimitChars',
   'tabSize',
   'visibility',
   'cursor',

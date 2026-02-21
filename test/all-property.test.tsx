@@ -89,4 +89,20 @@ describe('all property', () => {
     expect(expanded.direction).toBe('rtl')
     expect(expanded.unicodeBidi).toBe('bidi-override')
   })
+
+  it('should treat hyphenateLimitChars as inherited when all is unset', () => {
+    const expanded = expand(
+      { all: 'unset' },
+      {
+        color: 'black',
+        fontSize: 16,
+        opacity: 1,
+        hyphenateLimitChars: '8 3 3',
+        _viewportWidth: 240,
+        _viewportHeight: 100,
+      }
+    )
+
+    expect(expanded.hyphenateLimitChars).toBe('8 3 3')
+  })
 })

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import satori from '../src/index.js'
+import expand from '../src/handler/expand.js'
 import { preprocess } from '../src/text/processor.js'
 import { initFonts, toImage } from './utils.js'
 
@@ -29,6 +30,51 @@ describe('hyphens', () => {
     expect(result.words.join('')).toBe('cooperate')
     expect(result.words.some((word) => word.includes('\u00ad'))).toBe(false)
     expect(result.softHyphenBreaks.some(Boolean)).toBe(false)
+  })
+
+  it('should keep soft hyphen opportunities when hyphenate-limit-chars allows them', () => {
+    const result = preprocess('co\u00adoperate', {
+      whiteSpace: 'normal',
+      wordBreak: 'normal',
+      hyphenateLimitChars: '8 2 3',
+    } as any)
+
+    expect(result.words).toEqual(['co', 'operate'])
+    expect(result.softHyphenBreaks).toEqual([false, true, false])
+  })
+
+  it('should remove disallowed soft hyphen opportunities with hyphenate-limit-chars', () => {
+    const result = preprocess('co\u00adoperate', {
+      whiteSpace: 'normal',
+      wordBreak: 'normal',
+      hyphenateLimitChars: '8 3 3',
+    } as any)
+
+    expect(result.words).toEqual(['cooperate'])
+    expect(result.softHyphenBreaks).toEqual([false, false])
+  })
+
+  it('should ignore invalid hyphenate-limit-chars values', () => {
+    const result = preprocess('co\u00adoperate', {
+      whiteSpace: 'normal',
+      wordBreak: 'normal',
+      hyphenateLimitChars: 'invalid',
+    } as any)
+
+    expect(result.words).toEqual(['co', 'operate'])
+    expect(result.softHyphenBreaks).toEqual([false, true, false])
+  })
+
+  it('should preserve hyphenateLimitChars in style expansion', () => {
+    const expanded = expand({ hyphenateLimitChars: '8 3 3' } as any, {
+      color: 'black',
+      fontSize: 16,
+      opacity: 1,
+      _viewportWidth: 100,
+      _viewportHeight: 100,
+    })
+
+    expect(expanded.hyphenateLimitChars).toBe('8 3 3')
   })
 
   it('should hide soft hyphen when no break is taken', async () => {

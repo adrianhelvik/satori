@@ -28,6 +28,7 @@ function getAllInitialStyle(): SerializedStyle {
     whiteSpace: 'normal',
     wordBreak: 'normal',
     overflowWrap: 'normal',
+    hyphenateLimitChars: 'auto',
     tabSize: 8,
     listStyleType: 'disc',
     listStylePosition: 'outside',

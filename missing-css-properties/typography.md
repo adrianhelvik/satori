@@ -54,7 +54,7 @@
 | `text-justify` | **Supported (approx.)** | Supports `auto`, `none`, `inter-word`, and `inter-character` for `text-align: justify`. Language/script-specific nuances remain approximate. |
 | `hyphens` | **Supported (partial)** | Supports `manual`/`auto` soft-hyphen (`U+00AD`) discretionary breaks and `none` to disable them. Dictionary-based automatic hyphenation is not implemented. |
 | `hyphenate-character` | **Supported (partial)** | Supports explicit replacement characters for discretionary soft-hyphen breaks. Dictionary-based hyphenation controls are not implemented. |
-| `hyphenate-limit-chars` | Hard | Depends on `hyphens` |
+| `hyphenate-limit-chars` | **Supported (partial)** | Supports numeric constraints for discretionary soft-hyphen (`U+00AD`) break opportunities (`<total> [<before> [<after>]]` with optional `auto` tokens). Dictionary-based auto-hyphenation limits are not implemented. |
 | `line-break` | **Supported (partial)** | Accepts `auto`, `normal`, `loose`, `strict`, and `anywhere`. `anywhere` is approximated by enabling break-all style opportunities; full CJK strictness behavior is not modeled. |
 | `hanging-punctuation` | Hard | Punctuation outside line box |
 
