@@ -118,6 +118,25 @@ function markerAdditive(
   return (index) => `${toAdditiveIndex(index, symbols)}.`
 }
 
+function ordered(format: MarkerFormatter): ListStyleDefinition {
+  return { ordered: true, format }
+}
+
+function unordered(text: string | null): ListStyleDefinition {
+  return { ordered: false, format: markerText(text) }
+}
+
+function registerListStyle(
+  registry: Record<string, ListStyleDefinition>,
+  types: string | string[],
+  definition: ListStyleDefinition
+): void {
+  const values = Array.isArray(types) ? types : [types]
+  for (const type of values) {
+    registry[type] = definition
+  }
+}
+
 const upperArmenianSymbols: Array<[number, string]> = [
   [9000, 'Ք'],
   [8000, 'Փ'],
@@ -512,87 +531,90 @@ const katakanaIrohaSymbols = [
   'ス',
 ]
 
-const registry: Record<string, ListStyleDefinition> = {
-  none: { ordered: false, format: markerText(null) },
-  disc: { ordered: false, format: markerText('\u2022') },
-  circle: { ordered: false, format: markerText('\u25e6') },
-  square: { ordered: false, format: markerText('\u25aa') },
-  'disclosure-open': { ordered: false, format: markerText('\u25be') },
-  'disclosure-closed': { ordered: false, format: markerText('\u25b8') },
+function createRegistry(): Record<string, ListStyleDefinition> {
+  const registry: Record<string, ListStyleDefinition> = {}
 
-  decimal: { ordered: true, format: markerDecimal },
-  'decimal-leading-zero': { ordered: true, format: markerDecimalLeadingZero },
-  'lower-hexadecimal': { ordered: true, format: markerLowerHex },
-  'upper-hexadecimal': { ordered: true, format: markerUpperHex },
+  const unorderedStyles: Array<[string, string | null]> = [
+    ['none', null],
+    ['disc', '\u2022'],
+    ['circle', '\u25e6'],
+    ['square', '\u25aa'],
+    ['disclosure-open', '\u25be'],
+    ['disclosure-closed', '\u25b8'],
+  ]
+  for (const [type, text] of unorderedStyles) {
+    registerListStyle(registry, type, unordered(text))
+  }
 
-  armenian: { ordered: true, format: markerAdditive(upperArmenianSymbols) },
-  'upper-armenian': {
-    ordered: true,
-    format: markerAdditive(upperArmenianSymbols),
-  },
-  'lower-armenian': {
-    ordered: true,
-    format: markerAdditive(lowerArmenianSymbols),
-  },
-  georgian: { ordered: true, format: markerAdditive(georgianSymbols) },
+  const simpleOrderedStyles: Array<[string, MarkerFormatter]> = [
+    ['decimal', markerDecimal],
+    ['decimal-leading-zero', markerDecimalLeadingZero],
+    ['lower-hexadecimal', markerLowerHex],
+    ['upper-hexadecimal', markerUpperHex],
+  ]
+  for (const [type, formatter] of simpleOrderedStyles) {
+    registerListStyle(registry, type, ordered(formatter))
+  }
 
-  'upper-alpha': { ordered: true, format: markerAlphabetic(upperLatinSymbols) },
-  'upper-latin': { ordered: true, format: markerAlphabetic(upperLatinSymbols) },
-  'lower-alpha': { ordered: true, format: markerAlphabetic(lowerLatinSymbols) },
-  'lower-latin': { ordered: true, format: markerAlphabetic(lowerLatinSymbols) },
-  'lower-norwegian': {
-    ordered: true,
-    format: markerAlphabetic(lowerNorwegianSymbols),
-  },
-  'upper-norwegian': {
-    ordered: true,
-    format: markerAlphabetic(upperNorwegianSymbols),
-  },
-  'lower-danish': {
-    ordered: true,
-    format: markerAlphabetic(lowerNorwegianSymbols),
-  },
-  'upper-danish': {
-    ordered: true,
-    format: markerAlphabetic(upperNorwegianSymbols),
-  },
-  'arabic-indic': { ordered: true, format: markerNumeric(arabicIndicDigits) },
-  persian: { ordered: true, format: markerNumeric(persianDigits) },
-  devanagari: { ordered: true, format: markerNumeric(devanagariDigits) },
-  bengali: { ordered: true, format: markerNumeric(bengaliDigits) },
-  gurmukhi: { ordered: true, format: markerNumeric(gurmukhiDigits) },
-  gujarati: { ordered: true, format: markerNumeric(gujaratiDigits) },
-  kannada: { ordered: true, format: markerNumeric(kannadaDigits) },
-  malayalam: { ordered: true, format: markerNumeric(malayalamDigits) },
-  tamil: { ordered: true, format: markerNumeric(tamilDigits) },
-  telugu: { ordered: true, format: markerNumeric(teluguDigits) },
-  thai: { ordered: true, format: markerNumeric(thaiDigits) },
-  lao: { ordered: true, format: markerNumeric(laoDigits) },
-  myanmar: { ordered: true, format: markerNumeric(myanmarDigits) },
-  khmer: { ordered: true, format: markerNumeric(khmerDigits) },
-  'lower-greek': { ordered: true, format: markerAlphabetic(lowerGreekSymbols) },
-  'lower-cyrillic': {
-    ordered: true,
-    format: markerAlphabetic(lowerCyrillicSymbols),
-  },
-  'upper-cyrillic': {
-    ordered: true,
-    format: markerAlphabetic(upperCyrillicSymbols),
-  },
-  hiragana: { ordered: true, format: markerAlphabetic(hiraganaSymbols) },
-  'hiragana-iroha': {
-    ordered: true,
-    format: markerAlphabetic(hiraganaIrohaSymbols),
-  },
-  katakana: { ordered: true, format: markerAlphabetic(katakanaSymbols) },
-  'katakana-iroha': {
-    ordered: true,
-    format: markerAlphabetic(katakanaIrohaSymbols),
-  },
+  const additiveStyles: Array<[string[], MarkerFormatter]> = [
+    [['armenian', 'upper-armenian'], markerAdditive(upperArmenianSymbols)],
+    [['lower-armenian'], markerAdditive(lowerArmenianSymbols)],
+    [['georgian'], markerAdditive(georgianSymbols)],
+  ]
+  for (const [types, formatter] of additiveStyles) {
+    registerListStyle(registry, types, ordered(formatter))
+  }
 
-  'upper-roman': { ordered: true, format: markerRoman(true) },
-  'lower-roman': { ordered: true, format: markerRoman(false) },
+  const alphabeticStyles: Array<[string[], MarkerFormatter]> = [
+    [['upper-alpha', 'upper-latin'], markerAlphabetic(upperLatinSymbols)],
+    [['lower-alpha', 'lower-latin'], markerAlphabetic(lowerLatinSymbols)],
+    [
+      ['lower-norwegian', 'lower-danish'],
+      markerAlphabetic(lowerNorwegianSymbols),
+    ],
+    [
+      ['upper-norwegian', 'upper-danish'],
+      markerAlphabetic(upperNorwegianSymbols),
+    ],
+    [['lower-greek'], markerAlphabetic(lowerGreekSymbols)],
+    [['lower-cyrillic'], markerAlphabetic(lowerCyrillicSymbols)],
+    [['upper-cyrillic'], markerAlphabetic(upperCyrillicSymbols)],
+    [['hiragana'], markerAlphabetic(hiraganaSymbols)],
+    [['hiragana-iroha'], markerAlphabetic(hiraganaIrohaSymbols)],
+    [['katakana'], markerAlphabetic(katakanaSymbols)],
+    [['katakana-iroha'], markerAlphabetic(katakanaIrohaSymbols)],
+  ]
+  for (const [types, formatter] of alphabeticStyles) {
+    registerListStyle(registry, types, ordered(formatter))
+  }
+
+  const numericStyles: Array<[string, string[]]> = [
+    ['arabic-indic', arabicIndicDigits],
+    ['persian', persianDigits],
+    ['devanagari', devanagariDigits],
+    ['bengali', bengaliDigits],
+    ['gurmukhi', gurmukhiDigits],
+    ['gujarati', gujaratiDigits],
+    ['kannada', kannadaDigits],
+    ['malayalam', malayalamDigits],
+    ['tamil', tamilDigits],
+    ['telugu', teluguDigits],
+    ['thai', thaiDigits],
+    ['lao', laoDigits],
+    ['myanmar', myanmarDigits],
+    ['khmer', khmerDigits],
+  ]
+  for (const [type, symbols] of numericStyles) {
+    registerListStyle(registry, type, ordered(markerNumeric(symbols)))
+  }
+
+  registerListStyle(registry, 'upper-roman', ordered(markerRoman(true)))
+  registerListStyle(registry, 'lower-roman', ordered(markerRoman(false)))
+
+  return registry
 }
+
+const registry = createRegistry()
 
 export const listStyleTypes = new Set(Object.keys(registry))
 

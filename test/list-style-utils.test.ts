@@ -133,4 +133,22 @@ describe('list-style helpers', () => {
     expect(isOrderedListMarkerType('disc')).toBe(false)
     expect(isOrderedListMarkerType('"→"')).toBe(false)
   })
+
+  it('keeps list-style aliases behaviorally aligned', () => {
+    expect(getListMarkerText('upper-alpha', 28)).toBe(
+      getListMarkerText('upper-latin', 28)
+    )
+    expect(getListMarkerText('lower-alpha', 54)).toBe(
+      getListMarkerText('lower-latin', 54)
+    )
+    expect(getListMarkerText('armenian', 42)).toBe(
+      getListMarkerText('upper-armenian', 42)
+    )
+    expect(getListMarkerText('lower-danish', 31)).toBe(
+      getListMarkerText('lower-norwegian', 31)
+    )
+    expect(getListMarkerText('upper-danish', 31)).toBe(
+      getListMarkerText('upper-norwegian', 31)
+    )
+  })
 })
