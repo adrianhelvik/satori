@@ -67,6 +67,85 @@ function toAdditiveIndex(
   return String(index)
 }
 
+function toHebrewIndex(index: number): string {
+  if (index <= 0) return String(index)
+  if (index >= 10_000) return String(index)
+
+  let remaining = index
+  let result = ''
+
+  const thousands = Math.floor(remaining / 1000)
+  if (thousands > 0) {
+    const thousandsSymbols = ['', 'א', 'ב', 'ג', 'ד', 'ה', 'ו', 'ז', 'ח', 'ט']
+    const token = thousandsSymbols[thousands]
+    if (!token) return String(index)
+    result += `${token}׳`
+    remaining -= thousands * 1000
+  }
+
+  while (remaining >= 400) {
+    result += 'ת'
+    remaining -= 400
+  }
+
+  const hundredsMap: Array<[number, string]> = [
+    [300, 'ש'],
+    [200, 'ר'],
+    [100, 'ק'],
+  ]
+  for (const [value, symbol] of hundredsMap) {
+    if (remaining >= value) {
+      result += symbol
+      remaining -= value
+      break
+    }
+  }
+
+  // Traditional Hebrew numbering avoids using יה/יו for 15/16.
+  if (remaining === 15) return `${result}טו`
+  if (remaining === 16) return `${result}טז`
+
+  const tensMap: Array<[number, string]> = [
+    [90, 'צ'],
+    [80, 'פ'],
+    [70, 'ע'],
+    [60, 'ס'],
+    [50, 'נ'],
+    [40, 'מ'],
+    [30, 'ל'],
+    [20, 'כ'],
+    [10, 'י'],
+  ]
+  for (const [value, symbol] of tensMap) {
+    if (remaining >= value) {
+      result += symbol
+      remaining -= value
+      break
+    }
+  }
+
+  const onesMap: Array<[number, string]> = [
+    [9, 'ט'],
+    [8, 'ח'],
+    [7, 'ז'],
+    [6, 'ו'],
+    [5, 'ה'],
+    [4, 'ד'],
+    [3, 'ג'],
+    [2, 'ב'],
+    [1, 'א'],
+  ]
+  for (const [value, symbol] of onesMap) {
+    if (remaining >= value) {
+      result += symbol
+      remaining -= value
+      break
+    }
+  }
+
+  return remaining === 0 && result ? result : String(index)
+}
+
 function markerText(text: string | null): MarkerFormatter {
   return () => text
 }
@@ -116,6 +195,10 @@ function markerAdditive(
   symbols: Array<[value: number, symbol: string]>
 ): MarkerFormatter {
   return (index) => `${toAdditiveIndex(index, symbols)}.`
+}
+
+function markerHebrew(index: number): string {
+  return `${toHebrewIndex(index)}.`
 }
 
 function ordered(format: MarkerFormatter): ListStyleDefinition {
@@ -555,6 +638,7 @@ function createRegistry(): Record<string, ListStyleDefinition> {
     ['decimal-leading-zero', markerDecimalLeadingZero],
     ['lower-hexadecimal', markerLowerHex],
     ['upper-hexadecimal', markerUpperHex],
+    ['hebrew', markerHebrew],
   ]
   for (const [type, formatter] of simpleOrderedStyles) {
     registerListStyle(registry, type, ordered(formatter))

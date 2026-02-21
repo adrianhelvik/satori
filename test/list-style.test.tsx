@@ -253,6 +253,47 @@ describe('list-style', () => {
     expect(toImage(svg, 280)).toMatchImageSnapshot()
   })
 
+  it('should support hebrew listStyleType values', async () => {
+    const nodes = []
+    const svg = await satori(
+      <ol
+        style={{
+          width: 280,
+          height: 180,
+          backgroundColor: 'white',
+          fontSize: 18,
+          listStyleType: 'hebrew' as any,
+          counterReset: 'list-item 13',
+          paddingLeft: 40,
+          margin: 0,
+        }}
+      >
+        <li>Hebrew marker text</li>
+        <li>Hebrew marker text</li>
+        <li>Hebrew marker text</li>
+      </ol>,
+      {
+        width: 280,
+        height: 180,
+        fonts,
+        onNodeDetected: (node) => nodes.push(node),
+      }
+    )
+
+    const markerText = nodes
+      .filter(
+        (node) =>
+          node.key === '__satori-list-marker' &&
+          typeof node.textContent === 'string'
+      )
+      .map((node) => node.textContent)
+
+    expect(markerText).toContain('יד.')
+    expect(markerText).toContain('טו.')
+    expect(markerText).toContain('טז.')
+    expect(toImage(svg, 280)).toMatchImageSnapshot()
+  })
+
   it('should support lower-cyrillic and upper-cyrillic listStyleType values', async () => {
     const nodes = []
     const svg = await satori(
