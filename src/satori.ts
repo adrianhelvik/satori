@@ -74,7 +74,7 @@ export default async function satori(
   if (definedWidth) root.setWidth(definedWidth)
   if (definedHeight) root.setHeight(definedHeight)
   root.setFlexDirection(Yoga.FLEX_DIRECTION_ROW)
-  root.setFlexWrap(Yoga.WRAP_WRAP)
+  root.setFlexWrap(Yoga.WRAP_NO_WRAP)
   root.setAlignContent(Yoga.ALIGN_AUTO)
   root.setAlignItems(Yoga.ALIGN_FLEX_START)
   root.setJustifyContent(Yoga.JUSTIFY_FLEX_START)
