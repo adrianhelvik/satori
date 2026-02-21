@@ -31,6 +31,8 @@ const list = new Set([
   'overflowWrap',
   'tabSize',
   'visibility',
+  'cursor',
+  'userSelect',
   'wordSpacing',
   'textIndent',
 

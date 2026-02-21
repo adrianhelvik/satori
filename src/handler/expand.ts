@@ -521,6 +521,8 @@ function handleSpecialCase(
   if (name === 'textAlignLast') return { textAlignLast: value }
   if (name === 'textJustify') return { textJustify: value }
   if (name === 'visibility') return { visibility: value }
+  if (name === 'cursor') return { cursor: String(value).trim() }
+  if (name === 'userSelect') return { userSelect: String(value).trim() }
 
   // mix-blend-mode, image-rendering: pass through to SVG attributes
   if (name === 'mixBlendMode') return { mixBlendMode: value }
@@ -915,6 +917,8 @@ type MainStyle = {
   }[]
   textShadowColor: string[]
   textShadowRadius: number[]
+  cursor: string
+  userSelect: string
   WebkitTextStrokeWidth: number
   WebkitTextStrokeColor: string
   textDecorationSkipInk: 'auto' | 'none' | 'all'
@@ -970,6 +974,7 @@ const allInheritedProps = new Set([
   'overflowWrap',
   'tabSize',
   'visibility',
+  'cursor',
   'wordSpacing',
   'textIndent',
   'listStyleType',
@@ -1013,6 +1018,8 @@ function getAllInitialStyle(): SerializedStyle {
     wordSpacing: 0,
     textIndent: 0,
     visibility: 'visible',
+    cursor: 'auto',
+    userSelect: 'auto',
     opacity: 1,
     filter: 'none',
     textDecorationLine: 'none',

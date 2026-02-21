@@ -84,6 +84,12 @@ export default function buildText(
   style: Record<string, number | string | object>
 ) {
   const textStyle = style as Record<string, string | number | undefined>
+  const serializedStyle = [
+    textStyle.filter ? `filter:${textStyle.filter}` : '',
+    textStyle.userSelect ? `user-select:${textStyle.userSelect}` : '',
+  ]
+    .filter(Boolean)
+    .join(';')
 
   let extra = ''
   if (debug) {
@@ -110,8 +116,9 @@ export default function buildText(
       height,
       transform: matrix || undefined,
       'clip-path': clipPathId ? `url(#${clipPathId})` : undefined,
-      style: textStyle.filter ? `filter:${textStyle.filter}` : undefined,
+      style: serializedStyle || undefined,
       'pointer-events': textStyle.pointerEvents || undefined,
+      cursor: textStyle.cursor || undefined,
     }
     return [
       (filter ? `${filter}<g filter="url(#satori_s-${id})">` : '') +
@@ -141,8 +148,9 @@ export default function buildText(
     'letter-spacing': textStyle.letterSpacing || undefined,
     transform: matrix || undefined,
     'clip-path': clipPathId ? `url(#${clipPathId})` : undefined,
-    style: textStyle.filter ? `filter:${textStyle.filter}` : undefined,
+    style: serializedStyle || undefined,
     'pointer-events': textStyle.pointerEvents || undefined,
+    cursor: textStyle.cursor || undefined,
     'stroke-width': textStyle.WebkitTextStrokeWidth
       ? `${textStyle.WebkitTextStrokeWidth}px`
       : undefined,

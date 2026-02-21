@@ -1057,6 +1057,13 @@ export default async function* buildTextNodes(
 
   // Embed the font as path.
   if (mergedPath) {
+    const embeddedPathStyle = [
+      cssFilter ? `filter:${cssFilter}` : '',
+      parentStyle.userSelect ? `user-select:${parentStyle.userSelect}` : '',
+    ]
+      .filter(Boolean)
+      .join(';')
+
     const p =
       (!isFullyTransparent(parentStyle.color) || filter) && opacity !== 0
         ? `<g ${overflowMaskId ? `mask="url(#${overflowMaskId})"` : ''} ${
@@ -1073,8 +1080,9 @@ export default async function* buildTextNodes(
             d: mergedPath,
             transform: matrix ? matrix : undefined,
             opacity: opacity !== 1 ? opacity : undefined,
-            style: cssFilter ? `filter:${cssFilter}` : undefined,
+            style: embeddedPathStyle || undefined,
             'pointer-events': parentStyle.pointerEvents as string | undefined,
+            cursor: parentStyle.cursor as string | undefined,
             'stroke-width': inheritedStyle.WebkitTextStrokeWidth
               ? `${inheritedStyle.WebkitTextStrokeWidth}px`
               : undefined,

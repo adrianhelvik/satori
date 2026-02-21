@@ -1799,6 +1799,8 @@ export default async function rect(
     shouldApplyNativeMixBlend ? `mix-blend-mode:${mixBlendMode}` : '',
     isolation && isolation !== 'auto' ? `isolation:${isolation}` : '',
     style.pointerEvents ? `pointer-events:${style.pointerEvents}` : '',
+    style.cursor ? `cursor:${style.cursor}` : '',
+    style.userSelect ? `user-select:${style.userSelect}` : '',
   ]
     .filter(Boolean)
     .join(';')

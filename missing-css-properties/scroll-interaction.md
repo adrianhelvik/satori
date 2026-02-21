@@ -1,6 +1,6 @@
 # Scroll & Interaction
 
-Satori renders static SVG — there is no scrolling, user interaction, or dynamic behavior. All properties in this category are **N/A**.
+Satori renders static SVG — there is no scrolling runtime, input handling, or dynamic behavior in rasterized output. A few interaction-related properties are still forwarded to generated SVG so they can work when raw SVG is embedded interactively.
 
 ## Scroll behavior
 
@@ -32,9 +32,9 @@ Satori renders static SVG — there is no scrolling, user interaction, or dynami
 
 | Property | Feasibility | Notes |
 |----------|-------------|-------|
-| `cursor` | N/A | No pointer in static rendering |
+| `cursor` | **Supported (SVG pass-through)** | Forwarded to generated SVG nodes (`cursor` style/attribute). Useful when consuming raw SVG in interactive contexts; rasterized outputs are visually unchanged. |
 | `pointer-events` | **Supported (SVG pass-through)** | Forwarded to generated SVG nodes (`pointer-events` style/attribute). This is meaningful when consuming raw SVG interactively; rasterized outputs are visually unchanged. |
-| `user-select` | N/A | No text selection |
+| `user-select` | **Supported (SVG pass-through)** | Forwarded as `user-select` CSS on generated SVG text/shape nodes. Useful for interactive raw SVG embedding; rasterized outputs are visually unchanged. |
 | `resize` | N/A | No resize handles |
 | `touch-action` | N/A | No touch input |
 | `caret-color` | N/A | No text input |
