@@ -61,6 +61,72 @@ describe('Overflow', () => {
     expect(toImage(svg, 100)).toMatchImageSnapshot()
   })
 
+  it('should clip overflow when overflow is scroll', async () => {
+    const svg = await satori(
+      <div
+        style={{
+          width: 60,
+          height: 60,
+          backgroundColor: 'white',
+          overflow: 'scroll',
+          position: 'relative',
+        }}
+      >
+        <div
+          style={{
+            position: 'absolute',
+            width: 100,
+            height: 100,
+            backgroundColor: 'red',
+            top: 0,
+            left: 0,
+          }}
+        />
+      </div>,
+      {
+        width: 100,
+        height: 100,
+        fonts,
+      }
+    )
+
+    expect(svg).toContain('clipPath')
+    expect(toImage(svg, 100)).toMatchImageSnapshot()
+  })
+
+  it('should clip overflow when overflow is auto', async () => {
+    const svg = await satori(
+      <div
+        style={{
+          width: 60,
+          height: 60,
+          backgroundColor: 'white',
+          overflow: 'auto',
+          position: 'relative',
+        }}
+      >
+        <div
+          style={{
+            position: 'absolute',
+            width: 100,
+            height: 100,
+            backgroundColor: 'blue',
+            top: 0,
+            left: 0,
+          }}
+        />
+      </div>,
+      {
+        width: 100,
+        height: 100,
+        fonts,
+      }
+    )
+
+    expect(svg).toContain('clipPath')
+    expect(toImage(svg, 100)).toMatchImageSnapshot()
+  })
+
   it('should extend clipping edge with overflow-clip-margin', async () => {
     const baseNodeStyle = {
       width: 60,
@@ -164,6 +230,38 @@ describe('Overflow', () => {
             width: 100,
             height: 100,
             backgroundColor: 'red',
+            left: -20,
+            top: -20,
+          }}
+        />
+      </div>,
+      {
+        width: 100,
+        height: 100,
+        fonts,
+      }
+    )
+    expect(toImage(svg, 100)).toMatchImageSnapshot()
+  })
+
+  it('should clip only x-axis when overflowX is scroll and overflowY is visible', async () => {
+    const svg = await satori(
+      <div
+        style={{
+          width: 60,
+          height: 60,
+          overflowX: 'scroll',
+          overflowY: 'visible',
+          backgroundColor: 'white',
+          position: 'relative',
+        }}
+      >
+        <div
+          style={{
+            position: 'absolute',
+            width: 100,
+            height: 100,
+            backgroundColor: 'green',
             left: -20,
             top: -20,
           }}

@@ -401,7 +401,11 @@ export default async function compute(
     (style.overflowX === 'hidden' ||
     style.overflowY === 'hidden' ||
     style.overflowX === 'clip' ||
-    style.overflowY === 'clip'
+    style.overflowY === 'clip' ||
+    style.overflowX === 'auto' ||
+    style.overflowY === 'auto' ||
+    style.overflowX === 'scroll' ||
+    style.overflowY === 'scroll'
       ? 'hidden'
       : undefined)
 
@@ -412,6 +416,8 @@ export default async function compute(
         visible: Yoga.OVERFLOW_VISIBLE,
         hidden: Yoga.OVERFLOW_HIDDEN,
         clip: Yoga.OVERFLOW_HIDDEN,
+        auto: Yoga.OVERFLOW_HIDDEN,
+        scroll: Yoga.OVERFLOW_HIDDEN,
       },
       Yoga.OVERFLOW_VISIBLE,
       'overflow'

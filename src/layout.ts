@@ -84,6 +84,15 @@ interface ChildSortMeta {
   originalIndex: number
 }
 
+function isClippedOverflow(value: unknown): boolean {
+  return (
+    value === 'hidden' ||
+    value === 'clip' ||
+    value === 'auto' ||
+    value === 'scroll'
+  )
+}
+
 function resolveBlendPrimitive(
   meta: ChildRenderMeta | undefined,
   parentLeft: number,
@@ -482,12 +491,9 @@ export default async function* layout(
   // If the element has clipping overflow or clip-path set, we need to create a
   // clip path and use it in all its children.
   if (
-    computedStyle.overflow === 'hidden' ||
-    computedStyle.overflow === 'clip' ||
-    computedStyle.overflowX === 'hidden' ||
-    computedStyle.overflowX === 'clip' ||
-    computedStyle.overflowY === 'hidden' ||
-    computedStyle.overflowY === 'clip' ||
+    isClippedOverflow(computedStyle.overflow) ||
+    isClippedOverflow(computedStyle.overflowX) ||
+    isClippedOverflow(computedStyle.overflowY) ||
     (computedStyle.clipPath && computedStyle.clipPath !== 'none')
   ) {
     newInheritableStyle._inheritedClipPathId = `satori_cp-${id}`

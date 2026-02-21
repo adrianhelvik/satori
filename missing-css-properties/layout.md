@@ -6,7 +6,7 @@
 - `position`: `relative`, `absolute`, `static`
 - `top`, `right`, `bottom`, `left`, `inset`
 - `z-index`
-- `overflow`, `overflow-x`, `overflow-y`: `visible`, `hidden`, `clip`
+- `overflow`, `overflow-x`, `overflow-y`: `visible`, `hidden`, `clip`, `auto`, `scroll` (`auto`/`scroll` clip content, scrollbar painting not modeled)
 - `overflow-clip-margin` (partial; non-negative length + visual-box keyword support for rectangular clip paths)
 - `visibility`: `visible`, `hidden`
 - `box-sizing`: `border-box`, `content-box`
@@ -37,7 +37,7 @@
 |----------|-------------|-------|
 | `overflow-clip-margin` | **Supported (partial)** | Supports non-negative length values and visual-box keywords (`content-box`, `padding-box`, `border-box`) for rectangular `overflow: clip` clipping. Rounded-path precision remains approximate. |
 
-> `overflow: clip` is supported. Shorthand `clip` behaves like hidden clipping. Per-axis behavior follows browser semantics, including asymmetric `overflow-x`/`overflow-y` combinations.
+> `overflow: clip` is supported. In static rendering, `overflow: auto` and `overflow: scroll` are approximated as clipping behavior (like `hidden`) without scrollbar rendering. Per-axis behavior follows browser semantics, including asymmetric `overflow-x`/`overflow-y` combinations.
 
 ### Visibility & ordering
 
