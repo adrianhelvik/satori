@@ -3,6 +3,7 @@ import {
   markerAlphabetic,
   markerDecimal,
   markerDecimalLeadingZero,
+  markerEthiopicNumeric,
   markerHebrew,
   markerLowerHex,
   markerNumeric,
@@ -455,6 +456,7 @@ function createRegistry(): Record<string, ListStyleDefinition> {
     ['decimal-leading-zero', markerDecimalLeadingZero],
     ['lower-hexadecimal', markerLowerHex],
     ['upper-hexadecimal', markerUpperHex],
+    ['ethiopic-numeric', markerEthiopicNumeric],
     ['hebrew', markerHebrew],
   ]
   for (const [type, formatter] of simpleOrderedStyles) {

@@ -5,6 +5,7 @@ import {
   markerAlphabetic,
   markerDecimal,
   markerDecimalLeadingZero,
+  markerEthiopicNumeric,
   markerHebrew,
   markerLowerHex,
   markerNumeric,
@@ -44,6 +45,15 @@ describe('list marker formatters', () => {
     expect(markerHebrew(15)).toBe('טו.')
     expect(markerHebrew(16)).toBe('טז.')
     expect(markerHebrew(42)).toBe('מב.')
+  })
+
+  it('formats ethiopic-numeric markers', () => {
+    expect(markerEthiopicNumeric(1)).toBe('፩/')
+    expect(markerEthiopicNumeric(10)).toBe('፲/')
+    expect(markerEthiopicNumeric(11)).toBe('፲፩/')
+    expect(markerEthiopicNumeric(100)).toBe('፻/')
+    expect(markerEthiopicNumeric(1000)).toBe('፲፻/')
+    expect(markerEthiopicNumeric(10000)).toBe('፼/')
   })
 
   it('converts decimal digits via symbol tables', () => {

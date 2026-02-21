@@ -141,6 +141,43 @@ function toHebrewIndex(index: number): string {
   return remaining === 0 && result ? result : String(index)
 }
 
+function toEthiopicPairValue(value: number): string {
+  const ones = ['', '፩', '፪', '፫', '፬', '፭', '፮', '፯', '፰', '፱']
+  const tens = ['', '፲', '፳', '፴', '፵', '፶', '፷', '፸', '፹', '፺']
+  const onesDigit = value % 10
+  const tensDigit = Math.floor(value / 10)
+  return `${tens[tensDigit] || ''}${ones[onesDigit] || ''}`
+}
+
+function toEthiopicNumericIndex(index: number): string {
+  if (index <= 0) return String(index)
+  if (index >= 1_000_000) return String(index)
+
+  let digits = String(Math.trunc(index))
+  if (digits.length % 2 === 1) digits = `0${digits}`
+
+  const pairCount = digits.length / 2
+  let result = ''
+
+  for (let i = 0; i < pairCount; i++) {
+    const pair = Number.parseInt(digits.slice(i * 2, i * 2 + 2), 10)
+    const isMostSignificant = i === 0
+    const isLast = i === pairCount - 1
+    const remainingPairs = pairCount - i - 1
+
+    const shouldOmitLeadingOne = pair === 1 && isMostSignificant && !isLast
+    if (pair !== 0 && !shouldOmitLeadingOne) {
+      result += toEthiopicPairValue(pair)
+    }
+
+    if (pair !== 0 && !isLast) {
+      result += remainingPairs % 2 === 1 ? '፻' : '፼'
+    }
+  }
+
+  return result || String(index)
+}
+
 export function markerText(text: string | null): MarkerFormatter {
   return () => text
 }
@@ -194,4 +231,8 @@ export function markerAdditive(
 
 export function markerHebrew(index: number): string {
   return `${toHebrewIndex(index)}.`
+}
+
+export function markerEthiopicNumeric(index: number): string {
+  return `${toEthiopicNumericIndex(index)}/`
 }

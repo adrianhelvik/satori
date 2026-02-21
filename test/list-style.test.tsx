@@ -294,6 +294,47 @@ describe('list-style', () => {
     expect(toImage(svg, 280)).toMatchImageSnapshot()
   })
 
+  it('should support ethiopic-numeric listStyleType values', async () => {
+    const nodes = []
+    const svg = await satori(
+      <ol
+        style={{
+          width: 320,
+          height: 200,
+          backgroundColor: 'white',
+          fontSize: 20,
+          listStyleType: 'ethiopic-numeric' as any,
+          counterReset: 'list-item 9',
+          paddingLeft: 40,
+          margin: 0,
+        }}
+      >
+        <li>Ethiopic marker text</li>
+        <li>Ethiopic marker text</li>
+        <li>Ethiopic marker text</li>
+      </ol>,
+      {
+        width: 320,
+        height: 200,
+        fonts,
+        onNodeDetected: (node) => nodes.push(node),
+      }
+    )
+
+    const markerText = nodes
+      .filter(
+        (node) =>
+          node.key === '__satori-list-marker' &&
+          typeof node.textContent === 'string'
+      )
+      .map((node) => node.textContent)
+
+    expect(markerText).toContain('፲/')
+    expect(markerText).toContain('፲፩/')
+    expect(markerText).toContain('፲፪/')
+    expect(toImage(svg, 320)).toMatchImageSnapshot()
+  })
+
   it('should support lower-cyrillic and upper-cyrillic listStyleType values', async () => {
     const nodes = []
     const svg = await satori(
