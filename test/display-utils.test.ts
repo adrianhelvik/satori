@@ -16,6 +16,9 @@ describe('display helpers', () => {
   it('maps supported display aliases to canonical display modes', () => {
     expect(DISPLAY_VALUE_TO_CANONICAL['inline-block']).toBe('flex')
     expect(DISPLAY_VALUE_TO_CANONICAL.block).toBe('flex')
+    expect(DISPLAY_VALUE_TO_CANONICAL.grid).toBe('flex')
+    expect(DISPLAY_VALUE_TO_CANONICAL['inline-grid']).toBe('flex')
+    expect(DISPLAY_VALUE_TO_CANONICAL.table).toBe('flex')
     expect(DISPLAY_VALUE_TO_CANONICAL.contents).toBe('contents')
     expect(DISPLAY_VALUE_TO_CANONICAL.none).toBe('none')
   })
@@ -23,6 +26,8 @@ describe('display helpers', () => {
   it('detects supported display values', () => {
     expect(isSupportedDisplayValue('inline-block')).toBe(true)
     expect(isSupportedDisplayValue(' contents ')).toBe(true)
-    expect(isSupportedDisplayValue('grid')).toBe(false)
+    expect(isSupportedDisplayValue('grid')).toBe(true)
+    expect(isSupportedDisplayValue('inline-grid')).toBe(true)
+    expect(isSupportedDisplayValue('table')).toBe(true)
   })
 })
