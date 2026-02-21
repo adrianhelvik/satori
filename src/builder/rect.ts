@@ -1646,42 +1646,66 @@ export default async function rect(
     } else {
       // Outline is drawn outside the border box, offset by outlineOffset.
       const expand = outlineWidth / 2 + outlineOffset
-      if (
-        outlineStyle === 'inset' ||
-        outlineStyle === 'outset' ||
-        outlineStyle === 'groove' ||
-        outlineStyle === 'ridge'
-      ) {
-        const bevelStyle =
-          outlineStyle === 'groove'
-            ? 'inset'
-            : outlineStyle === 'ridge'
-            ? 'outset'
-            : outlineStyle
-        const darkRatio =
-          outlineStyle === 'groove' || outlineStyle === 'ridge'
-            ? 1 / 3
-            : undefined
+      if (outlineStyle === 'groove' || outlineStyle === 'ridge') {
+        const darkRatio = 1 / 3
+        const outerWidth = Math.max(1, Math.ceil(outlineWidth / 2))
+        const innerWidth = Math.max(1, outlineWidth - outerWidth)
+        const outerExpand = outlineOffset + innerWidth + outerWidth / 2
+        const innerExpand = outlineOffset + innerWidth / 2
+
+        const outerBevelStyle = outlineStyle === 'groove' ? 'inset' : 'outset'
+        const innerBevelStyle = outerBevelStyle === 'inset' ? 'outset' : 'inset'
+
+        const outerTopLeftColor = shadeColorForTone(
+          outlineColor,
+          outerBevelStyle === 'inset' ? 'dark' : 'light',
+          outerBevelStyle === 'inset' ? darkRatio : undefined
+        )
+        const outerBottomRightColor = shadeColorForTone(
+          outlineColor,
+          outerBevelStyle === 'inset' ? 'light' : 'dark',
+          outerBevelStyle === 'inset' ? undefined : darkRatio
+        )
+        const innerTopLeftColor = shadeColorForTone(
+          outlineColor,
+          innerBevelStyle === 'inset' ? 'dark' : 'light',
+          innerBevelStyle === 'inset' ? darkRatio : undefined
+        )
+        const innerBottomRightColor = shadeColorForTone(
+          outlineColor,
+          innerBevelStyle === 'inset' ? 'light' : 'dark',
+          innerBevelStyle === 'inset' ? undefined : darkRatio
+        )
+
+        outlineShape =
+          makeBeveledOutline(
+            outerExpand,
+            outerWidth,
+            outerTopLeftColor,
+            outerBottomRightColor,
+            blendColors(outerTopLeftColor, outerBottomRightColor, 0.5)
+          ) +
+          makeBeveledOutline(
+            innerExpand,
+            innerWidth,
+            innerTopLeftColor,
+            innerBottomRightColor,
+            blendColors(innerTopLeftColor, innerBottomRightColor, 0.5)
+          )
+      } else if (outlineStyle === 'inset' || outlineStyle === 'outset') {
         const topLeftColor = shadeColorForTone(
           outlineColor,
-          bevelStyle === 'inset' ? 'dark' : 'light',
-          bevelStyle === 'inset' ? darkRatio : undefined
+          outlineStyle === 'inset' ? 'dark' : 'light'
         )
         const bottomRightColor = shadeColorForTone(
           outlineColor,
-          bevelStyle === 'inset' ? 'light' : 'dark',
-          bevelStyle === 'inset' ? undefined : darkRatio
+          outlineStyle === 'inset' ? 'light' : 'dark'
         )
-        const cornerBlendColor =
-          outlineStyle === 'groove' || outlineStyle === 'ridge'
-            ? blendColors(topLeftColor, bottomRightColor, 0.5)
-            : undefined
         outlineShape = makeBeveledOutline(
           expand,
           outlineWidth,
           topLeftColor,
-          bottomRightColor,
-          cornerBlendColor
+          bottomRightColor
         )
       } else {
         const outlineStrokeProps: Record<string, string | undefined> = {}

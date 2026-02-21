@@ -165,6 +165,7 @@ describe('Border Styles', () => {
         { width: 100, height: 100, fonts }
       )
       expect(svg).toContain('rgba(')
+      expect((svg.match(/fill="rgba\(/g) || []).length).toBeGreaterThan(4)
       expect(toImage(svg, 100)).toMatchImageSnapshot()
     })
 
@@ -192,6 +193,7 @@ describe('Border Styles', () => {
         { width: 100, height: 100, fonts }
       )
       expect(svg).toContain('rgba(')
+      expect((svg.match(/fill="rgba\(/g) || []).length).toBeGreaterThan(4)
       expect(toImage(svg, 100)).toMatchImageSnapshot()
     })
   })

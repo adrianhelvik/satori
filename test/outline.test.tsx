@@ -191,6 +191,9 @@ describe('Outline', () => {
       { width: 100, height: 100, fonts }
     )
     expect(svg).toContain('rgba(')
+    expect(
+      (svg.match(/stroke-linecap="square"/g) || []).length
+    ).toBeGreaterThan(4)
     expect(toImage(svg, 100)).toMatchImageSnapshot()
   })
 
@@ -245,6 +248,9 @@ describe('Outline', () => {
       { width: 100, height: 100, fonts }
     )
     expect(svg).toContain('rgba(')
+    expect(
+      (svg.match(/stroke-linecap="square"/g) || []).length
+    ).toBeGreaterThan(4)
     expect(toImage(svg, 100)).toMatchImageSnapshot()
   })
 

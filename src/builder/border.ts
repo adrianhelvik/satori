@@ -190,6 +190,183 @@ function buildBevelCornerOverlays(
   return overlays
 }
 
+function buildRectBeveledBand(
+  dims: { left: number; top: number; width: number; height: number },
+  inset: number,
+  bandWidth: number,
+  style: Record<string, number | string>,
+  props: Record<string, unknown>,
+  bevelStyle: 'inset' | 'outset',
+  darkRatio?: number
+): string {
+  const x = dims.left + inset
+  const y = dims.top + inset
+  const width = dims.width - inset * 2
+  const height = dims.height - inset * 2
+
+  if (bandWidth <= 0 || width <= 0 || height <= 0) return ''
+
+  const topBase =
+    typeof style.borderTopColor === 'string' ? style.borderTopColor : 'black'
+  const rightBase =
+    typeof style.borderRightColor === 'string'
+      ? style.borderRightColor
+      : 'black'
+  const bottomBase =
+    typeof style.borderBottomColor === 'string'
+      ? style.borderBottomColor
+      : 'black'
+  const leftBase =
+    typeof style.borderLeftColor === 'string' ? style.borderLeftColor : 'black'
+
+  const topColor = shadeBorderColor(
+    topBase,
+    bevelStyle === 'inset' ? 'dark' : 'light',
+    bevelStyle === 'inset' ? darkRatio : undefined
+  )
+  const leftColor = shadeBorderColor(
+    leftBase,
+    bevelStyle === 'inset' ? 'dark' : 'light',
+    bevelStyle === 'inset' ? darkRatio : undefined
+  )
+  const rightColor = shadeBorderColor(
+    rightBase,
+    bevelStyle === 'inset' ? 'light' : 'dark',
+    bevelStyle === 'inset' ? undefined : darkRatio
+  )
+  const bottomColor = shadeBorderColor(
+    bottomBase,
+    bevelStyle === 'inset' ? 'light' : 'dark',
+    bevelStyle === 'inset' ? undefined : darkRatio
+  )
+
+  const rectProps = { ...props }
+  const lines =
+    buildXMLString('rect', {
+      ...rectProps,
+      x,
+      y,
+      width,
+      height: bandWidth,
+      fill: topColor,
+    }) +
+    buildXMLString('rect', {
+      ...rectProps,
+      x,
+      y: y + height - bandWidth,
+      width,
+      height: bandWidth,
+      fill: bottomColor,
+    }) +
+    buildXMLString('rect', {
+      ...rectProps,
+      x,
+      y,
+      width: bandWidth,
+      height,
+      fill: leftColor,
+    }) +
+    buildXMLString('rect', {
+      ...rectProps,
+      x: x + width - bandWidth,
+      y,
+      width: bandWidth,
+      height,
+      fill: rightColor,
+    })
+
+  const cornerSize = bandWidth
+  const cornerOverlays =
+    buildXMLString('rect', {
+      ...rectProps,
+      x: x + width - cornerSize,
+      y,
+      width: cornerSize,
+      height: cornerSize,
+      fill: mixBorderColors(topColor, rightColor, 0.5),
+    }) +
+    buildXMLString('rect', {
+      ...rectProps,
+      x: x + width - cornerSize,
+      y: y + height - cornerSize,
+      width: cornerSize,
+      height: cornerSize,
+      fill: mixBorderColors(bottomColor, rightColor, 0.5),
+    }) +
+    buildXMLString('rect', {
+      ...rectProps,
+      x,
+      y: y + height - cornerSize,
+      width: cornerSize,
+      height: cornerSize,
+      fill: mixBorderColors(bottomColor, leftColor, 0.5),
+    }) +
+    buildXMLString('rect', {
+      ...rectProps,
+      x,
+      y,
+      width: cornerSize,
+      height: cornerSize,
+      fill: mixBorderColors(topColor, leftColor, 0.5),
+    })
+
+  return lines + cornerOverlays
+}
+
+function buildUniformGrooveRidgeBorder(
+  dims: { left: number; top: number; width: number; height: number },
+  style: Record<string, number | string>,
+  props: Record<string, unknown>,
+  asContentMask: boolean
+): string | null {
+  if (asContentMask || hasRoundedCorners(style)) return null
+
+  const sides: BorderSide[] = ['Top', 'Right', 'Bottom', 'Left']
+  const topStyle = style.borderTopStyle
+  if (topStyle !== 'groove' && topStyle !== 'ridge') return null
+
+  if (!sides.every((side) => style[`border${side}Style`] === topStyle)) {
+    return null
+  }
+
+  const widths = sides.map((side) => {
+    const value = style[`border${side}Width`]
+    return typeof value === 'number' ? value : Number(value) || 0
+  })
+  if (!widths.every((width) => width > 0 && width === widths[0])) return null
+
+  const totalWidth = widths[0]
+  const outerWidth = Math.max(1, Math.ceil(totalWidth / 2))
+  const innerWidth = Math.max(0, totalWidth - outerWidth)
+  const darkRatio = 1 / 3
+  const outerBevelStyle = topStyle === 'groove' ? 'inset' : 'outset'
+  const innerBevelStyle = outerBevelStyle === 'inset' ? 'outset' : 'inset'
+
+  const outer = buildRectBeveledBand(
+    dims,
+    0,
+    outerWidth,
+    style,
+    props,
+    outerBevelStyle,
+    darkRatio
+  )
+  const inner =
+    innerWidth > 0
+      ? buildRectBeveledBand(
+          dims,
+          outerWidth,
+          innerWidth,
+          style,
+          props,
+          innerBevelStyle,
+          darkRatio
+        )
+      : ''
+
+  return outer + inner
+}
+
 function normalizeInsetOutsetBorders(
   style: Record<string, number | string>,
   asContentMask: boolean
@@ -489,6 +666,16 @@ export default function border(
   },
   style: Record<string, number | string>
 ) {
+  const uniformGrooveRidge = buildUniformGrooveRidgeBorder(
+    { left, top, width, height },
+    style,
+    props,
+    !!asContentMask
+  )
+  if (uniformGrooveRidge) {
+    return uniformGrooveRidge
+  }
+
   const normalizedStyle = normalizeInsetOutsetBorders(style, !!asContentMask)
   const directions = ['borderTop', 'borderRight', 'borderBottom', 'borderLeft']
 
