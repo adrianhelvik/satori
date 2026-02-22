@@ -136,7 +136,7 @@ describe('Position', () => {
       expect(toImage(svg, 100)).toMatchImageSnapshot()
     })
 
-    it('should anchor nested fixed elements to the viewport', async () => {
+    it('should anchor fixed descendants to transformed containing blocks', async () => {
       const svg = await satori(
         <div
           style={{
@@ -156,6 +156,44 @@ describe('Position', () => {
               background: 'red',
               overflow: 'hidden',
               transform: 'translate(12px, 8px)',
+            }}
+          >
+            <div
+              style={{
+                position: 'fixed',
+                top: 6,
+                left: 4,
+                width: 18,
+                height: 18,
+                background: 'blue',
+              }}
+            />
+          </div>
+        </div>,
+        { width: 100, height: 100, fonts }
+      )
+      expect(toImage(svg, 100)).toMatchImageSnapshot()
+    })
+
+    it('should anchor nested fixed elements to the viewport without transformed ancestors', async () => {
+      const svg = await satori(
+        <div
+          style={{
+            height: '100%',
+            width: '100%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            background: 'black',
+          }}
+        >
+          <div
+            style={{
+              position: 'relative',
+              width: 60,
+              height: 60,
+              background: 'red',
+              overflow: 'hidden',
             }}
           >
             <div

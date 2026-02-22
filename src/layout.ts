@@ -330,9 +330,13 @@ export default async function* layout(
     style && typeof style === 'object'
       ? (style as Record<string, unknown>)
       : undefined
-  const effectiveInheritedStyle = isFixedPositionStyle(styleObject)
-    ? isolateFixedInheritance(inheritedStyle)
-    : inheritedStyle
+  const isFixedElement = isFixedPositionStyle(styleObject)
+  const hasTransformedFixedContainingBlock =
+    isFixedElement && isTransformInput(inheritedStyle.transform)
+  const effectiveInheritedStyle =
+    isFixedElement && !hasTransformedFixedContainingBlock
+      ? isolateFixedInheritance(inheritedStyle)
+      : inheritedStyle
 
   const node = Yoga.Node.create()
   parent.insertChild(node, parent.getChildCount())
@@ -534,15 +538,27 @@ export default async function* layout(
   const renderInput = yield READY_FOR_RENDER_PHASE
   const [x, y] = renderInput.offset
   const siblingBlendBackdrops = renderInput.siblingBlendBackdrops || []
+  const parentLayout = parent.getComputedLayout()
   let { left, top, width, height } = node.getComputedLayout()
   if (computedStyle.position === 'fixed') {
+    const fixedReferenceStyle = hasTransformedFixedContainingBlock
+      ? ({
+          ...computedStyle,
+          _viewportWidth: parentLayout.width,
+          _viewportHeight: parentLayout.height,
+        } as SerializedStyle)
+      : computedStyle
     const fixedPosition = resolveFixedPosition(
       { left, top, width, height },
-      computedStyle,
+      fixedReferenceStyle,
       effectiveInheritedStyle
     )
-    left = fixedPosition.left
-    top = fixedPosition.top
+    left = hasTransformedFixedContainingBlock
+      ? fixedPosition.left + x
+      : fixedPosition.left
+    top = hasTransformedFixedContainingBlock
+      ? fixedPosition.top + y
+      : fixedPosition.top
   } else {
     // Attach offset to the current node.
     left += x
@@ -570,7 +586,6 @@ export default async function* layout(
 
   // Generate the rendered markup for the current node.
   const parentBackgroundColor = effectiveInheritedStyle._parentBackgroundColor
-  const parentLayout = parent.getComputedLayout()
   const parentTransform: TransformInput | undefined = isTransformInput(
     effectiveInheritedStyle.transform
   )
