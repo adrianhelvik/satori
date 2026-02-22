@@ -89,10 +89,16 @@ function toRounded(value: number): number {
   return Math.round(value * 10000) / 10000
 }
 
-function parsePositiveIntegerToken(token: string): number | undefined {
+function parseIntegerToken(token: string): number | undefined {
   if (!/^[+-]?\d+$/.test(token.trim())) return
   const parsed = Number.parseInt(token, 10)
-  if (!Number.isFinite(parsed) || parsed <= 0) return
+  if (!Number.isFinite(parsed)) return
+  return parsed
+}
+
+function parsePositiveIntegerToken(token: string): number | undefined {
+  const parsed = parseIntegerToken(token)
+  if (typeof parsed !== 'number' || parsed <= 0) return
   return parsed
 }
 
@@ -268,8 +274,8 @@ function parseGridLineToken(token: string | undefined): {
     return {}
   }
 
-  const line = Number.parseInt(normalized, 10)
-  if (Number.isFinite(line) && line !== 0 && /^[+-]?\d+$/.test(normalized)) {
+  const line = parseIntegerToken(normalized)
+  if (typeof line === 'number' && line !== 0) {
     return { line }
   }
 
