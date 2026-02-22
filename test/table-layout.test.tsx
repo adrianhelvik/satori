@@ -328,4 +328,63 @@ describe('Table Layout', () => {
 
     expect(toImage(svg, 200)).toMatchImageSnapshot()
   })
+
+  it('should infer default table geometry from explicit cell dimensions', async () => {
+    const nodes = []
+
+    await satori(
+      <table
+        style={{
+          display: 'table',
+          borderSpacing: 0,
+          borderCollapse: 'collapse',
+        }}
+      >
+        <tr>
+          <td
+            data-cell='a'
+            style={{
+              width: 80,
+              height: 30,
+              background: '#ff8080',
+            }}
+          />
+          <td
+            data-cell='b'
+            style={{
+              width: 40,
+              background: '#80ff80',
+            }}
+          />
+        </tr>
+      </table>,
+      {
+        width: 160,
+        height: 80,
+        fonts,
+        onNodeDetected: (node) => nodes.push(node),
+      }
+    )
+
+    const cellNodes = nodes.filter((node) => node.props?.['data-cell'])
+    const byId = new Map(
+      cellNodes.map((node) => [node.props['data-cell'], node])
+    )
+    const tableNode = nodes.find(
+      (node) => node.type === 'div' && !node.props?.['data-cell']
+    )
+    const cellA = byId.get('a')
+    const cellB = byId.get('b')
+
+    expect(tableNode?.width).toBeCloseTo(120, 4)
+    expect(tableNode?.height).toBeCloseTo(30, 4)
+    expect(cellA?.left).toBeCloseTo(0, 4)
+    expect(cellA?.top).toBeCloseTo(0, 4)
+    expect(cellA?.width).toBeCloseTo(80, 4)
+    expect(cellA?.height).toBeCloseTo(30, 4)
+    expect(cellB?.left).toBeCloseTo(80, 4)
+    expect(cellB?.top).toBeCloseTo(0, 4)
+    expect(cellB?.width).toBeCloseTo(40, 4)
+    expect(cellB?.height).toBeCloseTo(30, 4)
+  })
 })

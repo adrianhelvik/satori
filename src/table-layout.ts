@@ -4,6 +4,7 @@ import { isReactElement, normalizeChildren } from './utils.js'
 import { normalizeDisplayValue } from './handler/display.js'
 import { normalizePositionValue } from './handler/position.js'
 import { resolveElementStyle, type TwStyleResolver } from './element-style.js'
+import { parseFiniteNumber } from './style-number.js'
 
 interface TableCellPlacement {
   cell: ReactNode
@@ -132,11 +133,15 @@ function buildTableMatrix(
   placements: TableCellPlacement[]
   columnCount: number
   rowCount: number
+  columnWidths: number[]
+  rowHeights: number[]
 } | null {
   const placements: TableCellPlacement[] = []
   const occupied: boolean[][] = []
   let columnCount = 0
   const totalRows = rows.length
+  const columnWidths: number[] = []
+  const rowHeights: number[] = []
 
   for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
     const row = rows[rowIndex]
@@ -158,6 +163,9 @@ function buildTableMatrix(
 
       if (!isReactElement(cell)) continue
       const cellProps = cell.props || {}
+      const cellStyle = resolveElementStyle(cell, getTwStyles)
+      const explicitWidth = parseFiniteNumber(cellStyle?.width)
+      const explicitHeight = parseFiniteNumber(cellStyle?.height)
       const rowSpan = parseTableRowSpan(
         cellProps.rowSpan ?? cellProps.rowspan,
         rowIndex,
@@ -178,6 +186,20 @@ function buildTableMatrix(
         const provisionalColSpan = colSpan === 0 ? 1 : colSpan
         for (let c = columnIndex; c < columnIndex + provisionalColSpan; c++) {
           occupied[r][c] = true
+        }
+      }
+
+      if (explicitWidth > 0 && colSpan > 0) {
+        const widthPerCol = explicitWidth / colSpan
+        for (let c = columnIndex; c < columnIndex + colSpan; c++) {
+          columnWidths[c] = Math.max(columnWidths[c] || 0, widthPerCol)
+        }
+      }
+
+      if (explicitHeight > 0 && rowSpan > 0) {
+        const heightPerRow = explicitHeight / rowSpan
+        for (let r = rowIndex; r < rowIndex + rowSpan; r++) {
+          rowHeights[r] = Math.max(rowHeights[r] || 0, heightPerRow)
         }
       }
 
@@ -242,7 +264,27 @@ function buildTableMatrix(
     placements,
     columnCount,
     rowCount,
+    columnWidths,
+    rowHeights,
   }
+}
+
+function resolveTrackSizes(values: number[], fallback: number, count: number) {
+  const result = new Array(count).fill(fallback)
+  for (let i = 0; i < count; i++) {
+    if (typeof values[i] === 'number' && values[i] > 0) {
+      result[i] = values[i]
+    }
+  }
+  return result
+}
+
+function sumRange(values: number[], start: number, end: number) {
+  let total = 0
+  for (let i = start; i < end; i++) {
+    total += values[i]
+  }
+  return total
 }
 
 export function convertTableElement(
@@ -270,11 +312,20 @@ export function convertTableElement(
     tableStyle.position = 'relative'
   }
   tableStyle.display = 'flex'
+  const columnSizes = resolveTrackSizes(
+    matrix.columnWidths,
+    80,
+    matrix.columnCount
+  )
+  const rowSizes = resolveTrackSizes(matrix.rowHeights, 40, matrix.rowCount)
+  const totalInferredWidth = columnSizes.reduce((sum, value) => sum + value, 0)
+  const totalInferredHeight = rowSizes.reduce((sum, value) => sum + value, 0)
+
   if (typeof tableStyle.width === 'undefined') {
-    tableStyle.width = matrix.columnCount * 80
+    tableStyle.width = totalInferredWidth
   }
   if (typeof tableStyle.height === 'undefined') {
-    tableStyle.height = matrix.rowCount * 40
+    tableStyle.height = totalInferredHeight
   }
 
   const convertedChildren = matrix.placements.map((placement, index) => {
@@ -286,10 +337,26 @@ export function convertTableElement(
     const cellStyle: Record<string, unknown> = {
       ...(placementStyle as Record<string, unknown>),
       position: 'absolute',
-      left: `${(placement.column / matrix.columnCount) * 100}%`,
-      top: `${(placement.row / matrix.rowCount) * 100}%`,
-      width: `${(placement.colSpan / matrix.columnCount) * 100}%`,
-      height: `${(placement.rowSpan / matrix.rowCount) * 100}%`,
+      left: `${
+        (sumRange(columnSizes, 0, placement.column) / totalInferredWidth) * 100
+      }%`,
+      top: `${
+        (sumRange(rowSizes, 0, placement.row) / totalInferredHeight) * 100
+      }%`,
+      width: `${
+        (sumRange(
+          columnSizes,
+          placement.column,
+          placement.column + placement.colSpan
+        ) /
+          totalInferredWidth) *
+        100
+      }%`,
+      height: `${
+        (sumRange(rowSizes, placement.row, placement.row + placement.rowSpan) /
+          totalInferredHeight) *
+        100
+      }%`,
       display: 'flex',
       boxSizing: placementStyle?.boxSizing || 'border-box',
     }
