@@ -37,6 +37,33 @@ describe('CSS Filters', () => {
     expect(toImage(svg, 100)).toMatchImageSnapshot()
   })
 
+  it('should render grayscale() on block content', async () => {
+    const svg = await satori(
+      <div
+        style={{
+          display: 'flex',
+          width: 100,
+          height: 100,
+          background: '#ddd',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        <div
+          style={{
+            width: 40,
+            height: 40,
+            background: 'red',
+            filter: 'grayscale(100%)',
+          }}
+        />
+      </div>,
+      { width: 100, height: 100, fonts }
+    )
+
+    expect(toImage(svg, 100)).toMatchImageSnapshot()
+  })
+
   it('should render brightness(), contrast(), saturate(), opacity() stacks', async () => {
     const svg = await satori(
       <div

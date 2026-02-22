@@ -7,7 +7,7 @@ type BlurFilter = {
 }
 
 type NumericFilter = {
-  type: 'brightness' | 'contrast' | 'saturate' | 'opacity'
+  type: 'brightness' | 'contrast' | 'saturate' | 'opacity' | 'grayscale'
   amount: number
 }
 
@@ -105,6 +105,7 @@ const FILTER_FUNCTION_PARSERS: Record<string, FilterFunctionParser> = {
   contrast: (node) => parseNumericFilter('contrast', node),
   saturate: (node) => parseNumericFilter('saturate', node),
   opacity: (node) => parseNumericFilter('opacity', node),
+  grayscale: (node) => parseNumericFilter('grayscale', node),
   'drop-shadow': (node) => parseDropShadow(node.nodes),
 }
 

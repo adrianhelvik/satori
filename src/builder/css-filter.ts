@@ -159,6 +159,16 @@ function buildFilterPrimitive(
     })
   }
 
+  if (current.type === 'grayscale') {
+    const amount = clamp(current.amount, 0, 1)
+    return buildXMLString('feColorMatrix', {
+      in: context.inputId,
+      type: 'saturate',
+      values: 1 - amount,
+      result: context.resultId,
+    })
+  }
+
   if (current.type === 'opacity') {
     const amount = clamp(current.amount, 0, 1)
     return buildComponentTransferPrimitive(context, {

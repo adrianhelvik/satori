@@ -5,7 +5,7 @@ import { parseFilterList } from '../src/parser/filter.js'
 describe('filter parser', () => {
   it('parses supported numeric filter functions', () => {
     const parsed = parseFilterList(
-      'brightness(120%) contrast(0.8) saturate(150%) opacity(40%) blur(2px)'
+      'brightness(120%) contrast(0.8) saturate(150%) grayscale(25%) opacity(40%) blur(2px)'
     )
 
     expect(parsed.unsupported).toEqual([])
@@ -13,6 +13,7 @@ describe('filter parser', () => {
       { type: 'brightness', amount: 1.2 },
       { type: 'contrast', amount: 0.8 },
       { type: 'saturate', amount: 1.5 },
+      { type: 'grayscale', amount: 0.25 },
       { type: 'opacity', amount: 0.4 },
       { type: 'blur', radius: '2px' },
     ])

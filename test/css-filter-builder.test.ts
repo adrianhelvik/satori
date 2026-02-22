@@ -60,4 +60,18 @@ describe('css filter builder', () => {
 
     expect(built).toBeNull()
   })
+
+  it('should map grayscale() to an SVG saturate matrix', () => {
+    const built = buildSvgCssFilter({
+      id: 'gray',
+      filter: 'grayscale(25%)',
+      style: createStyle(),
+      inheritedStyle: createStyle(),
+    })
+
+    expect(built).not.toBeNull()
+    expect(built!.definition).toContain('<feColorMatrix')
+    expect(built!.definition).toContain('type="saturate"')
+    expect(built!.definition).toContain('values="0.75"')
+  })
 })

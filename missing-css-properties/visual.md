@@ -7,7 +7,7 @@
 - `background-blend-mode` (partial; exact for solid-color layers)
 - `box-shadow` (including inset, spread radius)
 - `opacity`
-- `filter` (supported for `blur()`, `brightness()`, `contrast()`, `saturate()`, `opacity()`, `drop-shadow()`; unsupported functions are deterministic no-ops)
+- `filter` (supported for `blur()`, `brightness()`, `contrast()`, `saturate()`, `opacity()`, `grayscale()`, `drop-shadow()`; unsupported functions are deterministic no-ops)
 - `mix-blend-mode` (partial; native SVG support varies by renderer, with a solid-rect fallback for common `multiply`/`screen` overlap cases)
 - `isolation`
 - `color`
@@ -36,7 +36,7 @@ P0 acceptance criteria:
 
 | Property | Feasibility | Notes |
 |----------|-------------|-------|
-| `filter` | **MOST IMPORTANT (P0)** | Supports `blur()`, `brightness()`, `contrast()`, `saturate()`, `opacity()`, and `drop-shadow()` with explicit SVG filter generation on box/image/text paths. Unsupported functions are dropped deterministically (no-op) and tracked in tests/docs. |
+| `filter` | **MOST IMPORTANT (P0)** | Supports `blur()`, `brightness()`, `contrast()`, `saturate()`, `opacity()`, `grayscale()`, and `drop-shadow()` with explicit SVG filter generation on box/image/text paths. Unsupported functions are dropped deterministically (no-op) and tracked in tests/docs. |
 | `background-blend-mode` | **Supported (partial)** | Exact compositing for solid-color layers (including flat gradients/colors) across common blend modes (`multiply`, `screen`, `overlay`, `darken`, `lighten`, `difference`, `exclusion`, `hard-light`, `soft-light`, `color-dodge`, `color-burn`, `hue`, `saturation`, `color`, `luminosity`). Non-uniform/image layers fall back to renderer-dependent SVG blending behavior. |
 | `mix-blend-mode` | **Supported (partial)** | Native SVG blend support is renderer-dependent. Satori includes a geometric fallback for simple solid-rect overlaps on neutral parent backdrops for `multiply`, `screen`, `darken`, `lighten`, `difference`, `exclusion`, `plus-lighter`, `overlay`, and `hard-light` (with `overlay`/`hard-light` using a neutral gray backdrop). |
 
