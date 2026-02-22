@@ -534,11 +534,16 @@ export default async function compute(
     )
   )
 
+  const normalizedPosition = normalizePositionValue(style.position)
+  if (typeof normalizedPosition === 'string') {
+    style.position = normalizedPosition
+  }
   node.setPositionType(
     v(
-      normalizePositionValue(style.position),
+      normalizedPosition,
       {
         absolute: Yoga.POSITION_TYPE_ABSOLUTE,
+        fixed: Yoga.POSITION_TYPE_ABSOLUTE,
         relative: Yoga.POSITION_TYPE_RELATIVE,
         static: Yoga.POSITION_TYPE_STATIC,
       },

@@ -1,5 +1,4 @@
 const POSITION_VALUE_ALIASES: Record<string, string> = {
-  fixed: 'absolute',
   // Without a scrolling viewport model, sticky behaves closer to static:
   // offsets should not shift layout in the default, non-scrolled state.
   sticky: 'static',

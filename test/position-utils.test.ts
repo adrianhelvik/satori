@@ -3,8 +3,8 @@ import { describe, expect, it } from 'vitest'
 import { normalizePositionValue } from '../src/handler/position.js'
 
 describe('position utils', () => {
-  it('should map fixed to absolute', () => {
-    expect(normalizePositionValue(' fixed ')).toBe('absolute')
+  it('should preserve fixed positioning keyword', () => {
+    expect(normalizePositionValue(' fixed ')).toBe('fixed')
   })
 
   it('should map sticky to static in non-scroll rendering', () => {

@@ -11,6 +11,7 @@ import {
   hasDangerouslySetInnerHTMLProp,
   isReactComponent,
   isForwardRefComponent,
+  lengthToNumber,
 } from './utils.js'
 import { getYoga, YogaNode } from './yoga.js'
 import { SVGNodeToImage } from './handler/preprocess.js'
@@ -49,6 +50,7 @@ import {
 } from './layout-protocol.js'
 import cssColorParse from 'parse-css-color'
 import { parseFiniteNumber } from './style-number.js'
+import { normalizePositionValue } from './handler/position.js'
 
 interface ListItemContext {
   listType: 'ul' | 'ol'
@@ -103,6 +105,115 @@ interface ChildSortMeta {
   order: number
   zIndex: number
   originalIndex: number
+}
+
+const FIXED_ISOLATED_INHERITED_PROPS: ReadonlyArray<keyof SerializedStyle> = [
+  'transform',
+  '_inheritedClipPathId',
+  '_inheritedMaskId',
+  '_inheritedBackgroundClipTextPath',
+]
+
+function isFixedPositionStyle(
+  style: Record<string, unknown> | undefined
+): boolean {
+  if (!style) return false
+  return normalizePositionValue(style.position) === 'fixed'
+}
+
+function resolveFixedInset(
+  value: unknown,
+  viewportLength: number,
+  style: SerializedStyle,
+  inheritedStyle: SerializedStyle
+): number | undefined {
+  if (typeof value === 'undefined' || value === 'auto') return undefined
+
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? value : undefined
+  }
+
+  if (typeof value !== 'string') return undefined
+
+  const baseFontSize = parseFiniteNumber(
+    style.fontSize,
+    parseFiniteNumber(inheritedStyle.fontSize, 16)
+  )
+
+  return lengthToNumber(
+    value,
+    baseFontSize,
+    viewportLength,
+    style as Record<string, string | number | object>,
+    true
+  )
+}
+
+function resolveFixedPosition(
+  layoutBox: { left: number; top: number; width: number; height: number },
+  style: SerializedStyle,
+  inheritedStyle: SerializedStyle
+): { left: number; top: number } {
+  const viewportWidth = parseFiniteNumber(
+    style._viewportWidth,
+    parseFiniteNumber(inheritedStyle._viewportWidth, 0)
+  )
+  const viewportHeight = parseFiniteNumber(
+    style._viewportHeight,
+    parseFiniteNumber(inheritedStyle._viewportHeight, 0)
+  )
+
+  const leftInset = resolveFixedInset(
+    style.left,
+    viewportWidth,
+    style,
+    inheritedStyle
+  )
+  const rightInset = resolveFixedInset(
+    style.right,
+    viewportWidth,
+    style,
+    inheritedStyle
+  )
+  const topInset = resolveFixedInset(
+    style.top,
+    viewportHeight,
+    style,
+    inheritedStyle
+  )
+  const bottomInset = resolveFixedInset(
+    style.bottom,
+    viewportHeight,
+    style,
+    inheritedStyle
+  )
+
+  let left = layoutBox.left
+  let top = layoutBox.top
+
+  if (typeof leftInset === 'number') {
+    left = leftInset
+  } else if (typeof rightInset === 'number') {
+    left = viewportWidth - rightInset - layoutBox.width
+  }
+
+  if (typeof topInset === 'number') {
+    top = topInset
+  } else if (typeof bottomInset === 'number') {
+    top = viewportHeight - bottomInset - layoutBox.height
+  }
+
+  return { left, top }
+}
+
+function isolateFixedInheritance(
+  inheritedStyle: SerializedStyle
+): SerializedStyle {
+  const nextInheritedStyle = { ...inheritedStyle }
+  for (const key of FIXED_ISOLATED_INHERITED_PROPS) {
+    delete nextInheritedStyle[key]
+  }
+  return nextInheritedStyle
 }
 
 function resolveBlendPrimitive(
@@ -307,13 +418,21 @@ export default async function* layout(
     style = Object.assign(twStyles, style)
   }
 
+  const styleObject =
+    style && typeof style === 'object'
+      ? (style as Record<string, unknown>)
+      : undefined
+  const effectiveInheritedStyle = isFixedPositionStyle(styleObject)
+    ? isolateFixedInheritance(inheritedStyle)
+    : inheritedStyle
+
   const node = Yoga.Node.create()
   parent.insertChild(node, parent.getChildCount())
 
   const [computedStyle, newInheritableStyle] = await computeStyle(
     node,
     type,
-    inheritedStyle,
+    effectiveInheritedStyle,
     style,
     props
   )
@@ -328,7 +447,7 @@ export default async function* layout(
   // If the element is inheriting the parent `transform`, or applying its own.
   // This affects the coordinate system.
   const isInheritingTransform =
-    computedStyle.transform === inheritedStyle.transform
+    computedStyle.transform === effectiveInheritedStyle.transform
 
   // If the element has clipping overflow or clip-path set, we need to create a
   // clip path and use it in all its children.
@@ -392,7 +511,7 @@ export default async function* layout(
     if (listStyleImage || markerText) {
       const markerFontSize = parseFiniteNumber(
         computedStyle.fontSize,
-        parseFiniteNumber(inheritedStyle.fontSize, 16)
+        parseFiniteNumber(effectiveInheritedStyle.fontSize, 16)
       )
       const markerTextWidth = measureListMarkerTextWidth(
         markerText,
@@ -508,9 +627,19 @@ export default async function* layout(
   const [x, y] = renderInput.offset
   const siblingBlendBackdrops = renderInput.siblingBlendBackdrops || []
   let { left, top, width, height } = node.getComputedLayout()
-  // Attach offset to the current node.
-  left += x
-  top += y
+  if (computedStyle.position === 'fixed') {
+    const fixedPosition = resolveFixedPosition(
+      { left, top, width, height },
+      computedStyle,
+      effectiveInheritedStyle
+    )
+    left = fixedPosition.left
+    top = fixedPosition.top
+  } else {
+    // Attach offset to the current node.
+    left += x
+    top += y
+  }
 
   let childrenRenderResult = ''
   let baseRenderResult = ''
@@ -532,12 +661,12 @@ export default async function* layout(
   })
 
   // Generate the rendered markup for the current node.
-  const parentBackgroundColor = inheritedStyle._parentBackgroundColor
+  const parentBackgroundColor = effectiveInheritedStyle._parentBackgroundColor
   const parentLayout = parent.getComputedLayout()
   const parentTransform: TransformInput | undefined = isTransformInput(
-    inheritedStyle.transform
+    effectiveInheritedStyle.transform
   )
-    ? inheritedStyle.transform
+    ? effectiveInheritedStyle.transform
     : undefined
 
   if (type === 'img') {

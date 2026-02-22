@@ -112,7 +112,7 @@ describe('Error', () => {
       }
     )
     expect(result).rejects.toThrowError(
-      `Invalid value for CSS property "position". Allowed values: "absolute" | "relative" | "static". Received: "bogus-position".`
+      `Invalid value for CSS property "position". Allowed values: "absolute" | "fixed" | "relative" | "static". Received: "bogus-position".`
     )
   })
 
