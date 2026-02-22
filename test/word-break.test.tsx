@@ -31,6 +31,30 @@ describe('word-break', () => {
       expect(toImage(svg, 100)).toMatchImageSnapshot()
     })
 
+    it('should wrap thai text in locale-sensitive word boundaries', async () => {
+      const svg = await satori(
+        <div
+          style={{
+            width: 80,
+            height: 120,
+            fontSize: 32,
+            color: 'red',
+            wordBreak: 'normal',
+          }}
+          lang='th-TH'
+        >
+          {'สวัสดีสวัสดีสวัสดี'}
+        </div>,
+        {
+          width: 80,
+          height: 120,
+          fonts,
+        }
+      )
+
+      expect(toImage(svg, 80)).toMatchImageSnapshot()
+    })
+
     it('should not break long word', async () => {
       const svg = await satori(
         <div
