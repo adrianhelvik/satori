@@ -157,7 +157,8 @@ function processWordBreak(
 
   const { words, requiredBreaks, softHyphenBreaks } = splitByBreakOpportunities(
     content,
-    effectiveWordBreak
+    effectiveWordBreak,
+    locale
   )
   applyHyphenateLimitChars(
     words,

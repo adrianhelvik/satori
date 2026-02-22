@@ -416,7 +416,8 @@ export function asPointAutoPercentageLength(
 
 export function splitByBreakOpportunities(
   content: string,
-  wordBreak: string
+  wordBreak: string,
+  locale?: string
 ): {
   words: string[]
   requiredBreaks: boolean[]
@@ -466,6 +467,20 @@ export function splitByBreakOpportunities(
 
     last = bk.position
     bk = breaker.nextBreak()
+  }
+
+  // For scripts like Thai where line-break opportunities are not always present
+  // in the basic UAX#14 pass, fall back to word-level segmentation for a more
+  // natural wrapping behavior when no internal breaks were produced.
+  if (wordBreak === 'normal' && words.length === 1 && !/\s/.test(content)) {
+    const localizedWords = segment(content, 'word', locale)
+    if (localizedWords.length > 1) {
+      return {
+        words: localizedWords,
+        requiredBreaks: localizedWords.map(() => false),
+        softHyphenBreaks: localizedWords.map(() => false),
+      }
+    }
   }
 
   return { words, requiredBreaks, softHyphenBreaks }
