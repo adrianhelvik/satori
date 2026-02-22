@@ -96,6 +96,14 @@ const ATTRIBUTE_MAPPING = {
 
 // From https://github.com/yoksel/url-encoder/blob/master/src/js/script.js
 const SVGSymbols = /[\r\n%#()<>?[\\\]^`{|}"']/g
+const MARKER_STYLE_PROPERTIES = {
+  markerStart: 'marker-start',
+  markerMid: 'marker-mid',
+  markerEnd: 'marker-end',
+  'marker-start': 'marker-start',
+  'marker-mid': 'marker-mid',
+  'marker-end': 'marker-end',
+} as const
 
 function translateSVGNodeToSVGString(
   node: ReactElement | string | (ReactElement | string)[],
@@ -119,6 +127,35 @@ function translateSVGNodeToSVGString(
   const { children, style, ...restProps } = node.props || {}
   const currentColor = style?.color || inheritedColor
 
+  const parsedStyle = style
+    ? Object.entries(style).reduce(
+        (result, [key, value]) => {
+          const markerAttr =
+            MARKER_STYLE_PROPERTIES[key as keyof typeof MARKER_STYLE_PROPERTIES]
+
+          if (markerAttr) {
+            if (
+              !Object.prototype.hasOwnProperty.call(restProps, key) &&
+              !Object.prototype.hasOwnProperty.call(restProps, markerAttr)
+            ) {
+              result.markerStyleAttributes[markerAttr] = value
+            }
+          } else {
+            result.styleEntries.push([key, value])
+          }
+
+          return result
+        },
+        {
+          styleEntries: [] as [string, any][],
+          markerStyleAttributes: {} as Record<string, any>,
+        }
+      )
+    : {
+        styleEntries: [] as [string, any][],
+        markerStyleAttributes: {} as Record<string, any>,
+      }
+
   const attrs = `${Object.entries(restProps)
     .map(([k, _v]) => {
       if (typeof _v === 'string' && _v.toLowerCase() === 'currentcolor') {
@@ -130,10 +167,15 @@ function translateSVGNodeToSVGString(
       }
       return ` ${ATTRIBUTE_MAPPING[k] || k}="${_v}"`
     })
+    .concat(
+      Object.entries(parsedStyle.markerStyleAttributes).map(
+        ([k, v]) => ` ${k}="${v}"`
+      )
+    )
     .join('')}`
 
   const styles = style
-    ? ` style="${Object.entries(style)
+    ? ` style="${parsedStyle.styleEntries
         .map(([k, _v]) => `${midline(k)}:${_v}`)
         .join(';')}"`
     : ''
