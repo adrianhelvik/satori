@@ -14,16 +14,36 @@ import {
   type GridAxisPlacement,
 } from './grid-placement.js'
 import { parseFiniteNumber } from './style-number.js'
-import { isReactElement, lengthToNumber, normalizeChildren } from './utils.js'
+import {
+  isReactElement,
+  lengthToNumber,
+  normalizeChildren,
+  splitEffects,
+} from './utils.js'
 
 export { parseGridTemplateAreas } from './grid-template-areas.js'
 export { parseGridAxisPlacement } from './grid-placement.js'
 
-type TrackDefinition =
+type BasicTrackDefinition =
   | { kind: 'fixed'; value: number }
   | { kind: 'percent'; value: number }
   | { kind: 'fr'; value: number }
   | { kind: 'auto' }
+
+type MinTrackDefinition =
+  | { kind: 'fixed'; value: number }
+  | { kind: 'percent'; value: number }
+  | { kind: 'auto' }
+
+type MaxTrackDefinition =
+  | { kind: 'fixed'; value: number }
+  | { kind: 'percent'; value: number }
+  | { kind: 'fr'; value: number }
+  | { kind: 'auto' }
+
+type TrackDefinition =
+  | BasicTrackDefinition
+  | { kind: 'minmax'; min: MinTrackDefinition; max: MaxTrackDefinition }
 
 type AxisPlacement = GridAxisPlacement
 
@@ -204,6 +224,108 @@ function parseRepeatTrackList(
   return result
 }
 
+function parseGridSimpleTrackToken(
+  token: string,
+  baseFontSize: number
+): BasicTrackDefinition {
+  const normalized = token.trim().toLowerCase()
+  if (
+    normalized === 'auto' ||
+    normalized === 'min-content' ||
+    normalized === 'max-content'
+  ) {
+    return { kind: 'auto' }
+  }
+
+  if (normalized.endsWith('fr')) {
+    const fr = Number.parseFloat(normalized.slice(0, -2))
+    return {
+      kind: 'fr',
+      value: Number.isFinite(fr) && fr > 0 ? fr : 1,
+    }
+  }
+
+  if (normalized.endsWith('%')) {
+    const percent = Number.parseFloat(normalized.slice(0, -1))
+    if (Number.isFinite(percent)) {
+      return {
+        kind: 'percent',
+        value: clampToNonNegative(percent / 100),
+      }
+    }
+    return { kind: 'auto' }
+  }
+
+  const fixed = lengthToNumber(normalized, baseFontSize, 1, {}, false)
+  if (typeof fixed === 'number' && Number.isFinite(fixed)) {
+    return { kind: 'fixed', value: clampToNonNegative(fixed) }
+  }
+
+  return { kind: 'auto' }
+}
+
+function parseMinTrackToken(
+  token: string,
+  baseFontSize: number
+): MinTrackDefinition {
+  const parsed = parseGridSimpleTrackToken(token, baseFontSize)
+  if (parsed.kind === 'fr') return { kind: 'auto' }
+  return parsed
+}
+
+function parseMaxTrackToken(
+  token: string,
+  baseFontSize: number
+): MaxTrackDefinition {
+  return parseGridSimpleTrackToken(token, baseFontSize)
+}
+
+function parseMinMaxTrackToken(
+  token: string,
+  baseFontSize: number
+): TrackDefinition | undefined {
+  const normalized = token.trim()
+  if (
+    !normalized.toLowerCase().startsWith('minmax(') ||
+    !normalized.endsWith(')')
+  ) {
+    return
+  }
+
+  const body = normalized.slice('minmax('.length, -1).trim()
+  const [rawMin, rawMax] = splitEffects(body)
+  if (!rawMin || !rawMax) return
+
+  return {
+    kind: 'minmax',
+    min: parseMinTrackToken(rawMin, baseFontSize),
+    max: parseMaxTrackToken(rawMax, baseFontSize),
+  }
+}
+
+function parseFitContentTrackToken(
+  token: string,
+  baseFontSize: number
+): TrackDefinition | undefined {
+  const normalized = token.trim()
+  if (
+    !normalized.toLowerCase().startsWith('fit-content(') ||
+    !normalized.endsWith(')')
+  ) {
+    return
+  }
+
+  const body = normalized.slice('fit-content('.length, -1).trim()
+  if (!body) return
+  const max = parseMaxTrackToken(body, baseFontSize)
+  if (max.kind === 'fr' || max.kind === 'auto') return { kind: 'auto' }
+  return {
+    kind: 'minmax',
+    min: { kind: 'auto' },
+    max,
+  }
+}
+
 export function parseGridTrackList(
   value: unknown,
   baseFontSize = 16
@@ -224,48 +346,22 @@ export function parseGridTrackList(
       continue
     }
 
-    const normalized = token.trim().toLowerCase()
-    if (!normalized || normalized === 'none') continue
+    const normalized = token.trim()
+    if (!normalized || normalized.toLowerCase() === 'none') continue
 
-    if (
-      normalized === 'auto' ||
-      normalized === 'min-content' ||
-      normalized === 'max-content'
-    ) {
-      tracks.push({ kind: 'auto' })
+    const minmaxTrack = parseMinMaxTrackToken(normalized, baseFontSize)
+    if (minmaxTrack) {
+      tracks.push(minmaxTrack)
       continue
     }
 
-    if (normalized.endsWith('fr')) {
-      const fr = Number.parseFloat(normalized.slice(0, -2))
-      tracks.push({
-        kind: 'fr',
-        value: Number.isFinite(fr) && fr > 0 ? fr : 1,
-      })
+    const fitContentTrack = parseFitContentTrackToken(normalized, baseFontSize)
+    if (fitContentTrack) {
+      tracks.push(fitContentTrack)
       continue
     }
 
-    if (normalized.endsWith('%')) {
-      const percent = Number.parseFloat(normalized.slice(0, -1))
-      if (Number.isFinite(percent)) {
-        tracks.push({
-          kind: 'percent',
-          value: clampToNonNegative(percent / 100),
-        })
-      } else {
-        tracks.push({ kind: 'auto' })
-      }
-      continue
-    }
-
-    const fixed = lengthToNumber(normalized, baseFontSize, 1, {}, false)
-    if (typeof fixed === 'number' && Number.isFinite(fixed)) {
-      tracks.push({ kind: 'fixed', value: clampToNonNegative(fixed) })
-      continue
-    }
-
-    // Keep unsupported track functions deterministic for now.
-    tracks.push({ kind: 'auto' })
+    tracks.push(parseGridSimpleTrackToken(normalized, baseFontSize))
   }
 
   return tracks
@@ -794,6 +890,21 @@ function resolveTrackDefinitions(
   return tracks
 }
 
+function resolveTrackBoundSize(
+  bound: MinTrackDefinition | MaxTrackDefinition,
+  axisLength: number | undefined,
+  fallbackTrackSize: number
+): number | undefined {
+  if (bound.kind === 'fixed') return clampToNonNegative(bound.value)
+  if (bound.kind === 'percent') {
+    if (typeof axisLength === 'number' && Number.isFinite(axisLength)) {
+      return clampToNonNegative(axisLength * bound.value)
+    }
+    return clampToNonNegative(fallbackTrackSize)
+  }
+  if (bound.kind === 'auto') return 0
+}
+
 function resolveTrackSizes(
   tracks: TrackDefinition[],
   axisLength: number | undefined,
@@ -808,6 +919,7 @@ function resolveTrackSizes(
   if (typeof axisLength === 'number' && Number.isFinite(axisLength)) {
     let fixedTotal = 0
     let frTotal = 0
+    const minTrackSizes = new Array(tracks.length).fill(0)
 
     for (let i = 0; i < tracks.length; i++) {
       const track = tracks[i]
@@ -819,6 +931,24 @@ function resolveTrackSizes(
         fixedTotal += sizes[i]
       } else if (track.kind === 'fr') {
         frTotal += track.value
+      } else if (track.kind === 'minmax') {
+        const minSize =
+          resolveTrackBoundSize(track.min, axisLength, fallbackTrackSize) || 0
+        minTrackSizes[i] = minSize
+        sizes[i] = minSize
+        fixedTotal += minSize
+
+        if (track.max.kind === 'fr') {
+          frTotal += track.max.value
+        } else if (track.max.kind === 'auto') {
+          frTotal += 1
+        } else {
+          const maxSize =
+            resolveTrackBoundSize(track.max, axisLength, fallbackTrackSize) || 0
+          const resolvedSize = Math.max(minSize, maxSize)
+          fixedTotal += resolvedSize - minSize
+          sizes[i] = resolvedSize
+        }
       } else {
         frTotal += 1
       }
@@ -831,6 +961,13 @@ function resolveTrackSizes(
       const track = tracks[i]
       if (track.kind === 'fr') {
         sizes[i] = clampToNonNegative(track.value * frUnit)
+      } else if (track.kind === 'minmax') {
+        const minSize = minTrackSizes[i]
+        if (track.max.kind === 'fr') {
+          sizes[i] = minSize + clampToNonNegative(track.max.value * frUnit)
+        } else if (track.max.kind === 'auto') {
+          sizes[i] = minSize + clampToNonNegative(frUnit)
+        }
       } else if (track.kind === 'auto') {
         sizes[i] = clampToNonNegative(frUnit)
       }
@@ -845,6 +982,23 @@ function resolveTrackSizes(
       sizes[i] = clampToNonNegative(track.value)
     } else if (track.kind === 'fr') {
       sizes[i] = clampToNonNegative(track.value * fallbackTrackSize)
+    } else if (track.kind === 'minmax') {
+      const minSize =
+        resolveTrackBoundSize(track.min, undefined, fallbackTrackSize) || 0
+      let maxSize = minSize
+
+      if (track.max.kind === 'fr') {
+        maxSize =
+          minSize + clampToNonNegative(track.max.value * fallbackTrackSize)
+      } else if (track.max.kind === 'fixed') {
+        maxSize = clampToNonNegative(track.max.value)
+      } else if (track.max.kind === 'percent') {
+        maxSize = clampToNonNegative(fallbackTrackSize)
+      } else {
+        maxSize = minSize + fallbackTrackSize
+      }
+
+      sizes[i] = Math.max(minSize, maxSize)
     } else {
       sizes[i] = fallbackTrackSize
     }

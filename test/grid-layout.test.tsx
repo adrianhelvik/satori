@@ -521,4 +521,82 @@ describe('Grid Layout', () => {
 
     expect(toImage(svg, 120)).toMatchImageSnapshot()
   })
+
+  it('should support minmax() track sizing', async () => {
+    const nodes = []
+    const svg = await satori(
+      <div
+        style={{
+          width: 120,
+          height: 40,
+          display: 'grid',
+          gridTemplateColumns: 'minmax(30px, 1fr) minmax(50px, 2fr)',
+          gridTemplateRows: '1fr',
+          backgroundColor: '#ddd',
+        }}
+      >
+        <div data-cell='a' style={{ backgroundColor: 'red' }} />
+        <div data-cell='b' style={{ backgroundColor: 'blue' }} />
+      </div>,
+      {
+        width: 120,
+        height: 40,
+        fonts,
+        onNodeDetected: (node) => nodes.push(node),
+      }
+    )
+
+    const cellNodes = nodes.filter((node) => node.props?.['data-cell'])
+    const byCell = new Map(
+      cellNodes.map((node) => [node.props['data-cell'], node])
+    )
+    const cellA = byCell.get('a')
+    const cellB = byCell.get('b')
+
+    expect(cellA.left).toBeCloseTo(0, 4)
+    expect(cellA.width).toBeCloseTo(43, 4)
+    expect(cellB.left).toBeCloseTo(43, 4)
+    expect(cellB.width).toBeCloseTo(77, 4)
+
+    expect(toImage(svg, 120)).toMatchImageSnapshot()
+  })
+
+  it('should support fit-content() track sizing', async () => {
+    const nodes = []
+    const svg = await satori(
+      <div
+        style={{
+          width: 120,
+          height: 40,
+          display: 'grid',
+          gridTemplateColumns: 'fit-content(40px) 1fr',
+          gridTemplateRows: '1fr',
+          backgroundColor: '#ddd',
+        }}
+      >
+        <div data-cell='a' style={{ width: 40, backgroundColor: 'red' }} />
+        <div data-cell='b' style={{ backgroundColor: 'blue' }} />
+      </div>,
+      {
+        width: 120,
+        height: 40,
+        fonts,
+        onNodeDetected: (node) => nodes.push(node),
+      }
+    )
+
+    const cellNodes = nodes.filter((node) => node.props?.['data-cell'])
+    const byCell = new Map(
+      cellNodes.map((node) => [node.props['data-cell'], node])
+    )
+    const cellA = byCell.get('a')
+    const cellB = byCell.get('b')
+
+    expect(cellA.left).toBeCloseTo(0, 4)
+    expect(cellA.width).toBeCloseTo(40, 4)
+    expect(cellB.left).toBeCloseTo(40, 4)
+    expect(cellB.width).toBeCloseTo(80, 4)
+
+    expect(toImage(svg, 120)).toMatchImageSnapshot()
+  })
 })

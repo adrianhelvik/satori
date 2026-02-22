@@ -34,6 +34,38 @@ describe('grid layout utils', () => {
     ])
   })
 
+  it('parses minmax() track definitions', () => {
+    const tracks = parseGridTrackList('minmax(24px, 1fr) minmax(10%, 40px)')
+    expect(tracks).toEqual([
+      {
+        kind: 'minmax',
+        min: { kind: 'fixed', value: 24 },
+        max: { kind: 'fr', value: 1 },
+      },
+      {
+        kind: 'minmax',
+        min: { kind: 'percent', value: 0.1 },
+        max: { kind: 'fixed', value: 40 },
+      },
+    ])
+  })
+
+  it('maps fit-content() to bounded minmax tracks', () => {
+    const tracks = parseGridTrackList('fit-content(32px) fit-content(20%)')
+    expect(tracks).toEqual([
+      {
+        kind: 'minmax',
+        min: { kind: 'auto' },
+        max: { kind: 'fixed', value: 32 },
+      },
+      {
+        kind: 'minmax',
+        min: { kind: 'auto' },
+        max: { kind: 'percent', value: 0.2 },
+      },
+    ])
+  })
+
   it('parses explicit start/end placement', () => {
     const placement = parseGridAxisPlacement('2 / 4', undefined, undefined)
     expect(placement).toEqual({

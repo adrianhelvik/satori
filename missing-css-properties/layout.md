@@ -81,7 +81,7 @@ Supported grid subset:
 | Property | Feasibility | Notes |
 |----------|-------------|-------|
 | `display: grid` / `inline-grid` | Supported (approx.) | Rewritten to absolute-positioned children inside a relative container for static rendering. |
-| `grid-template-rows` / `grid-template-columns` | Supported (partial) | Supports fixed lengths, `%`, `fr`, `auto`, and `repeat(n, ...)`. If container axis size is unspecified, fallback static track sizing is used. |
+| `grid-template-rows` / `grid-template-columns` | Supported (partial) | Supports fixed lengths, `%`, `fr`, `auto`, `repeat(n, ...)`, `minmax()`, and `fit-content()`. Track sizing is static and deterministic; intrinsic content contributions remain approximate. |
 | `grid-auto-rows` / `grid-auto-columns` | Supported (partial) | Used for implicit tracks created by auto placement. |
 | `grid-auto-flow` | Supported (partial) | Supports `row`/`column` auto-flow directions and `dense` backfilling. |
 | `grid-row*` / `grid-column*` | Supported (partial) | Supports explicit positive/negative line placement (negative lines resolved against explicit tracks) and simple `span`. |
@@ -96,7 +96,7 @@ Still missing grid features:
 | `grid-auto-flow` advanced behavior | Hard | Dense behavior is supported, but full spec parity (ordering edge cases and complex spanning interactions) remains approximate. |
 | `grid-template-areas` advanced forms | Hard | Non-rectangular area declarations are treated as invalid, and named-line interactions are not implemented. |
 | Named lines, advanced `span` forms | Hard | Supports numeric positive/negative line indexes and basic `span`; named lines and advanced span forms are not implemented. |
-| Intrinsic min/max track sizing (`minmax()`, `fit-content()`, content-based sizing) | Hard | Track solver uses deterministic static approximations. |
+| Full intrinsic track sizing parity (content-based min/max distribution) | Hard | `minmax()` / `fit-content()` are supported with static deterministic approximations; true content-based sizing parity is not implemented. |
 | Baseline/subgrid/masonry behaviors | Very hard | Not modeled in current static solver. |
 
 > Yoga does not implement CSS Grid. Current support is implemented via a userland rewrite/placement pass and intentionally targets static SVG rendering use cases.
