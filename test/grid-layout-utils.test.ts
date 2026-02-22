@@ -60,4 +60,25 @@ describe('grid layout utils', () => {
       span: 2,
     })
   })
+
+  it('supports negative grid line indexes relative to explicit tracks', () => {
+    const placement = parseGridAxisPlacement('-2 / -1', undefined, undefined, 3)
+    expect(placement).toEqual({
+      start: 2,
+      span: 1,
+    })
+  })
+
+  it('supports end-only negative line placement', () => {
+    const placement = parseGridAxisPlacement(
+      'auto / -1',
+      undefined,
+      undefined,
+      4
+    )
+    expect(placement).toEqual({
+      start: 3,
+      span: 1,
+    })
+  })
 })

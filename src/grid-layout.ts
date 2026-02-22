@@ -90,6 +90,7 @@ function toRounded(value: number): number {
 }
 
 function parsePositiveIntegerToken(token: string): number | undefined {
+  if (!/^[+-]?\d+$/.test(token.trim())) return
   const parsed = Number.parseInt(token, 10)
   if (!Number.isFinite(parsed) || parsed <= 0) return
   return parsed
@@ -268,11 +269,24 @@ function parseGridLineToken(token: string | undefined): {
   }
 
   const line = Number.parseInt(normalized, 10)
-  if (Number.isFinite(line) && line > 0) {
+  if (Number.isFinite(line) && line !== 0 && /^[+-]?\d+$/.test(normalized)) {
     return { line }
   }
 
   return {}
+}
+
+function resolveGridLineIndexFromToken(
+  line: number | undefined,
+  explicitTrackCount: number
+): number | undefined {
+  if (typeof line !== 'number') return
+  if (line > 0) return line
+
+  const lineCount = Math.max(1, explicitTrackCount) + 1
+  const resolved = lineCount + 1 + line
+  if (resolved <= 0) return
+  return resolved
 }
 
 function parsePlacementPair(value: unknown): {
@@ -294,7 +308,8 @@ function parsePlacementPair(value: unknown): {
 export function parseGridAxisPlacement(
   shorthandValue: unknown,
   explicitStart: unknown,
-  explicitEnd: unknown
+  explicitEnd: unknown,
+  explicitTrackCount = 1
 ): AxisPlacement {
   const parsedPair = parsePlacementPair(shorthandValue)
   const startToken = parseGridLineToken(
@@ -308,12 +323,19 @@ export function parseGridAxisPlacement(
       : parsedPair.end
   )
 
-  let startLine = startToken.line
+  let startLine = resolveGridLineIndexFromToken(
+    startToken.line,
+    explicitTrackCount
+  )
+  const endLine = resolveGridLineIndexFromToken(
+    endToken.line,
+    explicitTrackCount
+  )
   let span = startToken.span || endToken.span || 1
-  if (startLine && endToken.line) {
-    span = Math.max(1, endToken.line - startLine)
-  } else if (!startLine && endToken.line) {
-    startLine = Math.max(1, endToken.line - span)
+  if (startLine && endLine) {
+    span = Math.max(1, endLine - startLine)
+  } else if (!startLine && endLine) {
+    startLine = Math.max(1, endLine - span)
   }
 
   return {
@@ -1070,29 +1092,39 @@ function resolveGridContainerMetrics(
 }
 
 function resolveGridItemPlacements(
-  childStyle: Record<string, unknown> | undefined
+  childStyle: Record<string, unknown> | undefined,
+  explicitRowTrackCount: number,
+  explicitColumnTrackCount: number
 ): { row: AxisPlacement; column: AxisPlacement } {
   return {
     row: parseGridAxisPlacement(
       resolveStyleValue(childStyle, GRID_ROW_SHORTHAND_KEYS),
       resolveStyleValue(childStyle, GRID_ROW_START_KEYS),
-      resolveStyleValue(childStyle, GRID_ROW_END_KEYS)
+      resolveStyleValue(childStyle, GRID_ROW_END_KEYS),
+      explicitRowTrackCount
     ),
     column: parseGridAxisPlacement(
       resolveStyleValue(childStyle, GRID_COLUMN_SHORTHAND_KEYS),
       resolveStyleValue(childStyle, GRID_COLUMN_START_KEYS),
-      resolveStyleValue(childStyle, GRID_COLUMN_END_KEYS)
+      resolveStyleValue(childStyle, GRID_COLUMN_END_KEYS),
+      explicitColumnTrackCount
     ),
   }
 }
 
 function buildGridItemDescriptors(
   children: ReactNode[],
-  getTwStyles: TwStyleResolver
+  getTwStyles: TwStyleResolver,
+  explicitRowTrackCount: number,
+  explicitColumnTrackCount: number
 ): GridItemDescriptor[] {
   return children.map((child) => {
     const childStyle = resolveGridItemStyle(child, getTwStyles)
-    const placements = resolveGridItemPlacements(childStyle)
+    const placements = resolveGridItemPlacements(
+      childStyle,
+      explicitRowTrackCount,
+      explicitColumnTrackCount
+    )
     return {
       child,
       childStyle,
@@ -1144,7 +1176,12 @@ export function convertGridElement(
     resolveGridContainerMetrics(style, baseFontSize)
   const autoFlow = resolveGridAutoFlow(style)
 
-  const items = buildGridItemDescriptors(normalizedChildren, getTwStyles)
+  const items = buildGridItemDescriptors(
+    normalizedChildren,
+    getTwStyles,
+    explicitRowTracks.length || 1,
+    explicitColumnTracks.length || 1
+  )
 
   const placement = placeGridItems(
     items,

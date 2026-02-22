@@ -82,7 +82,7 @@ Supported grid subset:
 | `grid-template-rows` / `grid-template-columns` | Supported (partial) | Supports fixed lengths, `%`, `fr`, `auto`, and `repeat(n, ...)`. If container axis size is unspecified, fallback static track sizing is used. |
 | `grid-auto-rows` / `grid-auto-columns` | Supported (partial) | Used for implicit tracks created by auto placement. |
 | `grid-auto-flow` | Supported (partial) | Supports `row`/`column` auto-flow directions and `dense` backfilling. |
-| `grid-row*` / `grid-column*` | Supported (partial) | Supports explicit line placement and simple `span`. |
+| `grid-row*` / `grid-column*` | Supported (partial) | Supports explicit positive/negative line placement (negative lines resolved against explicit tracks) and simple `span`. |
 | `gap` / `row-gap` / `column-gap` | Supported | Applied in both explicit and implicit track geometry. |
 | `place-items` / `place-self` / `justify-items` / `justify-self` | Supported (grid only) | Mapped to per-cell flex alignment in the rewrite path. |
 
@@ -92,7 +92,7 @@ Still missing grid features:
 |----------|-------------|-------|
 | `grid-template-areas` | Hard | Named area parsing/placement is not implemented. |
 | `grid-auto-flow` advanced behavior | Hard | Dense behavior is supported, but full spec parity (ordering edge cases and complex spanning interactions) remains approximate. |
-| Negative line indexes, named lines, advanced `span` forms | Hard | Only common positive line and basic `span` syntax are supported. |
+| Named lines, advanced `span` forms | Hard | Supports numeric positive/negative line indexes and basic `span`; named lines and advanced span forms are not implemented. |
 | Intrinsic min/max track sizing (`minmax()`, `fit-content()`, content-based sizing) | Hard | Track solver uses deterministic static approximations. |
 | Baseline/subgrid/masonry behaviors | Very hard | Not modeled in current static solver. |
 
