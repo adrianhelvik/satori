@@ -1,6 +1,6 @@
-export type SpecialCaseResult =
-  | Record<string, string | number | object | undefined>
-  | undefined
+type ResolvedStyleMap = Record<string, string | number | object | undefined>
+
+export type SpecialCaseResult = ResolvedStyleMap | undefined
 
 export type SpecialCaseResolver = (
   name: string,
@@ -12,6 +12,15 @@ type Purify = (
   name: string,
   value?: string | number
 ) => string | number | undefined
+
+type PairAliasMap = Record<string, readonly [string, string]>
+
+const BORDER_VALUE_PARTS = ['Width', 'Style', 'Color'] as const
+
+const LOGICAL_DIMENSION_ALIASES: Record<string, 'width' | 'height'> = {
+  inlineSize: 'width',
+  blockSize: 'height',
+}
 
 const LOGICAL_PURIFIED_ALIASES: Record<string, string> = {
   minInlineSize: 'minWidth',
@@ -45,6 +54,20 @@ const LOGICAL_PURIFIED_ALIASES: Record<string, string> = {
   borderEndEndRadius: 'borderBottomRightRadius',
 }
 
+const LOGICAL_PAIR_PURIFIED_ALIASES: PairAliasMap = {
+  marginInline: ['marginLeft', 'marginRight'],
+  marginBlock: ['marginTop', 'marginBottom'],
+
+  paddingInline: ['paddingLeft', 'paddingRight'],
+  paddingBlock: ['paddingTop', 'paddingBottom'],
+
+  insetInline: ['left', 'right'],
+  insetBlock: ['top', 'bottom'],
+
+  borderInlineWidth: ['borderLeftWidth', 'borderRightWidth'],
+  borderBlockWidth: ['borderTopWidth', 'borderBottomWidth'],
+}
+
 const LOGICAL_RAW_ALIASES: Record<string, string> = {
   overflowInline: 'overflowX',
   overflowBlock: 'overflowY',
@@ -60,8 +83,48 @@ const LOGICAL_RAW_ALIASES: Record<string, string> = {
   borderBlockEndColor: 'borderBottomColor',
 }
 
+const LOGICAL_PAIR_RAW_ALIASES: PairAliasMap = {
+  borderInlineStyle: ['borderLeftStyle', 'borderRightStyle'],
+  borderBlockStyle: ['borderTopStyle', 'borderBottomStyle'],
+
+  borderInlineColor: ['borderLeftColor', 'borderRightColor'],
+  borderBlockColor: ['borderTopColor', 'borderBottomColor'],
+}
+
+const LOGICAL_BORDER_AXIS_SHORTHANDS: Record<
+  string,
+  readonly ['Left', 'Right'] | readonly ['Top', 'Bottom']
+> = {
+  borderInline: ['Left', 'Right'],
+  borderBlock: ['Top', 'Bottom'],
+}
+
+const LOGICAL_BORDER_SIDE_SHORTHANDS: Record<string, string> = {
+  borderInlineStart: 'borderLeft',
+  borderInlineEnd: 'borderRight',
+  borderBlockStart: 'borderTop',
+  borderBlockEnd: 'borderBottom',
+}
+
 function splitSpaceValues(value: string | number): string[] {
   return value.toString().trim().split(/\s+/)
+}
+
+function resolveLogicalDimensionAlias(
+  name: string,
+  value: string | number,
+  currentColor: string,
+  purify: Purify,
+  resolveSpecialCase: SpecialCaseResolver
+) {
+  const target = LOGICAL_DIMENSION_ALIASES[name]
+  if (!target) return
+
+  return (
+    resolveSpecialCase(target, value, currentColor) || {
+      [target]: purify(target, value),
+    }
+  )
 }
 
 function resolvePurifiedLogicalAlias(
@@ -89,6 +152,86 @@ function resolveRawLogicalAlias(name: string, value: string | number) {
   return { [target]: value }
 }
 
+function resolvePairAliasWithPurify(
+  name: string,
+  value: string | number,
+  aliases: PairAliasMap,
+  purify: Purify
+) {
+  const targets = aliases[name]
+  if (!targets) return
+
+  const values = splitSpaceValues(value)
+  const [firstTarget, secondTarget] = targets
+  const firstValue = values[0]
+  const secondValue = values[1] || firstValue
+  return {
+    [firstTarget]: purify(firstTarget, firstValue),
+    [secondTarget]: purify(secondTarget, secondValue),
+  }
+}
+
+function resolvePairAliasWithoutPurify(
+  name: string,
+  value: string | number,
+  aliases: PairAliasMap
+) {
+  const targets = aliases[name]
+  if (!targets) return
+
+  const values = splitSpaceValues(value)
+  const [firstTarget, secondTarget] = targets
+  const firstValue = values[0]
+  const secondValue = values[1] || firstValue
+  return {
+    [firstTarget]: firstValue,
+    [secondTarget]: secondValue,
+  }
+}
+
+function resolveInsetShorthand(value: string | number, purify: Purify) {
+  const values = splitSpaceValues(value)
+  const [top, right = top, bottom = top, left = right] = values
+  return {
+    top: purify('top', top),
+    right: purify('right', right),
+    bottom: purify('bottom', bottom),
+    left: purify('left', left),
+  }
+}
+
+function resolveLogicalBorderAxisShorthand(
+  name: string,
+  value: string | number,
+  currentColor: string,
+  resolveSpecialCase: SpecialCaseResolver
+): SpecialCaseResult {
+  const sides = LOGICAL_BORDER_AXIS_SHORTHANDS[name]
+  if (!sides) return
+
+  const resolvedBorder = resolveSpecialCase('border', value, currentColor)
+  if (!resolvedBorder) return
+
+  const result: ResolvedStyleMap = {}
+  for (const side of sides) {
+    for (const part of BORDER_VALUE_PARTS) {
+      result['border' + side + part] = resolvedBorder['borderTop' + part]
+    }
+  }
+  return result
+}
+
+function resolveLogicalBorderSideShorthand(
+  name: string,
+  value: string | number,
+  currentColor: string,
+  resolveSpecialCase: SpecialCaseResolver
+) {
+  const target = LOGICAL_BORDER_SIDE_SHORTHANDS[name]
+  if (!target) return
+  return resolveSpecialCase(target, value, currentColor)
+}
+
 export function resolveLogicalProperty(
   name: string,
   value: string | number,
@@ -98,19 +241,14 @@ export function resolveLogicalProperty(
 ): SpecialCaseResult {
   // Satori currently assumes horizontal-tb/LTR flow, so logical mappings
   // intentionally resolve inline-start/end to left/right and block to top/bottom.
-  // Logical sizing
-  if (name === 'inlineSize')
-    return (
-      resolveSpecialCase('width', value, currentColor) || {
-        width: purify('width', value),
-      }
-    )
-  if (name === 'blockSize')
-    return (
-      resolveSpecialCase('height', value, currentColor) || {
-        height: purify('height', value),
-      }
-    )
+  const logicalDimension = resolveLogicalDimensionAlias(
+    name,
+    value,
+    currentColor,
+    purify,
+    resolveSpecialCase
+  )
+  if (logicalDimension) return logicalDimension
 
   const purifiedAlias = resolvePurifiedLogicalAlias(name, value, purify)
   if (purifiedAlias) return purifiedAlias
@@ -118,141 +256,36 @@ export function resolveLogicalProperty(
   const rawAlias = resolveRawLogicalAlias(name, value)
   if (rawAlias) return rawAlias
 
-  // Logical margin
-  if (name === 'marginInline') {
-    const vals = splitSpaceValues(value)
-    return {
-      marginLeft: purify('marginLeft', vals[0]),
-      marginRight: purify('marginRight', vals[1] || vals[0]),
-    }
-  }
-  if (name === 'marginBlock') {
-    const vals = splitSpaceValues(value)
-    return {
-      marginTop: purify('marginTop', vals[0]),
-      marginBottom: purify('marginBottom', vals[1] || vals[0]),
-    }
-  }
+  const purifiedPairAlias = resolvePairAliasWithPurify(
+    name,
+    value,
+    LOGICAL_PAIR_PURIFIED_ALIASES,
+    purify
+  )
+  if (purifiedPairAlias) return purifiedPairAlias
 
-  // Logical padding
-  if (name === 'paddingInline') {
-    const vals = splitSpaceValues(value)
-    return {
-      paddingLeft: purify('paddingLeft', vals[0]),
-      paddingRight: purify('paddingRight', vals[1] || vals[0]),
-    }
-  }
-  if (name === 'paddingBlock') {
-    const vals = splitSpaceValues(value)
-    return {
-      paddingTop: purify('paddingTop', vals[0]),
-      paddingBottom: purify('paddingBottom', vals[1] || vals[0]),
-    }
-  }
+  if (name === 'inset') return resolveInsetShorthand(value, purify)
 
-  // Logical inset
-  if (name === 'insetInline') {
-    const vals = splitSpaceValues(value)
-    return {
-      left: purify('left', vals[0]),
-      right: purify('right', vals[1] || vals[0]),
-    }
-  }
-  if (name === 'insetBlock') {
-    const vals = splitSpaceValues(value)
-    return {
-      top: purify('top', vals[0]),
-      bottom: purify('bottom', vals[1] || vals[0]),
-    }
-  }
-  if (name === 'inset') {
-    const vals = splitSpaceValues(value)
-    const [t, r = t, b = t, l = r] = vals
-    return {
-      top: purify('top', t),
-      right: purify('right', r),
-      bottom: purify('bottom', b),
-      left: purify('left', l),
-    }
-  }
+  const logicalBorderAxis = resolveLogicalBorderAxisShorthand(
+    name,
+    value,
+    currentColor,
+    resolveSpecialCase
+  )
+  if (logicalBorderAxis) return logicalBorderAxis
 
-  // Logical border shorthand
-  if (name === 'borderInline') {
-    const resolved = resolveSpecialCase('border', value, currentColor)
-    if (!resolved) return
-    const result: Record<string, string | number | object | undefined> = {}
-    for (const k of ['Left', 'Right']) {
-      for (const p of ['Width', 'Style', 'Color']) {
-        result['border' + k + p] = resolved['borderTop' + p]
-      }
-    }
-    return result
-  }
-  if (name === 'borderBlock') {
-    const resolved = resolveSpecialCase('border', value, currentColor)
-    if (!resolved) return
-    const result: Record<string, string | number | object | undefined> = {}
-    for (const k of ['Top', 'Bottom']) {
-      for (const p of ['Width', 'Style', 'Color']) {
-        result['border' + k + p] = resolved['borderTop' + p]
-      }
-    }
-    return result
-  }
-  if (name === 'borderInlineStart')
-    return resolveSpecialCase('borderLeft', value, currentColor)
-  if (name === 'borderInlineEnd')
-    return resolveSpecialCase('borderRight', value, currentColor)
-  if (name === 'borderBlockStart')
-    return resolveSpecialCase('borderTop', value, currentColor)
-  if (name === 'borderBlockEnd')
-    return resolveSpecialCase('borderBottom', value, currentColor)
+  const logicalBorderSide = resolveLogicalBorderSideShorthand(
+    name,
+    value,
+    currentColor,
+    resolveSpecialCase
+  )
+  if (logicalBorderSide) return logicalBorderSide
 
-  // Logical border sub-properties (width)
-  if (name === 'borderInlineWidth') {
-    const vals = splitSpaceValues(value)
-    return {
-      borderLeftWidth: purify('borderLeftWidth', vals[0]),
-      borderRightWidth: purify('borderRightWidth', vals[1] || vals[0]),
-    }
-  }
-  if (name === 'borderBlockWidth') {
-    const vals = splitSpaceValues(value)
-    return {
-      borderTopWidth: purify('borderTopWidth', vals[0]),
-      borderBottomWidth: purify('borderBottomWidth', vals[1] || vals[0]),
-    }
-  }
-
-  // Logical border sub-properties (style)
-  if (name === 'borderInlineStyle') {
-    const vals = splitSpaceValues(value)
-    return {
-      borderLeftStyle: vals[0],
-      borderRightStyle: vals[1] || vals[0],
-    }
-  }
-  if (name === 'borderBlockStyle') {
-    const vals = splitSpaceValues(value)
-    return {
-      borderTopStyle: vals[0],
-      borderBottomStyle: vals[1] || vals[0],
-    }
-  }
-
-  // Logical border sub-properties (color)
-  if (name === 'borderInlineColor') {
-    const vals = splitSpaceValues(value)
-    return {
-      borderLeftColor: vals[0],
-      borderRightColor: vals[1] || vals[0],
-    }
-  }
-  if (name === 'borderBlockColor') {
-    const vals = splitSpaceValues(value)
-    return {
-      borderTopColor: vals[0],
-      borderBottomColor: vals[1] || vals[0],
-    }
-  }
+  const rawPairAlias = resolvePairAliasWithoutPurify(
+    name,
+    value,
+    LOGICAL_PAIR_RAW_ALIASES
+  )
+  if (rawPairAlias) return rawPairAlias
 }
