@@ -32,6 +32,8 @@ interface GridPlacementResult {
   columnSpan: number
 }
 
+type GridAutoFlowDirection = 'row' | 'column'
+
 const GRID_CONTAINER_DISPLAYS = new Set(['grid', 'inline-grid'])
 const GRID_PLACEMENT_STYLE_KEYS = new Set([
   'gridColumn',
@@ -320,6 +322,16 @@ function parseGapShorthand(value: unknown, axis: 'row' | 'column'): unknown {
   return tokens[1] || tokens[0]
 }
 
+function resolveGridAutoFlowDirection(
+  style: Record<string, unknown> | undefined
+): GridAutoFlowDirection {
+  const value = resolveStyleValue(style, ['gridAutoFlow', 'grid-auto-flow'])
+  if (typeof value !== 'string') return 'row'
+
+  const tokens = splitByWhitespaceOutsideParens(value.trim().toLowerCase())
+  return tokens.includes('column') ? 'column' : 'row'
+}
+
 function normalizeAlignmentToken(value: unknown): string | undefined {
   if (typeof value !== 'string') return
   const normalized = value.trim().toLowerCase()
@@ -523,7 +535,8 @@ function ensureBoundsForPlacement(
 function placeGridItems(
   items: GridItemDescriptor[],
   explicitRowCount: number,
-  explicitColumnCount: number
+  explicitColumnCount: number,
+  autoFlowDirection: GridAutoFlowDirection
 ): {
   placements: GridPlacementResult[]
   rowCount: number
@@ -608,10 +621,13 @@ function placeGridItems(
       let searchRow = cursorRow
       let searchColumn = cursorColumn
 
-      for (;;) {
-        if (searchColumn + columnSpan > bounds.columnCount) {
-          searchRow++
-          searchColumn = 0
+      if (autoFlowDirection === 'column') {
+        for (;;) {
+          if (searchRow + rowSpan > bounds.rowCount) {
+            searchColumn++
+            searchRow = 0
+          }
+
           ensureBoundsForPlacement(
             occupancy,
             bounds,
@@ -620,31 +636,64 @@ function placeGridItems(
             rowSpan,
             columnSpan
           )
-          continue
+          if (
+            canPlace(occupancy, searchRow, searchColumn, rowSpan, columnSpan)
+          ) {
+            row = searchRow
+            column = searchColumn
+            break
+          }
+
+          searchRow++
         }
 
-        ensureBoundsForPlacement(
-          occupancy,
-          bounds,
-          searchRow,
-          searchColumn,
-          rowSpan,
-          columnSpan
-        )
-        if (canPlace(occupancy, searchRow, searchColumn, rowSpan, columnSpan)) {
-          row = searchRow
-          column = searchColumn
-          break
+        cursorColumn = column || 0
+        cursorRow = (row || 0) + rowSpan
+        if (cursorRow >= bounds.rowCount) {
+          cursorColumn++
+          cursorRow = 0
+        }
+      } else {
+        for (;;) {
+          if (searchColumn + columnSpan > bounds.columnCount) {
+            searchRow++
+            searchColumn = 0
+            ensureBoundsForPlacement(
+              occupancy,
+              bounds,
+              searchRow,
+              searchColumn,
+              rowSpan,
+              columnSpan
+            )
+            continue
+          }
+
+          ensureBoundsForPlacement(
+            occupancy,
+            bounds,
+            searchRow,
+            searchColumn,
+            rowSpan,
+            columnSpan
+          )
+          if (
+            canPlace(occupancy, searchRow, searchColumn, rowSpan, columnSpan)
+          ) {
+            row = searchRow
+            column = searchColumn
+            break
+          }
+
+          searchColumn++
         }
 
-        searchColumn++
-      }
-
-      cursorRow = row
-      cursorColumn = (column || 0) + columnSpan
-      if (cursorColumn >= bounds.columnCount) {
-        cursorRow++
-        cursorColumn = 0
+        cursorRow = row
+        cursorColumn = (column || 0) + columnSpan
+        if (cursorColumn >= bounds.columnCount) {
+          cursorRow++
+          cursorColumn = 0
+        }
       }
     }
 
@@ -995,13 +1044,15 @@ export function convertGridElement(
   } = resolveGridTrackCollections(style, baseFontSize)
   const { explicitWidth, explicitHeight, rowGap, columnGap } =
     resolveGridContainerMetrics(style, baseFontSize)
+  const autoFlowDirection = resolveGridAutoFlowDirection(style)
 
   const items = buildGridItemDescriptors(normalizedChildren, getTwStyles)
 
   const placement = placeGridItems(
     items,
     explicitRowTracks.length || 1,
-    explicitColumnTracks.length || 1
+    explicitColumnTracks.length || 1,
+    autoFlowDirection
   )
 
   const columnTracks = resolveTrackDefinitions(

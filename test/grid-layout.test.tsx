@@ -71,6 +71,54 @@ describe('Grid Layout', () => {
     expect(toImage(svg, 120)).toMatchImageSnapshot()
   })
 
+  it('should support grid-auto-flow: column auto-placement', async () => {
+    const nodes = []
+    const svg = await satori(
+      <div
+        style={{
+          width: 100,
+          height: 100,
+          display: 'grid',
+          gridTemplateRows: '1fr 1fr',
+          gridAutoFlow: 'column',
+          backgroundColor: '#ddd',
+        }}
+      >
+        <div data-cell='a' style={{ backgroundColor: 'red' }} />
+        <div data-cell='b' style={{ backgroundColor: 'green' }} />
+        <div data-cell='c' style={{ backgroundColor: 'blue' }} />
+        <div data-cell='d' style={{ backgroundColor: 'yellow' }} />
+      </div>,
+      {
+        width: 100,
+        height: 100,
+        fonts,
+        onNodeDetected: (node) => nodes.push(node),
+      }
+    )
+
+    const cellNodes = nodes.filter((node) => node.props?.['data-cell'])
+    const byCell = new Map(
+      cellNodes.map((node) => [node.props['data-cell'], node])
+    )
+
+    const cellA = byCell.get('a')
+    const cellB = byCell.get('b')
+    const cellC = byCell.get('c')
+    const cellD = byCell.get('d')
+
+    expect(cellA.left).toBeCloseTo(0, 4)
+    expect(cellA.top).toBeCloseTo(0, 4)
+    expect(cellB.left).toBeCloseTo(0, 4)
+    expect(cellB.top).toBeCloseTo(50, 4)
+    expect(cellC.left).toBeCloseTo(50, 4)
+    expect(cellC.top).toBeCloseTo(0, 4)
+    expect(cellD.left).toBeCloseTo(50, 4)
+    expect(cellD.top).toBeCloseTo(50, 4)
+
+    expect(toImage(svg, 100)).toMatchImageSnapshot()
+  })
+
   it('should resolve grid spans into stable geometry', async () => {
     const nodes = []
 
