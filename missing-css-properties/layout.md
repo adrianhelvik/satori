@@ -21,7 +21,7 @@
 
 | Property | Values missing | Feasibility | Notes |
 |----------|---------------|-------------|-------|
-| `display` | Full grid/table semantics | Hard | `grid`, `inline-grid`, `table`, and common `table-*` display tokens are accepted as syntax and mapped to flex for resilience, but track sizing, table algorithms, and true grid placement are not modeled. |
+| `display` | Full table semantics | Hard | `table`, `inline-table`, and common `table-*` tokens are accepted as syntax, but full table layout behavior is still incomplete. |
 
 > `inline-block` and `inline-flex` are accepted, but both map to flex layout. Browser `inline-block` shrink-to-fit and inline formatting semantics are not modeled.
 
@@ -67,26 +67,32 @@
 | Property | Values missing | Feasibility | Notes |
 |----------|---------------|-------------|-------|
 | `vertical-align` | All | Hard | Only meaningful for inline/table-cell layout which Satori doesn't implement |
-| `justify-items` | All meaningful effects | Hard | Grid-focused property. In Satori's flex-only layout it is accepted syntax but has no layout effect for browser parity. |
-| `justify-self` | All meaningful effects | Hard | Same. It is ignored for flex layout. |
+| `justify-items` | Flex-context behavior | Hard | Works in the grid rewrite path. Outside grid containers it does not affect layout (matching browser behavior for flex containers). |
+| `justify-self` | Flex-context behavior | Hard | Works in the grid rewrite path. Outside grid containers it does not affect layout (matching browser behavior for flex containers). |
 | `float` | All | Hard | Would require block formatting context |
 | `clear` | All | Hard | Same — depends on float |
 
-### CSS Grid (entire module)
+### CSS Grid (partial module support)
 
-None of the grid properties are supported:
+Supported grid subset:
 
 | Property | Feasibility | Notes |
 |----------|-------------|-------|
-| `grid` | Hard | Would need a full grid layout solver |
-| `grid-template-rows` | Hard | |
-| `grid-template-columns` | Hard | |
-| `grid-template-areas` | Hard | |
-| `grid-auto-rows` | Hard | |
-| `grid-auto-columns` | Hard | |
-| `grid-auto-flow` | Hard | |
-| `grid-row` / `grid-row-start` / `grid-row-end` | Hard | |
-| `grid-column` / `grid-column-start` / `grid-column-end` | Hard | |
-| `grid-area` | Hard | |
+| `display: grid` / `inline-grid` | Supported (approx.) | Rewritten to absolute-positioned children inside a relative container for static rendering. |
+| `grid-template-rows` / `grid-template-columns` | Supported (partial) | Supports fixed lengths, `%`, `fr`, `auto`, and `repeat(n, ...)`. If container axis size is unspecified, fallback static track sizing is used. |
+| `grid-auto-rows` / `grid-auto-columns` | Supported (partial) | Used for implicit tracks created by auto placement. |
+| `grid-row*` / `grid-column*` | Supported (partial) | Supports explicit line placement and simple `span`. |
+| `gap` / `row-gap` / `column-gap` | Supported | Applied in both explicit and implicit track geometry. |
+| `place-items` / `place-self` / `justify-items` / `justify-self` | Supported (grid only) | Mapped to per-cell flex alignment in the rewrite path. |
 
-> Yoga does not implement CSS Grid. Supporting grid would require either replacing Yoga with a grid-capable engine or implementing a grid solver in userland.
+Still missing grid features:
+
+| Property | Feasibility | Notes |
+|----------|-------------|-------|
+| `grid-template-areas` | Hard | Named area parsing/placement is not implemented. |
+| `grid-auto-flow` (`dense`, column flow) | Hard | Current auto-placement follows a simple row-flow strategy. |
+| Negative line indexes, named lines, advanced `span` forms | Hard | Only common positive line and basic `span` syntax are supported. |
+| Intrinsic min/max track sizing (`minmax()`, `fit-content()`, content-based sizing) | Hard | Track solver uses deterministic static approximations. |
+| Baseline/subgrid/masonry behaviors | Very hard | Not modeled in current static solver. |
+
+> Yoga does not implement CSS Grid. Current support is implemented via a userland rewrite/placement pass and intentionally targets static SVG rendering use cases.
