@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import satori from '../src/index.js'
-import { initFonts, toImage } from './utils.js'
+import { getDynamicAsset, initFonts, toImage } from './utils.js'
 
 describe('line-break', () => {
   let fonts
@@ -38,6 +38,84 @@ describe('line-break', () => {
 
     expect(toImage(withLineBreakAnywhere, 80)).toEqual(
       toImage(withWordBreak, 80)
+    )
+  })
+
+  it('should support line-break:anywhere for complex scripts without splitting clusters', async () => {
+    const koreanText = '안녕하세요안녕하세요'
+
+    const withLineBreakAnywhere = await satori(
+      <div
+        style={{
+          width: 84,
+          height: 120,
+          backgroundColor: '#eee',
+          lineHeight: 1.2,
+          lineBreak: 'anywhere',
+          fontSize: 28,
+        }}
+      >
+        {koreanText}
+      </div>,
+      {
+        width: 84,
+        height: 120,
+        fonts,
+        loadAdditionalAsset: async (languageCode: string) => {
+          if (languageCode === 'ko-KR') {
+            return [
+              {
+                name: 'satori_ko_fallback',
+                data: await getDynamicAsset('안녕'),
+                weight: 400,
+                style: 'normal',
+                lang: 'ko-KR',
+              },
+            ]
+          }
+
+          return []
+        },
+      }
+    )
+
+    const withWordBreak = await satori(
+      <div
+        style={{
+          width: 84,
+          height: 120,
+          backgroundColor: '#eee',
+          wordBreak: 'break-all',
+          lineHeight: 1.2,
+          fontSize: 28,
+        }}
+      >
+        {koreanText}
+      </div>,
+      {
+        width: 84,
+        height: 120,
+        fonts,
+        loadAdditionalAsset: async (languageCode: string) => {
+          if (languageCode === 'ko-KR') {
+            return [
+              {
+                name: 'satori_ko_fallback',
+                data: await getDynamicAsset('안녕'),
+                weight: 400,
+                style: 'normal',
+                lang: 'ko-KR',
+              },
+            ]
+          }
+
+          return []
+        },
+      }
+    )
+
+    expect(toImage(withLineBreakAnywhere, 84)).toEqual(
+      toImage(withWordBreak, 84)
     )
   })
 
