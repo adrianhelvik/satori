@@ -171,7 +171,7 @@ describe('word-break', () => {
       expect(toImage(svg, 100)).toMatchImageSnapshot()
     })
 
-    it('should keep emoji grapheme clusters from breaking incorrectly', async () => {
+    it('should keep emoji grapheme clusters when breaking', async () => {
       const svg = await satori(
         <div
           style={{
@@ -179,7 +179,7 @@ describe('word-break', () => {
             height: 140,
             fontSize: 24,
             color: 'red',
-            wordBreak: 'normal',
+            wordBreak: 'break-all',
           }}
         >
           {'👨‍👩‍👧👶🏾❤️‍🔥'}
