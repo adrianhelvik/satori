@@ -51,6 +51,7 @@ import cssColorParse from 'parse-css-color'
 import { parseFiniteNumber } from './style-number.js'
 import { resolveElementStyle } from './element-style.js'
 import { convertTableElement } from './table-layout.js'
+import { convertGridElement } from './grid-layout.js'
 import {
   isolateFixedInheritance,
   isFixedPositionStyle,
@@ -309,6 +310,20 @@ export default async function* layout(
     return yield* delegateLayoutPipeline(
       layout(convertedTableElement, context),
       `table rewrite ${id}`
+    )
+  }
+
+  const convertedGridElement = convertGridElement(
+    element,
+    type,
+    style as Record<string, unknown> | undefined,
+    children,
+    getTwStyles
+  )
+  if (convertedGridElement) {
+    return yield* delegateLayoutPipeline(
+      layout(convertedGridElement, context),
+      `grid rewrite ${id}`
     )
   }
 
