@@ -51,6 +51,8 @@ import {
 import cssColorParse from 'parse-css-color'
 import { parseFiniteNumber } from './style-number.js'
 import { normalizePositionValue } from './handler/position.js'
+import { resolveElementStyle } from './element-style.js'
+import { convertTableElement } from './table-layout.js'
 
 interface ListItemContext {
   listType: 'ul' | 'ol'
@@ -107,27 +109,12 @@ interface ChildSortMeta {
   originalIndex: number
 }
 
-interface TableCellPlacement {
-  cell: ReactNode
-  row: number
-  column: number
-  rowSpan: number
-  colSpan: number
-}
-
 const FIXED_ISOLATED_INHERITED_PROPS: ReadonlyArray<keyof SerializedStyle> = [
   'transform',
   '_inheritedClipPathId',
   '_inheritedMaskId',
   '_inheritedBackgroundClipTextPath',
 ]
-
-const TABLE_CONTAINER_DISPLAYS = new Set(['table', 'inline-table'])
-const TABLE_ROW_GROUP_DISPLAYS = new Set([
-  'table-row-group',
-  'table-header-group',
-  'table-footer-group',
-])
 
 function isFixedPositionStyle(
   style: Record<string, unknown> | undefined
@@ -304,279 +291,6 @@ function getChildSortMeta(
   }
 }
 
-function resolveElementStyle(
-  child: ReactNode,
-  getTwStyles: LayoutContext['getTwStyles']
-) {
-  if (!isReactElement(child) || typeof child.type !== 'string') return
-
-  const childProps = child.props || {}
-  let childStyle = childProps.style
-
-  if (childProps.tw) {
-    const twStyles = getTwStyles(childProps.tw, childStyle)
-    childStyle = Object.assign(twStyles, childStyle)
-  }
-
-  return childStyle
-}
-
-function parsePositiveInteger(value: unknown): number {
-  const parsed =
-    typeof value === 'number'
-      ? value
-      : typeof value === 'string'
-      ? parseInt(value, 10)
-      : NaN
-
-  if (!Number.isFinite(parsed) || parsed < 1) return 1
-  return Math.floor(parsed)
-}
-
-function isTableContainerElement(
-  type: string,
-  style: Record<string, unknown> | undefined
-): boolean {
-  if (type === 'table') return true
-  return TABLE_CONTAINER_DISPLAYS.has(normalizeDisplayValue(style?.display))
-}
-
-function isTableRowElement(
-  child: ReactNode,
-  getTwStyles: LayoutContext['getTwStyles']
-): boolean {
-  if (!isReactElement(child) || typeof child.type !== 'string') return false
-
-  if (child.type === 'tr') return true
-
-  const childStyle = resolveElementStyle(child, getTwStyles)
-  return normalizeDisplayValue(childStyle?.display) === 'table-row'
-}
-
-function isTableRowGroupElement(
-  child: ReactNode,
-  getTwStyles: LayoutContext['getTwStyles']
-): boolean {
-  if (!isReactElement(child) || typeof child.type !== 'string') return false
-
-  if (
-    child.type === 'thead' ||
-    child.type === 'tbody' ||
-    child.type === 'tfoot'
-  ) {
-    return true
-  }
-
-  const childStyle = resolveElementStyle(child, getTwStyles)
-  return TABLE_ROW_GROUP_DISPLAYS.has(
-    normalizeDisplayValue(childStyle?.display)
-  )
-}
-
-function isTableCellElement(
-  child: ReactNode,
-  getTwStyles: LayoutContext['getTwStyles']
-): boolean {
-  if (!isReactElement(child) || typeof child.type !== 'string') return false
-
-  if (child.type === 'td' || child.type === 'th') return true
-
-  const childStyle = resolveElementStyle(child, getTwStyles)
-  return normalizeDisplayValue(childStyle?.display) === 'table-cell'
-}
-
-function collectTableRows(
-  children: ReactNode,
-  getTwStyles: LayoutContext['getTwStyles']
-): ReactNode[] {
-  const rows: ReactNode[] = []
-  for (const child of normalizeChildren(children)) {
-    if (isTableRowElement(child, getTwStyles)) {
-      rows.push(child)
-      continue
-    }
-
-    if (!isReactElement(child) || !isTableRowGroupElement(child, getTwStyles)) {
-      continue
-    }
-
-    for (const groupChild of normalizeChildren(child.props?.children)) {
-      if (isTableRowElement(groupChild, getTwStyles)) {
-        rows.push(groupChild)
-      }
-    }
-  }
-  return rows
-}
-
-function buildTableMatrix(
-  rows: ReactNode[],
-  getTwStyles: LayoutContext['getTwStyles']
-): {
-  placements: TableCellPlacement[]
-  columnCount: number
-  rowCount: number
-} | null {
-  const placements: TableCellPlacement[] = []
-  const occupied: boolean[][] = []
-  let columnCount = 0
-
-  for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
-    const row = rows[rowIndex]
-    if (!isReactElement(row)) continue
-
-    const rowChildren = normalizeChildren(row.props?.children)
-    const cells = rowChildren.filter((child) =>
-      isTableCellElement(child, getTwStyles)
-    )
-    if (cells.length === 0) continue
-
-    occupied[rowIndex] ||= []
-    let columnIndex = 0
-
-    for (const cell of cells) {
-      while (occupied[rowIndex][columnIndex]) {
-        columnIndex++
-      }
-
-      if (!isReactElement(cell)) continue
-      const cellProps = cell.props || {}
-      const rowSpan = parsePositiveInteger(
-        cellProps.rowSpan ?? cellProps.rowspan
-      )
-      const colSpan = parsePositiveInteger(
-        cellProps.colSpan ?? cellProps.colspan
-      )
-
-      placements.push({
-        cell,
-        row: rowIndex,
-        column: columnIndex,
-        rowSpan,
-        colSpan,
-      })
-
-      for (let r = rowIndex; r < rowIndex + rowSpan; r++) {
-        occupied[r] ||= []
-        for (let c = columnIndex; c < columnIndex + colSpan; c++) {
-          occupied[r][c] = true
-        }
-      }
-
-      columnIndex += colSpan
-    }
-
-    columnCount = Math.max(columnCount, occupied[rowIndex].length)
-  }
-
-  if (placements.length === 0 || columnCount === 0) {
-    return null
-  }
-
-  const rowCount = Math.max(
-    occupied.length,
-    ...placements.map((placement) => placement.row + placement.rowSpan)
-  )
-  if (!Number.isFinite(rowCount) || rowCount <= 0) return null
-
-  return {
-    placements,
-    columnCount,
-    rowCount,
-  }
-}
-
-function convertTableElement(
-  element: ReactNode,
-  type: string,
-  style: Record<string, unknown> | undefined,
-  children: ReactNode,
-  getTwStyles: LayoutContext['getTwStyles']
-): ReactNode | null {
-  if (!isTableContainerElement(type, style)) return null
-  if (!isReactElement(element)) return null
-
-  const rows = collectTableRows(children, getTwStyles)
-  if (rows.length === 0) return null
-
-  const matrix = buildTableMatrix(rows, getTwStyles)
-  if (!matrix) return null
-
-  const tableStyle = { ...(style || {}) }
-  const normalizedPosition = normalizePositionValue(tableStyle.position)
-  if (typeof normalizedPosition === 'string') {
-    tableStyle.position = normalizedPosition
-  }
-  if (!tableStyle.position || tableStyle.position === 'static') {
-    tableStyle.position = 'relative'
-  }
-  tableStyle.display = 'flex'
-  if (typeof tableStyle.width === 'undefined') {
-    tableStyle.width = matrix.columnCount * 80
-  }
-  if (typeof tableStyle.height === 'undefined') {
-    tableStyle.height = matrix.rowCount * 40
-  }
-
-  const convertedChildren = matrix.placements.map((placement, index) => {
-    if (!isReactElement(placement.cell)) {
-      return placement.cell
-    }
-
-    const placementStyle = resolveElementStyle(placement.cell, getTwStyles)
-    const cellStyle: Record<string, unknown> = {
-      ...(placementStyle as Record<string, unknown>),
-      position: 'absolute',
-      left: `${(placement.column / matrix.columnCount) * 100}%`,
-      top: `${(placement.row / matrix.rowCount) * 100}%`,
-      width: `${(placement.colSpan / matrix.columnCount) * 100}%`,
-      height: `${(placement.rowSpan / matrix.rowCount) * 100}%`,
-      display: 'flex',
-      boxSizing: placementStyle?.boxSizing || 'border-box',
-    }
-
-    const cellProps = placement.cell.props || {}
-    const {
-      style: _style,
-      tw: _tw,
-      rowSpan: _rowSpan,
-      rowspan: _rowspan,
-      colSpan: _colSpan,
-      colspan: _colspan,
-      children: cellChildren,
-      ...restCellProps
-    } = cellProps
-
-    return {
-      type: 'div',
-      key: placement.cell.key ?? `table-cell-${index}`,
-      props: {
-        ...restCellProps,
-        style: cellStyle,
-        children: cellChildren,
-      },
-    }
-  })
-
-  const elementProps = element.props || {}
-  const {
-    style: _style,
-    tw: _tw,
-    children: _children,
-    ...restProps
-  } = elementProps
-
-  return {
-    type: 'div',
-    key: element.key,
-    props: {
-      ...restProps,
-      style: tableStyle,
-      children: convertedChildren,
-    },
-  }
-}
-
 function isListItemElement(
   child: ReactNode,
   getTwStyles: LayoutContext['getTwStyles']
@@ -587,6 +301,27 @@ function isListItemElement(
 
   const childStyle = resolveElementStyle(child, getTwStyles)
   return normalizeDisplayValue(childStyle?.display) === 'list-item'
+}
+
+async function* delegateLayoutPipeline(
+  iter: AsyncGenerator<LayoutPhase, string, LayoutRenderInput>,
+  contextLabel: string
+): AsyncGenerator<LayoutPhase, string, LayoutRenderInput> {
+  const missingFontsResult = await iter.next()
+  const missingFonts = expectMissingFontsPhase(missingFontsResult, contextLabel)
+  yield createMissingFontsPhase(missingFonts)
+
+  const readyResult = await iter.next()
+  expectReadyForRenderPhase(readyResult, contextLabel)
+
+  const renderInput = yield READY_FOR_RENDER_PHASE
+  const renderResult = await iter.next(renderInput)
+  if (!renderResult.done) {
+    throw new Error(
+      `Layout pipeline did not complete during render phase (${contextLabel}).`
+    )
+  }
+  return renderResult.value
 }
 
 export default async function* layout(
@@ -618,17 +353,13 @@ export default async function* layout(
 
   // Not a regular element.
   if (!isReactElement(element) || isReactComponent(element.type)) {
-    let iter: ReturnType<typeof layout>
+    let iter: AsyncGenerator<LayoutPhase, string, LayoutRenderInput>
+    let label = `custom component ${id}`
 
     if (!isReactElement(element)) {
       // Process as text node.
       iter = buildTextNodes(String(element), context)
-      const missingFontsResult = await iter.next()
-      const missingFonts = expectMissingFontsPhase(
-        missingFontsResult,
-        `text node ${id}`
-      )
-      yield createMissingFontsPhase(missingFonts)
+      label = `text node ${id}`
     } else {
       if (isClass(element.type as Function)) {
         throw new Error('Class component is not supported.')
@@ -649,25 +380,9 @@ export default async function* layout(
       // So we can safely evaluate it to render. Otherwise, an error will be
       // thrown by React.
       iter = layout(await render(element.props), context)
-      const missingFontsResult = await iter.next()
-      const missingFonts = expectMissingFontsPhase(
-        missingFontsResult,
-        `custom component ${id}`
-      )
-      yield createMissingFontsPhase(missingFonts)
     }
 
-    const readyResult = await iter.next()
-    expectReadyForRenderPhase(readyResult, `custom component ${id}`)
-
-    const renderInput = yield READY_FOR_RENDER_PHASE
-    const renderResult = await iter.next(renderInput)
-    if (!renderResult.done) {
-      throw new Error(
-        `Layout pipeline did not complete during render phase (custom component ${id}).`
-      )
-    }
-    return renderResult.value
+    return yield* delegateLayoutPipeline(iter, label)
   }
 
   // Process as element.
@@ -697,25 +412,10 @@ export default async function* layout(
     getTwStyles
   )
   if (convertedTableElement) {
-    const iter = layout(convertedTableElement, context)
-    const missingFontsResult = await iter.next()
-    const missingFonts = expectMissingFontsPhase(
-      missingFontsResult,
+    return yield* delegateLayoutPipeline(
+      layout(convertedTableElement, context),
       `table rewrite ${id}`
     )
-    yield createMissingFontsPhase(missingFonts)
-
-    const readyResult = await iter.next()
-    expectReadyForRenderPhase(readyResult, `table rewrite ${id}`)
-
-    const renderInput = yield READY_FOR_RENDER_PHASE
-    const renderResult = await iter.next(renderInput)
-    if (!renderResult.done) {
-      throw new Error(
-        `Layout pipeline did not complete during render phase (table rewrite ${id}).`
-      )
-    }
-    return renderResult.value
   }
 
   const styleObject =
