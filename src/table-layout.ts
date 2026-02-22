@@ -50,6 +50,78 @@ function parseTableRowSpan(
   return Math.floor(parsed)
 }
 
+function parseTableSpan(value: unknown): number {
+  const parsed =
+    typeof value === 'number'
+      ? value
+      : typeof value === 'string'
+      ? parseInt(value, 10)
+      : NaN
+
+  if (!Number.isFinite(parsed) || parsed < 1) return 1
+  return Math.floor(parsed)
+}
+
+function collectColumnWidths(
+  children: ReactNode,
+  getTwStyles: TwStyleResolver
+): number[] {
+  const columns: number[] = []
+  let cursor = 0
+
+  const normalizeColumnsFromElement = (
+    element: ReactNode,
+    inheritedSpan = 1
+  ) => {
+    if (!isReactElement(element) || typeof element.type !== 'string') return
+
+    if (element.type === 'col') {
+      const colProps = element.props || {}
+      const colStyle = resolveElementStyle(element, getTwStyles)
+      const width = parseFiniteNumber(colStyle?.width)
+      const span = parseTableSpan(colProps.span)
+
+      for (let index = 0; index < span * inheritedSpan; index++) {
+        if (!Number.isFinite(width) || width <= 0) continue
+        const targetIndex = cursor + index
+        columns[targetIndex] = Math.max(columns[targetIndex] || 0, width)
+      }
+
+      cursor += span
+      return
+    }
+
+    if (element.type === 'colgroup') {
+      const groupSpan = parseTableSpan(
+        element.props?.span || element.props?.colspan
+      )
+
+      let start = cursor
+      for (const groupChild of normalizeChildren(element.props?.children)) {
+        normalizeColumnsFromElement(groupChild)
+      }
+      if (cursor === start) {
+        cursor += groupSpan
+      }
+    }
+  }
+
+  for (const child of normalizeChildren(children)) {
+    if (!isReactElement(child) || typeof child.type !== 'string') continue
+
+    if (child.type === 'col' || child.type === 'colgroup') {
+      normalizeColumnsFromElement(child)
+      continue
+    }
+
+    if (isTableRowElement(child, getTwStyles)) {
+      break
+    }
+  }
+
+  return columns
+}
+
 function isTableContainerElement(
   type: string,
   style: Record<string, unknown> | undefined
@@ -128,7 +200,8 @@ function collectTableRows(
 
 function buildTableMatrix(
   rows: ReactNode[],
-  getTwStyles: TwStyleResolver
+  getTwStyles: TwStyleResolver,
+  initialColumnWidths: number[] = []
 ): {
   placements: TableCellPlacement[]
   columnCount: number
@@ -140,7 +213,7 @@ function buildTableMatrix(
   const occupied: boolean[][] = []
   let columnCount = 0
   const totalRows = rows.length
-  const columnWidths: number[] = []
+  const columnWidths: number[] = [...initialColumnWidths]
   const rowHeights: number[] = []
 
   for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
@@ -300,7 +373,11 @@ export function convertTableElement(
   const rows = collectTableRows(children, getTwStyles)
   if (rows.length === 0) return null
 
-  const matrix = buildTableMatrix(rows, getTwStyles)
+  const matrix = buildTableMatrix(
+    rows,
+    getTwStyles,
+    collectColumnWidths(children, getTwStyles)
+  )
   if (!matrix) return null
 
   const tableStyle = { ...(style || {}) }

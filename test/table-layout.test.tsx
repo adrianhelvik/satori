@@ -387,4 +387,58 @@ describe('Table Layout', () => {
     expect(cellB?.width).toBeCloseTo(40, 4)
     expect(cellB?.height).toBeCloseTo(30, 4)
   })
+
+  it('should infer table geometry from <col> and <colgroup> sizing', async () => {
+    const nodes = []
+
+    await satori(
+      <table
+        style={{
+          display: 'table',
+          borderSpacing: 0,
+          borderCollapse: 'collapse',
+        }}
+      >
+        <colgroup>
+          <col span={1} style={{ width: 50 }} />
+          <col style={{ width: 70 }} />
+          <col span={2} style={{ width: 30 }} />
+        </colgroup>
+        <tr>
+          <td data-cell='a' />
+          <td data-cell='b' />
+          <td data-cell='c' />
+          <td data-cell='d' />
+        </tr>
+      </table>,
+      {
+        width: 220,
+        height: 50,
+        fonts,
+        onNodeDetected: (node) => nodes.push(node),
+      }
+    )
+
+    const cellNodes = nodes.filter((node) => node.props?.['data-cell'])
+    const byId = new Map(
+      cellNodes.map((node) => [node.props['data-cell'], node])
+    )
+    const cellA = byId.get('a')
+    const cellB = byId.get('b')
+    const cellC = byId.get('c')
+    const cellD = byId.get('d')
+    const tableNode = nodes.find(
+      (node) => node.type === 'div' && !node.props?.['data-cell']
+    )
+
+    expect(tableNode?.width).toBeCloseTo(180, 4)
+    expect(cellA?.left).toBeCloseTo(0, 4)
+    expect(cellA?.width).toBeCloseTo(50, 4)
+    expect(cellB?.left).toBeCloseTo(50, 4)
+    expect(cellB?.width).toBeCloseTo(70, 4)
+    expect(cellC?.left).toBeCloseTo(120, 4)
+    expect(cellC?.width).toBeCloseTo(30, 4)
+    expect(cellD?.left).toBeCloseTo(150, 4)
+    expect(cellD?.width).toBeCloseTo(30, 4)
+  })
 })
