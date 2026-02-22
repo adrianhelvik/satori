@@ -32,6 +32,23 @@ function parsePositiveInteger(value: unknown): number {
   return Math.floor(parsed)
 }
 
+function parseTableRowSpan(
+  value: unknown,
+  rowIndex: number,
+  totalRows: number
+): number {
+  const parsed =
+    typeof value === 'number'
+      ? value
+      : typeof value === 'string'
+      ? parseInt(value, 10)
+      : NaN
+
+  if (!Number.isFinite(parsed) || parsed < 0) return 1
+  if (parsed === 0) return Math.max(1, totalRows - rowIndex)
+  return Math.floor(parsed)
+}
+
 function isTableContainerElement(
   type: string,
   style: Record<string, unknown> | undefined
@@ -119,6 +136,7 @@ function buildTableMatrix(
   const placements: TableCellPlacement[] = []
   const occupied: boolean[][] = []
   let columnCount = 0
+  const totalRows = rows.length
 
   for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
     const row = rows[rowIndex]
@@ -140,8 +158,10 @@ function buildTableMatrix(
 
       if (!isReactElement(cell)) continue
       const cellProps = cell.props || {}
-      const rowSpan = parsePositiveInteger(
-        cellProps.rowSpan ?? cellProps.rowspan
+      const rowSpan = parseTableRowSpan(
+        cellProps.rowSpan ?? cellProps.rowspan,
+        rowIndex,
+        totalRows
       )
       const colSpan = parsePositiveInteger(
         cellProps.colSpan ?? cellProps.colspan
