@@ -9,6 +9,8 @@ interface WeightedColorStop {
   weight?: number
 }
 
+const COLOR_MIX_FUNCTION = 'color-mix('
+
 function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value))
 }
@@ -189,16 +191,19 @@ function evaluateColorMixFunction(expression: string): string {
 }
 
 export function resolveColorMixFunctions(value: string): string {
-  const fnToken = 'color-mix('
+  if (!value.toLowerCase().includes(COLOR_MIX_FUNCTION)) {
+    return value
+  }
+
   let result = value
   let searchStart = 0
 
   for (;;) {
     const lower = result.toLowerCase()
-    const fnIndex = lower.indexOf(fnToken, searchStart)
+    const fnIndex = lower.indexOf(COLOR_MIX_FUNCTION, searchStart)
     if (fnIndex < 0) break
 
-    const openIndex = fnIndex + fnToken.length - 1
+    const openIndex = fnIndex + COLOR_MIX_FUNCTION.length - 1
     const closeIndex = findMatchingParen(result, openIndex)
     if (closeIndex < 0) {
       throw new Error(`Unclosed color-mix() function in "${value}"`)

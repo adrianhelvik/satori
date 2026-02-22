@@ -34,6 +34,18 @@ interface GridPlacementResult {
 
 type GridAutoFlowDirection = 'row' | 'column'
 
+interface GridPlacementBounds {
+  rowCount: number
+  columnCount: number
+}
+
+interface GridAutoPlacementResult {
+  row: number
+  column: number
+  nextCursorRow: number
+  nextCursorColumn: number
+}
+
 const GRID_CONTAINER_DISPLAYS = new Set(['grid', 'inline-grid'])
 const GRID_PLACEMENT_STYLE_KEYS = new Set([
   'gridColumn',
@@ -517,7 +529,7 @@ function canPlace(
 
 function ensureBoundsForPlacement(
   occupancy: boolean[][],
-  bounds: { rowCount: number; columnCount: number },
+  bounds: GridPlacementBounds,
   row: number,
   column: number,
   rowSpan: number,
@@ -529,6 +541,151 @@ function ensureBoundsForPlacement(
   if (row + rowSpan > bounds.rowCount) {
     bounds.rowCount = row + rowSpan
     ensureGridRows(occupancy, bounds.rowCount)
+  }
+}
+
+function findColumnForFixedRow(
+  occupancy: boolean[][],
+  bounds: GridPlacementBounds,
+  row: number,
+  rowSpan: number,
+  columnSpan: number
+): number {
+  let searchColumn = 0
+  for (;;) {
+    ensureBoundsForPlacement(
+      occupancy,
+      bounds,
+      row,
+      searchColumn,
+      rowSpan,
+      columnSpan
+    )
+    if (canPlace(occupancy, row, searchColumn, rowSpan, columnSpan)) {
+      return searchColumn
+    }
+    searchColumn++
+  }
+}
+
+function findRowForFixedColumn(
+  occupancy: boolean[][],
+  bounds: GridPlacementBounds,
+  column: number,
+  rowSpan: number,
+  columnSpan: number
+): number {
+  let searchRow = 0
+  for (;;) {
+    ensureBoundsForPlacement(
+      occupancy,
+      bounds,
+      searchRow,
+      column,
+      rowSpan,
+      columnSpan
+    )
+    if (canPlace(occupancy, searchRow, column, rowSpan, columnSpan)) {
+      return searchRow
+    }
+    searchRow++
+  }
+}
+
+function findAutoPlacementWithColumnFlow(
+  occupancy: boolean[][],
+  bounds: GridPlacementBounds,
+  cursorRow: number,
+  cursorColumn: number,
+  rowSpan: number,
+  columnSpan: number
+): GridAutoPlacementResult {
+  let searchRow = cursorRow
+  let searchColumn = cursorColumn
+
+  for (;;) {
+    if (searchRow + rowSpan > bounds.rowCount) {
+      searchColumn++
+      searchRow = 0
+    }
+
+    ensureBoundsForPlacement(
+      occupancy,
+      bounds,
+      searchRow,
+      searchColumn,
+      rowSpan,
+      columnSpan
+    )
+    if (canPlace(occupancy, searchRow, searchColumn, rowSpan, columnSpan)) {
+      let nextCursorColumn = searchColumn
+      let nextCursorRow = searchRow + rowSpan
+      if (nextCursorRow >= bounds.rowCount) {
+        nextCursorColumn++
+        nextCursorRow = 0
+      }
+      return {
+        row: searchRow,
+        column: searchColumn,
+        nextCursorRow,
+        nextCursorColumn,
+      }
+    }
+
+    searchRow++
+  }
+}
+
+function findAutoPlacementWithRowFlow(
+  occupancy: boolean[][],
+  bounds: GridPlacementBounds,
+  cursorRow: number,
+  cursorColumn: number,
+  rowSpan: number,
+  columnSpan: number
+): GridAutoPlacementResult {
+  let searchRow = cursorRow
+  let searchColumn = cursorColumn
+
+  for (;;) {
+    if (searchColumn + columnSpan > bounds.columnCount) {
+      searchRow++
+      searchColumn = 0
+      ensureBoundsForPlacement(
+        occupancy,
+        bounds,
+        searchRow,
+        searchColumn,
+        rowSpan,
+        columnSpan
+      )
+      continue
+    }
+
+    ensureBoundsForPlacement(
+      occupancy,
+      bounds,
+      searchRow,
+      searchColumn,
+      rowSpan,
+      columnSpan
+    )
+    if (canPlace(occupancy, searchRow, searchColumn, rowSpan, columnSpan)) {
+      let nextCursorRow = searchRow
+      let nextCursorColumn = searchColumn + columnSpan
+      if (nextCursorColumn >= bounds.columnCount) {
+        nextCursorRow++
+        nextCursorColumn = 0
+      }
+      return {
+        row: searchRow,
+        column: searchColumn,
+        nextCursorRow,
+        nextCursorColumn,
+      }
+    }
+
+    searchColumn++
   }
 }
 
@@ -584,117 +741,44 @@ function placeGridItems(
     }
 
     if (typeof row === 'number') {
-      let searchColumn = 0
-      for (;;) {
-        ensureBoundsForPlacement(
-          occupancy,
-          bounds,
-          row,
-          searchColumn,
-          rowSpan,
-          columnSpan
-        )
-        if (canPlace(occupancy, row, searchColumn, rowSpan, columnSpan)) {
-          column = searchColumn
-          break
-        }
-        searchColumn++
-      }
+      column = findColumnForFixedRow(
+        occupancy,
+        bounds,
+        row,
+        rowSpan,
+        columnSpan
+      )
     } else if (typeof column === 'number') {
-      let searchRow = 0
-      for (;;) {
-        ensureBoundsForPlacement(
-          occupancy,
-          bounds,
-          searchRow,
-          column,
-          rowSpan,
-          columnSpan
-        )
-        if (canPlace(occupancy, searchRow, column, rowSpan, columnSpan)) {
-          row = searchRow
-          break
-        }
-        searchRow++
-      }
+      row = findRowForFixedColumn(
+        occupancy,
+        bounds,
+        column,
+        rowSpan,
+        columnSpan
+      )
     } else {
-      let searchRow = cursorRow
-      let searchColumn = cursorColumn
-
-      if (autoFlowDirection === 'column') {
-        for (;;) {
-          if (searchRow + rowSpan > bounds.rowCount) {
-            searchColumn++
-            searchRow = 0
-          }
-
-          ensureBoundsForPlacement(
-            occupancy,
-            bounds,
-            searchRow,
-            searchColumn,
-            rowSpan,
-            columnSpan
-          )
-          if (
-            canPlace(occupancy, searchRow, searchColumn, rowSpan, columnSpan)
-          ) {
-            row = searchRow
-            column = searchColumn
-            break
-          }
-
-          searchRow++
-        }
-
-        cursorColumn = column || 0
-        cursorRow = (row || 0) + rowSpan
-        if (cursorRow >= bounds.rowCount) {
-          cursorColumn++
-          cursorRow = 0
-        }
-      } else {
-        for (;;) {
-          if (searchColumn + columnSpan > bounds.columnCount) {
-            searchRow++
-            searchColumn = 0
-            ensureBoundsForPlacement(
+      const autoPlacement =
+        autoFlowDirection === 'column'
+          ? findAutoPlacementWithColumnFlow(
               occupancy,
               bounds,
-              searchRow,
-              searchColumn,
+              cursorRow,
+              cursorColumn,
               rowSpan,
               columnSpan
             )
-            continue
-          }
-
-          ensureBoundsForPlacement(
-            occupancy,
-            bounds,
-            searchRow,
-            searchColumn,
-            rowSpan,
-            columnSpan
-          )
-          if (
-            canPlace(occupancy, searchRow, searchColumn, rowSpan, columnSpan)
-          ) {
-            row = searchRow
-            column = searchColumn
-            break
-          }
-
-          searchColumn++
-        }
-
-        cursorRow = row
-        cursorColumn = (column || 0) + columnSpan
-        if (cursorColumn >= bounds.columnCount) {
-          cursorRow++
-          cursorColumn = 0
-        }
-      }
+          : findAutoPlacementWithRowFlow(
+              occupancy,
+              bounds,
+              cursorRow,
+              cursorColumn,
+              rowSpan,
+              columnSpan
+            )
+      row = autoPlacement.row
+      column = autoPlacement.column
+      cursorRow = autoPlacement.nextCursorRow
+      cursorColumn = autoPlacement.nextCursorColumn
     }
 
     const resolvedRow = row || 0
