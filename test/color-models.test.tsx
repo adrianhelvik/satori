@@ -336,6 +336,67 @@ describe('Color Models', () => {
     expect(toImage(svg, 100)).toMatchImageSnapshot()
   })
 
+  describe('color-mix()', () => {
+    it('should support color-mix in color, backgroundColor, and borderColor', async () => {
+      const svg = await satori(
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: '100%',
+            height: '100%',
+            backgroundColor: 'color-mix(in srgb, red 25%, blue)',
+            border: '8px solid color-mix(in srgb, lime 40%, black)',
+            color: 'color-mix(in srgb, white 80%, black)',
+            fontSize: 20,
+          }}
+        >
+          mix
+        </div>,
+        {
+          width: 100,
+          height: 100,
+          fonts,
+        }
+      )
+      expect(toImage(svg, 100)).toMatchImageSnapshot()
+    })
+
+    it('should support color-mix in text decoration color', async () => {
+      const svg = await satori(
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: '100%',
+            height: '100%',
+            backgroundColor: '#ddd',
+          }}
+        >
+          <span
+            style={{
+              fontSize: 24,
+              color: '#222',
+              textDecorationLine: 'underline',
+              textDecorationColor: 'color-mix(in srgb, red 60%, blue)',
+              textDecorationThickness: 3,
+            }}
+          >
+            mix
+          </span>
+        </div>,
+        {
+          width: 100,
+          height: 100,
+          fonts,
+        }
+      )
+      expect(toImage(svg, 100)).toMatchImageSnapshot()
+    })
+  })
+
   // Borders: shorthand, border-bottom-color, border-color, border-left-color, border-right-color, border-top-color
 
   // Box shadow

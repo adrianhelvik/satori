@@ -2,7 +2,7 @@
 
 ## What Satori supports
 
-- `background-color`, `background-image` (linear/radial/repeating gradients, url), `background-position`, `background-size`, `background-repeat` (`repeat`, `no-repeat`, `repeat-x`, `repeat-y`, `round`, `space`), `background-clip` (`border-box`, `padding-box`, `content-box`, `text`), `background-attachment`, `background-origin` (`padding-box`, `border-box`, `content-box`)
+- `background-color`, `background-image` (linear/radial/conic/repeating gradients, url), `background-position`, `background-size`, `background-repeat` (`repeat`, `no-repeat`, `repeat-x`, `repeat-y`, `round`, `space`), `background-clip` (`border-box`, `padding-box`, `content-box`, `text`), `background-attachment`, `background-origin` (`padding-box`, `border-box`, `content-box`)
 - `background-position-x`, `background-position-y`
 - `background-blend-mode` (partial; exact for solid-color layers)
 - `box-shadow` (including inset, spread radius)
@@ -11,6 +11,7 @@
 - `mix-blend-mode` (partial; native SVG support varies by renderer, with a solid-rect fallback for common `multiply`/`screen` overlap cases)
 - `isolation`
 - `color`
+- `color-mix(in srgb, ...)` (partial; two-color mixes in `srgb`)
 - `mask-image`, `mask-position`, `mask-size`, `mask-repeat`
 - `mask-origin`, `mask-clip`, `mask-type`, `mask-mode` (`alpha`, `luminance`, `match-source` approximations)
 - `image-rendering`, `image-orientation` (`image-rendering` is normalized to SVG-compatible values, e.g. `pixelated` → `optimizeSpeed`)
@@ -19,8 +20,8 @@
 ## Most important (P0) visual compatibility gaps
 
 1. CSS filter rendering parity (`blur`, `brightness`, `contrast`, `saturate`, `drop-shadow` chains).
-2. `conic-gradient()` / `repeating-conic-gradient()` support.
-3. `color-mix()` parsing/evaluation in color-bearing properties.
+2. Expanded `color-mix()` support beyond current `srgb` two-color mixes.
+3. Conic-gradient precision tuning for edge cases and repeating patterns.
 
 P0 acceptance criteria:
 
@@ -50,7 +51,7 @@ P0 acceptance criteria:
 | Property | Feasibility | Notes |
 |----------|-------------|-------|
 | `background-blend-mode` | **Supported (partial)** | See blending section above |
-| `conic-gradient()` / `repeating-conic-gradient()` | **MOST IMPORTANT (P0)** | Not supported yet in background parsing/rendering pipeline. |
+| `conic-gradient()` / `repeating-conic-gradient()` | **Supported (partial)** | Supported in background parsing/rendering pipeline, including repeating mode. Precision remains approximate for some high-frequency edge cases. |
 
 ### Mask (missing sub-properties)
 
@@ -70,7 +71,7 @@ P0 acceptance criteria:
 
 | Property | Feasibility | Notes |
 |----------|-------------|-------|
-| `color-mix()` | **MOST IMPORTANT (P0)** | Not parsed by the color pipeline. Needs parser + evaluator with deterministic output. |
+| `color-mix()` | **Supported (partial)** | Supports `color-mix(in srgb, colorA [p], colorB [p])` with deterministic RGBA output for color-bearing properties. Wider color spaces and advanced forms remain unsupported. |
 | `color-scheme` | N/A | OS-level light/dark preference — not applicable to static rendering |
 | `accent-color` | N/A | Form control accent — no form controls in Satori |
 | `forced-color-adjust` | N/A | High-contrast mode — not applicable |

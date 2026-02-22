@@ -29,6 +29,7 @@ import {
   resolveLogicalProperty,
   type SpecialCaseResult,
 } from './logical-properties.js'
+import { resolveColorMixFunctions } from '../color-mix.js'
 
 export type { BackgroundClipPathRef, SerializedStyle } from './style-types.js'
 
@@ -1042,6 +1043,7 @@ function preprocess(
 ): string | number {
   if (isString(value)) {
     value = convertCurrentColorToActualValue(value, currentColor)
+    value = resolveColorMixFunctions(value)
   }
 
   return value
