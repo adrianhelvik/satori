@@ -333,8 +333,14 @@ export default async function* layout(
   const isFixedElement = isFixedPositionStyle(styleObject)
   const hasTransformedFixedContainingBlock =
     isFixedElement && isTransformInput(inheritedStyle.transform)
+  const hasFilteredFixedContainingBlock =
+    isFixedElement &&
+    typeof inheritedStyle.filter === 'string' &&
+    inheritedStyle.filter.trim().toLowerCase() !== 'none'
+  const hasAncestorFixedContainingBlock =
+    hasTransformedFixedContainingBlock || hasFilteredFixedContainingBlock
   const effectiveInheritedStyle =
-    isFixedElement && !hasTransformedFixedContainingBlock
+    isFixedElement && !hasAncestorFixedContainingBlock
       ? isolateFixedInheritance(inheritedStyle)
       : inheritedStyle
 
@@ -541,7 +547,7 @@ export default async function* layout(
   const parentLayout = parent.getComputedLayout()
   let { left, top, width, height } = node.getComputedLayout()
   if (computedStyle.position === 'fixed') {
-    const fixedReferenceStyle = hasTransformedFixedContainingBlock
+    const fixedReferenceStyle = hasAncestorFixedContainingBlock
       ? ({
           ...computedStyle,
           _viewportWidth: parentLayout.width,
@@ -553,10 +559,10 @@ export default async function* layout(
       fixedReferenceStyle,
       effectiveInheritedStyle
     )
-    left = hasTransformedFixedContainingBlock
+    left = hasAncestorFixedContainingBlock
       ? fixedPosition.left + x
       : fixedPosition.left
-    top = hasTransformedFixedContainingBlock
+    top = hasAncestorFixedContainingBlock
       ? fixedPosition.top + y
       : fixedPosition.top
   } else {
