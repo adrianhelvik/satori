@@ -15,6 +15,9 @@ export const RUNTIME_INHERITED_PROPS: Set<string> = new Set([
   'userSelect',
   'opacity',
   'filter',
+  'perspective',
+  'contain',
+  'willChange',
 
   // Internal rendering context fields.
   '_viewportWidth',

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import type { SerializedStyle } from '../src/handler/style-types.js'
 import {
+  createsFixedContainingBlock,
   isolateFixedInheritance,
   isFixedPositionStyle,
   resolveFixedPosition,
@@ -28,6 +29,10 @@ describe('fixed position helpers', () => {
     const inherited = {
       ...baseInheritedStyle(),
       transform: [{ translateX: 10 }],
+      filter: 'blur(2px)',
+      perspective: 100,
+      contain: 'paint',
+      willChange: 'transform',
       _inheritedClipPathId: 'clip-id',
       _inheritedMaskId: 'mask-id',
       _inheritedBackgroundClipTextPath: 'bg-clip-id',
@@ -37,10 +42,53 @@ describe('fixed position helpers', () => {
     const isolated = isolateFixedInheritance(inherited)
 
     expect(isolated.transform).toBeUndefined()
+    expect(isolated.filter).toBeUndefined()
+    expect(isolated.perspective).toBeUndefined()
+    expect(isolated.contain).toBeUndefined()
+    expect(isolated.willChange).toBeUndefined()
     expect(isolated._inheritedClipPathId).toBeUndefined()
     expect(isolated._inheritedMaskId).toBeUndefined()
     expect(isolated._inheritedBackgroundClipTextPath).toBeUndefined()
     expect(isolated.letterSpacing).toBe(0.2)
+  })
+
+  it('should detect containing-block triggers for fixed descendants', () => {
+    expect(
+      createsFixedContainingBlock({
+        ...baseInheritedStyle(),
+        transform: [{ translateX: 10 }],
+      } as SerializedStyle)
+    ).toBe(true)
+    expect(
+      createsFixedContainingBlock({
+        ...baseInheritedStyle(),
+        filter: 'blur(1px)',
+      } as SerializedStyle)
+    ).toBe(true)
+    expect(
+      createsFixedContainingBlock({
+        ...baseInheritedStyle(),
+        perspective: 120,
+      } as SerializedStyle)
+    ).toBe(true)
+    expect(
+      createsFixedContainingBlock({
+        ...baseInheritedStyle(),
+        contain: 'layout paint',
+      } as SerializedStyle)
+    ).toBe(true)
+    expect(
+      createsFixedContainingBlock({
+        ...baseInheritedStyle(),
+        willChange: 'transform, opacity',
+      } as SerializedStyle)
+    ).toBe(true)
+    expect(
+      createsFixedContainingBlock({
+        ...baseInheritedStyle(),
+        willChange: 'opacity',
+      } as SerializedStyle)
+    ).toBe(false)
   })
 
   it('should resolve right and bottom insets against viewport dimensions', () => {

@@ -29,7 +29,7 @@
 
 | Property | Feasibility | Notes |
 |----------|-------------|-------|
-| `position: fixed` | **Supported (partial)** | Fixed nodes anchor to the viewport by default. Transformed and filtered ancestors act as containing blocks for fixed descendants. Additional containing-block triggers (`perspective`, `contain`, `will-change`) remain approximate. |
+| `position: fixed` | **Supported (partial)** | Fixed nodes anchor to the viewport by default. Transformed/filtered ancestors, `perspective`, `contain: layout|paint|content|strict`, and `will-change` values that imply those triggers act as containing blocks for fixed descendants. Other containing-block triggers remain approximate. |
 | `position: sticky` | **Supported (approx.)** | Accepted and mapped to `relative` in static SVG output (no scroll-stickiness behavior). |
 
 #### P0 acceptance criteria for `position: fixed`
@@ -37,8 +37,9 @@
 1. Fixed-position nodes remain anchored to viewport coordinates in nested layouts by default.
 2. Fixed descendants of transformed ancestors anchor to that transformed containing block.
 3. Fixed descendants of filtered ancestors anchor to that filtered containing block.
-4. Fixed nodes are removed from normal flow like absolutely positioned nodes.
-5. Comparable browser-diff fixtures stay within threshold.
+4. Fixed descendants of `perspective`/`contain`/`will-change` containing blocks anchor to that containing block.
+5. Fixed nodes are removed from normal flow like absolutely positioned nodes.
+6. Comparable browser-diff fixtures stay within threshold.
 
 ### Overflow
 

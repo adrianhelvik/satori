@@ -23,13 +23,16 @@ describe('style inheritance sets', () => {
       '_inheritedMaskId',
       '_viewportHeight',
       '_viewportWidth',
+      'contain',
       'filter',
       'font',
       'fontKerning',
       'opacity',
+      'perspective',
       'touchAction',
       'transform',
       'userSelect',
+      'willChange',
     ])
   })
 })

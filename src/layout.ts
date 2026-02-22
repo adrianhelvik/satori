@@ -53,6 +53,7 @@ import { resolveElementStyle } from './element-style.js'
 import { convertTableElement } from './table-layout.js'
 import { convertGridElement } from './grid-layout.js'
 import {
+  createsFixedContainingBlock,
   isolateFixedInheritance,
   isFixedPositionStyle,
   resolveFixedPosition,
@@ -331,14 +332,8 @@ export default async function* layout(
       ? (style as Record<string, unknown>)
       : undefined
   const isFixedElement = isFixedPositionStyle(styleObject)
-  const hasTransformedFixedContainingBlock =
-    isFixedElement && isTransformInput(inheritedStyle.transform)
-  const hasFilteredFixedContainingBlock =
-    isFixedElement &&
-    typeof inheritedStyle.filter === 'string' &&
-    inheritedStyle.filter.trim().toLowerCase() !== 'none'
   const hasAncestorFixedContainingBlock =
-    hasTransformedFixedContainingBlock || hasFilteredFixedContainingBlock
+    isFixedElement && createsFixedContainingBlock(inheritedStyle)
   const effectiveInheritedStyle =
     isFixedElement && !hasAncestorFixedContainingBlock
       ? isolateFixedInheritance(inheritedStyle)

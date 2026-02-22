@@ -1,14 +1,63 @@
 import { normalizePositionValue } from './handler/position.js'
 import type { SerializedStyle } from './handler/style-types.js'
 import { parseFiniteNumber } from './style-number.js'
+import { isTransformInput } from './builder/transform.js'
 import { lengthToNumber } from './utils.js'
 
 const FIXED_ISOLATED_INHERITED_PROPS: ReadonlyArray<keyof SerializedStyle> = [
   'transform',
+  'filter',
+  'perspective',
+  'contain',
+  'willChange',
   '_inheritedClipPathId',
   '_inheritedMaskId',
   '_inheritedBackgroundClipTextPath',
 ]
+
+function hasNonNoneFilter(value: unknown): boolean {
+  if (typeof value !== 'string') return false
+  const normalized = value.trim().toLowerCase()
+  return normalized !== '' && normalized !== 'none'
+}
+
+function hasPerspectiveContainingBlock(value: unknown): boolean {
+  if (typeof value === 'number') {
+    return Number.isFinite(value) && value > 0
+  }
+  if (typeof value !== 'string') return false
+  const normalized = value.trim().toLowerCase()
+  if (!normalized || normalized === 'none') return false
+  if (normalized === '0' || normalized === '0px') return false
+  return true
+}
+
+function hasContainContainingBlock(value: unknown): boolean {
+  if (typeof value !== 'string') return false
+  const tokens = value.trim().toLowerCase().split(/\s+/).filter(Boolean)
+  return (
+    tokens.includes('strict') ||
+    tokens.includes('content') ||
+    tokens.includes('layout') ||
+    tokens.includes('paint')
+  )
+}
+
+function hasWillChangeContainingBlock(value: unknown): boolean {
+  if (typeof value !== 'string') return false
+  const tokens = value
+    .trim()
+    .toLowerCase()
+    .split(',')
+    .map((token) => token.trim())
+    .filter(Boolean)
+  return (
+    tokens.includes('transform') ||
+    tokens.includes('filter') ||
+    tokens.includes('perspective') ||
+    tokens.includes('contain')
+  )
+}
 
 function resolveFixedInset(
   value: unknown,
@@ -43,6 +92,16 @@ export function isFixedPositionStyle(
 ): boolean {
   if (!style) return false
   return normalizePositionValue(style.position) === 'fixed'
+}
+
+export function createsFixedContainingBlock(style: SerializedStyle): boolean {
+  return (
+    isTransformInput(style.transform) ||
+    hasNonNoneFilter(style.filter) ||
+    hasPerspectiveContainingBlock(style.perspective) ||
+    hasContainContainingBlock(style.contain) ||
+    hasWillChangeContainingBlock(style.willChange)
+  )
 }
 
 export function resolveFixedPosition(
