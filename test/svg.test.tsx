@@ -320,4 +320,61 @@ describe('SVG', () => {
 
     expect(toImage(svg, 100)).toMatchImageSnapshot()
   })
+
+  it('should preserve svg marker definitions and marker-end references', async () => {
+    const svg = await satori(
+      <div
+        style={{
+          width: '100%',
+          height: '100%',
+          background: '#fff',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        <svg
+          width='140'
+          height='60'
+          viewBox='0 0 140 60'
+          xmlns='http://www.w3.org/2000/svg'
+        >
+          <defs>
+            <marker
+              id='arrow'
+              viewBox='0 0 10 10'
+              refX='8'
+              refY='5'
+              markerWidth='5'
+              markerHeight='5'
+              orient='auto-start-reverse'
+            >
+              <path d='M0,0 L10,5 L0,10 z' fill='#000' />
+            </marker>
+          </defs>
+          <line
+            x1='10'
+            y1='30'
+            x2='130'
+            y2='30'
+            stroke='#000'
+            strokeWidth='4'
+            markerEnd='url(#arrow)'
+            markerStart='url(#arrow)'
+          />
+        </svg>
+      </div>,
+      { width: 140, height: 60, fonts }
+    )
+
+    const embeddedSVG = decodeURIComponent(
+      svg.match(/data:image\/svg\+xml;utf8,([^"]+)/)?.[1] || ''
+    )
+
+    expect(embeddedSVG).toContain('marker-end="url(#arrow)"')
+    expect(embeddedSVG).toContain('marker-start="url(#arrow)"')
+    expect(embeddedSVG).toContain('<marker')
+
+    expect(toImage(svg, 140)).toMatchImageSnapshot()
+  })
 })
