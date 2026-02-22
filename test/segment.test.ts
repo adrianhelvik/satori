@@ -167,4 +167,38 @@ describe('segment', () => {
       softHyphenBreaks: graphemeWords.map(() => false),
     })
   })
+
+  it('falls back to grapheme segmentation for emoji without word-break opportunities', async () => {
+    vi.doMock('linebreak', () => ({
+      default: class {
+        private done = false
+        private content: string
+
+        constructor(content: string) {
+          this.content = content
+        }
+
+        nextBreak() {
+          if (this.done) return null
+          this.done = true
+          return {
+            position: this.content.length,
+            required: false,
+          }
+        }
+      },
+    }))
+
+    const { splitByBreakOpportunities, segment } = await import(
+      '../src/utils.js'
+    )
+    const content = '👨‍👩‍👧👶🏾'
+    const graphemeWords = segment(content, 'grapheme', 'en-US')
+
+    expect(splitByBreakOpportunities(content, 'normal', 'en-US')).toEqual({
+      words: graphemeWords,
+      requiredBreaks: graphemeWords.map(() => false),
+      softHyphenBreaks: graphemeWords.map(() => false),
+    })
+  })
 })

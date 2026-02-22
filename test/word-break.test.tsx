@@ -170,6 +170,34 @@ describe('word-break', () => {
 
       expect(toImage(svg, 100)).toMatchImageSnapshot()
     })
+
+    it('should keep emoji grapheme clusters from breaking incorrectly', async () => {
+      const svg = await satori(
+        <div
+          style={{
+            width: 72,
+            height: 140,
+            fontSize: 24,
+            color: 'red',
+            wordBreak: 'normal',
+          }}
+        >
+          {'👨‍👩‍👧👶🏾❤️‍🔥'}
+        </div>,
+        {
+          width: 72,
+          height: 140,
+          fonts,
+          graphemeImages: {
+            '👨‍👩‍👧': 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPj/HwADBwIAMCbHYQAAAABJRU5ErkJggg==',
+            '👶🏾': 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPj/HwADBwIAMCbHYQAAAABJRU5ErkJggg==',
+            '❤️‍🔥': 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPj/HwADBwIAMCbHYQAAAABJRU5ErkJggg==',
+          },
+        }
+      )
+
+      expect(toImage(svg, 72)).toMatchImageSnapshot()
+    })
   })
 
   describe('break-word', () => {
