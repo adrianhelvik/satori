@@ -2,6 +2,25 @@
 
 Satori does not support table layout or multi-column layout. List markers are supported with SVG-friendly approximations.
 
+## Most important (P0): table spans (`rowSpan` / `colSpan`)
+
+Current state:
+
+- Table-related display tokens are accepted but do not run a table layout algorithm.
+- Cell spanning semantics are not implemented.
+
+Acceptance criteria:
+
+1. A matrix-based table layout path correctly resolves `rowSpan` and `colSpan`.
+2. Spanning cells produce stable geometry without overlap/collapse artifacts.
+3. Mixed-span tables render text/background/border content in the correct cell box.
+4. Browser-diff fixtures for table spans stay within threshold for comparable cases.
+
+Current approximation notes:
+
+- Span geometry uses an equal-track solver (uniform row/column fractions) when browser table intrinsic sizing data is unavailable.
+- Complex browser table-border/text distribution cases are tracked in browser-diff as explicit non-comparable fixtures until intrinsic track sizing and collapse-model parity are implemented.
+
 ## Table properties
 
 | Property | Feasibility | Notes |

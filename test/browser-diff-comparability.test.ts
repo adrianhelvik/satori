@@ -32,4 +32,15 @@ describe('classifyComparability', () => {
       note: 'Satori lineClamp is a custom shorthand with non-browser clamping semantics.',
     })
   })
+
+  it('excludes table-span visual approximation cases from threshold stats', () => {
+    expect(
+      classifyComparability(
+        'test/table-layout.test.tsx :: Table Layout > should render mixed rowSpan and colSpan cells'
+      )
+    ).toEqual({
+      comparable: false,
+      note: 'Table span rendering currently uses equal track distribution; browser table border model differences are tracked separately from comparable cases.',
+    })
+  })
 })
