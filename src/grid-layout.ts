@@ -75,6 +75,7 @@ const GRID_TEMPLATE_COLUMN_KEYS = [
   'grid-template-columns',
 ]
 const GRID_TEMPLATE_ROW_KEYS = ['gridTemplateRows', 'grid-template-rows']
+const GRID_TEMPLATE_SHORTHAND_KEYS = ['gridTemplate', 'grid-template']
 const GRID_AUTO_COLUMN_KEYS = ['gridAutoColumns', 'grid-auto-columns']
 const GRID_AUTO_ROW_KEYS = ['gridAutoRows', 'grid-auto-rows']
 const GRID_TEMPLATE_AREA_KEYS = ['gridTemplateAreas', 'grid-template-areas']
@@ -1008,6 +1009,60 @@ function normalizeGridTemplateValue(value: unknown): unknown {
   return normalized
 }
 
+function findTopLevelSlash(value: string): number {
+  let depth = 0
+  let quote: '"' | "'" | null = null
+  for (let i = 0; i < value.length; i++) {
+    const char = value[i]
+
+    if (quote) {
+      if (char === quote) quote = null
+      continue
+    }
+
+    if (char === '"' || char === "'") {
+      quote = char
+      continue
+    }
+
+    if (char === '(') {
+      depth++
+      continue
+    }
+    if (char === ')') {
+      if (depth > 0) depth--
+      continue
+    }
+
+    if (char === '/' && depth === 0) {
+      return i
+    }
+  }
+  return -1
+}
+
+function parseGridTemplateTrackShorthand(value: unknown): {
+  rows?: unknown
+  columns?: unknown
+} {
+  if (typeof value !== 'string') return {}
+  const normalized = value.trim()
+  if (!normalized) return {}
+
+  // `grid-template` with quoted area strings uses a different grammar.
+  // The track-only `<rows> / <columns>` form is handled here.
+  if (normalized.includes('"') || normalized.includes("'")) return {}
+
+  const slashIndex = findTopLevelSlash(normalized)
+  if (slashIndex <= 0 || slashIndex >= normalized.length - 1) return {}
+
+  const rows = normalized.slice(0, slashIndex).trim()
+  const columns = normalized.slice(slashIndex + 1).trim()
+  if (!rows || !columns) return {}
+
+  return { rows, columns }
+}
+
 interface GridTrackCollections {
   explicitColumnTracks: TrackDefinition[]
   explicitRowTracks: TrackDefinition[]
@@ -1037,17 +1092,29 @@ function resolveGridTrackCollections(
   style: Record<string, unknown> | undefined,
   baseFontSize: number
 ): GridTrackCollections {
+  const explicitColumnValue = normalizeGridTemplateValue(
+    resolveStyleValue(style, GRID_TEMPLATE_COLUMN_KEYS)
+  )
+  const explicitRowValue = normalizeGridTemplateValue(
+    resolveStyleValue(style, GRID_TEMPLATE_ROW_KEYS)
+  )
+  const templateShorthandValue = parseGridTemplateTrackShorthand(
+    normalizeGridTemplateValue(
+      resolveStyleValue(style, GRID_TEMPLATE_SHORTHAND_KEYS)
+    )
+  )
+  const resolvedColumnValue =
+    typeof explicitColumnValue === 'undefined'
+      ? templateShorthandValue.columns
+      : explicitColumnValue
+  const resolvedRowValue =
+    typeof explicitRowValue === 'undefined'
+      ? templateShorthandValue.rows
+      : explicitRowValue
+
   return {
-    explicitColumnTracks: parseTrackListFromStyle(
-      style,
-      GRID_TEMPLATE_COLUMN_KEYS,
-      baseFontSize
-    ),
-    explicitRowTracks: parseTrackListFromStyle(
-      style,
-      GRID_TEMPLATE_ROW_KEYS,
-      baseFontSize
-    ),
+    explicitColumnTracks: parseGridTrackList(resolvedColumnValue, baseFontSize),
+    explicitRowTracks: parseGridTrackList(resolvedRowValue, baseFontSize),
     autoColumnTracks: parseTrackListFromStyle(
       style,
       GRID_AUTO_COLUMN_KEYS,

@@ -316,6 +316,64 @@ describe('Grid Layout', () => {
     expect(toImage(svg, 100)).toMatchImageSnapshot()
   })
 
+  it('should support grid-template shorthand track definitions', async () => {
+    const nodes = []
+    const svg = await satori(
+      <div
+        style={{
+          width: 120,
+          height: 90,
+          display: 'grid',
+          gridTemplate: '1fr 2fr / 1fr 1fr',
+          backgroundColor: '#ddd',
+        }}
+      >
+        <div data-cell='a' style={{ backgroundColor: 'red' }} />
+        <div data-cell='b' style={{ backgroundColor: 'green' }} />
+        <div data-cell='c' style={{ backgroundColor: 'blue' }} />
+        <div data-cell='d' style={{ backgroundColor: 'yellow' }} />
+      </div>,
+      {
+        width: 120,
+        height: 90,
+        fonts,
+        onNodeDetected: (node) => nodes.push(node),
+      }
+    )
+
+    const cellNodes = nodes.filter((node) => node.props?.['data-cell'])
+    const byCell = new Map(
+      cellNodes.map((node) => [node.props['data-cell'], node])
+    )
+
+    const cellA = byCell.get('a')
+    const cellB = byCell.get('b')
+    const cellC = byCell.get('c')
+    const cellD = byCell.get('d')
+
+    expect(cellA.left).toBeCloseTo(0, 4)
+    expect(cellA.top).toBeCloseTo(0, 4)
+    expect(cellA.width).toBeCloseTo(60, 4)
+    expect(cellA.height).toBeCloseTo(30, 4)
+
+    expect(cellB.left).toBeCloseTo(60, 4)
+    expect(cellB.top).toBeCloseTo(0, 4)
+    expect(cellB.width).toBeCloseTo(60, 4)
+    expect(cellB.height).toBeCloseTo(30, 4)
+
+    expect(cellC.left).toBeCloseTo(0, 4)
+    expect(cellC.top).toBeCloseTo(30, 4)
+    expect(cellC.width).toBeCloseTo(60, 4)
+    expect(cellC.height).toBeCloseTo(60, 4)
+
+    expect(cellD.left).toBeCloseTo(60, 4)
+    expect(cellD.top).toBeCloseTo(30, 4)
+    expect(cellD.width).toBeCloseTo(60, 4)
+    expect(cellD.height).toBeCloseTo(60, 4)
+
+    expect(toImage(svg, 120)).toMatchImageSnapshot()
+  })
+
   it('should place children via grid-template-areas names', async () => {
     const nodes = []
     const svg = await satori(
