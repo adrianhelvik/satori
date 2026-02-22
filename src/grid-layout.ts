@@ -33,6 +33,10 @@ interface GridPlacementResult {
 }
 
 type GridAutoFlowDirection = 'row' | 'column'
+interface GridAutoFlowConfig {
+  direction: GridAutoFlowDirection
+  dense: boolean
+}
 
 interface GridPlacementBounds {
   rowCount: number
@@ -334,14 +338,19 @@ function parseGapShorthand(value: unknown, axis: 'row' | 'column'): unknown {
   return tokens[1] || tokens[0]
 }
 
-function resolveGridAutoFlowDirection(
+function resolveGridAutoFlow(
   style: Record<string, unknown> | undefined
-): GridAutoFlowDirection {
+): GridAutoFlowConfig {
   const value = resolveStyleValue(style, ['gridAutoFlow', 'grid-auto-flow'])
-  if (typeof value !== 'string') return 'row'
+  if (typeof value !== 'string') {
+    return { direction: 'row', dense: false }
+  }
 
   const tokens = splitByWhitespaceOutsideParens(value.trim().toLowerCase())
-  return tokens.includes('column') ? 'column' : 'row'
+  return {
+    direction: tokens.includes('column') ? 'column' : 'row',
+    dense: tokens.includes('dense'),
+  }
 }
 
 function normalizeAlignmentToken(value: unknown): string | undefined {
@@ -693,7 +702,8 @@ function placeGridItems(
   items: GridItemDescriptor[],
   explicitRowCount: number,
   explicitColumnCount: number,
-  autoFlowDirection: GridAutoFlowDirection
+  autoFlowDirection: GridAutoFlowDirection,
+  autoFlowDense: boolean
 ): {
   placements: GridPlacementResult[]
   rowCount: number
@@ -757,28 +767,32 @@ function placeGridItems(
         columnSpan
       )
     } else {
+      const searchStartRow = autoFlowDense ? 0 : cursorRow
+      const searchStartColumn = autoFlowDense ? 0 : cursorColumn
       const autoPlacement =
         autoFlowDirection === 'column'
           ? findAutoPlacementWithColumnFlow(
               occupancy,
               bounds,
-              cursorRow,
-              cursorColumn,
+              searchStartRow,
+              searchStartColumn,
               rowSpan,
               columnSpan
             )
           : findAutoPlacementWithRowFlow(
               occupancy,
               bounds,
-              cursorRow,
-              cursorColumn,
+              searchStartRow,
+              searchStartColumn,
               rowSpan,
               columnSpan
             )
       row = autoPlacement.row
       column = autoPlacement.column
-      cursorRow = autoPlacement.nextCursorRow
-      cursorColumn = autoPlacement.nextCursorColumn
+      if (!autoFlowDense) {
+        cursorRow = autoPlacement.nextCursorRow
+        cursorColumn = autoPlacement.nextCursorColumn
+      }
     }
 
     const resolvedRow = row || 0
@@ -1128,7 +1142,7 @@ export function convertGridElement(
   } = resolveGridTrackCollections(style, baseFontSize)
   const { explicitWidth, explicitHeight, rowGap, columnGap } =
     resolveGridContainerMetrics(style, baseFontSize)
-  const autoFlowDirection = resolveGridAutoFlowDirection(style)
+  const autoFlow = resolveGridAutoFlow(style)
 
   const items = buildGridItemDescriptors(normalizedChildren, getTwStyles)
 
@@ -1136,7 +1150,8 @@ export function convertGridElement(
     items,
     explicitRowTracks.length || 1,
     explicitColumnTracks.length || 1,
-    autoFlowDirection
+    autoFlow.direction,
+    autoFlow.dense
   )
 
   const columnTracks = resolveTrackDefinitions(

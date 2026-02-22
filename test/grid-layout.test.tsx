@@ -119,6 +119,62 @@ describe('Grid Layout', () => {
     expect(toImage(svg, 100)).toMatchImageSnapshot()
   })
 
+  it('should support grid-auto-flow: row dense backfilling', async () => {
+    const nodes = []
+    const svg = await satori(
+      <div
+        style={{
+          width: 120,
+          height: 80,
+          display: 'grid',
+          gridTemplateColumns: '1fr 1fr 1fr',
+          gridTemplateRows: '1fr 1fr',
+          gridAutoFlow: 'row dense',
+          backgroundColor: '#ddd',
+        }}
+      >
+        <div
+          data-cell='a'
+          style={{ gridColumn: 'span 2', backgroundColor: 'red' }}
+        />
+        <div
+          data-cell='b'
+          style={{ gridColumn: 'span 2', backgroundColor: 'green' }}
+        />
+        <div data-cell='c' style={{ backgroundColor: 'blue' }} />
+      </div>,
+      {
+        width: 120,
+        height: 80,
+        fonts,
+        onNodeDetected: (node) => nodes.push(node),
+      }
+    )
+
+    const cellNodes = nodes.filter((node) => node.props?.['data-cell'])
+    const byCell = new Map(
+      cellNodes.map((node) => [node.props['data-cell'], node])
+    )
+
+    const cellA = byCell.get('a')
+    const cellB = byCell.get('b')
+    const cellC = byCell.get('c')
+
+    expect(cellA.left).toBeCloseTo(0, 4)
+    expect(cellA.top).toBeCloseTo(0, 4)
+    expect(cellA.width).toBeCloseTo(80, 4)
+
+    expect(cellB.left).toBeCloseTo(0, 4)
+    expect(cellB.top).toBeCloseTo(40, 4)
+    expect(cellB.width).toBeCloseTo(80, 4)
+
+    // Dense packing should backfill the first-row gap at column 3.
+    expect(cellC.left).toBeCloseTo(80, 4)
+    expect(cellC.top).toBeCloseTo(0, 4)
+
+    expect(toImage(svg, 120)).toMatchImageSnapshot()
+  })
+
   it('should resolve grid spans into stable geometry', async () => {
     const nodes = []
 
