@@ -20,7 +20,7 @@ const TABLE_ROW_GROUP_DISPLAYS = new Set([
   'table-footer-group',
 ])
 
-function parsePositiveInteger(value: unknown): number {
+function parseTableColSpan(value: unknown): number {
   const parsed =
     typeof value === 'number'
       ? value
@@ -28,7 +28,7 @@ function parsePositiveInteger(value: unknown): number {
       ? parseInt(value, 10)
       : NaN
 
-  if (!Number.isFinite(parsed) || parsed < 1) return 1
+  if (!Number.isFinite(parsed) || parsed < 0) return 1
   return Math.floor(parsed)
 }
 
@@ -163,9 +163,7 @@ function buildTableMatrix(
         rowIndex,
         totalRows
       )
-      const colSpan = parsePositiveInteger(
-        cellProps.colSpan ?? cellProps.colspan
-      )
+      const colSpan = parseTableColSpan(cellProps.colSpan ?? cellProps.colspan)
 
       placements.push({
         cell,
@@ -177,7 +175,8 @@ function buildTableMatrix(
 
       for (let r = rowIndex; r < rowIndex + rowSpan; r++) {
         occupied[r] ||= []
-        for (let c = columnIndex; c < columnIndex + colSpan; c++) {
+        const provisionalColSpan = colSpan === 0 ? 1 : colSpan
+        for (let c = columnIndex; c < columnIndex + provisionalColSpan; c++) {
           occupied[r][c] = true
         }
       }
@@ -192,11 +191,52 @@ function buildTableMatrix(
     return null
   }
 
-  const rowCount = Math.max(
+  let rowCount = Math.max(
     occupied.length,
     ...placements.map((placement) => placement.row + placement.rowSpan)
   )
   if (!Number.isFinite(rowCount) || rowCount <= 0) return null
+
+  for (const placement of placements) {
+    if (placement.colSpan !== 0) continue
+
+    const resolvedColSpan = Math.max(1, columnCount - placement.column)
+    let canExpand = true
+
+    for (let r = placement.row; r < placement.row + placement.rowSpan; r++) {
+      occupied[r] ||= []
+      for (
+        let c = placement.column + 1;
+        c < placement.column + resolvedColSpan;
+        c++
+      ) {
+        if (occupied[r][c]) {
+          canExpand = false
+          break
+        }
+      }
+      if (!canExpand) break
+    }
+
+    if (canExpand) {
+      for (let r = placement.row; r < placement.row + placement.rowSpan; r++) {
+        for (
+          let c = placement.column + 1;
+          c < placement.column + resolvedColSpan;
+          c++
+        ) {
+          occupied[r][c] = true
+        }
+      }
+      placement.colSpan = resolvedColSpan
+    } else {
+      placement.colSpan = 1
+    }
+  }
+
+  for (const placement of placements) {
+    rowCount = Math.max(rowCount, placement.row + placement.rowSpan)
+  }
 
   return {
     placements,

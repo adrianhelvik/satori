@@ -124,6 +124,60 @@ describe('Table Layout', () => {
     expect(cellC.height).toBeCloseTo(40, 4)
   })
 
+  it('should treat colSpan="0" as spanning to the end of the row', async () => {
+    const nodes = []
+
+    await satori(
+      <table
+        style={{
+          display: 'table',
+          width: 120,
+          height: 80,
+          borderSpacing: 0,
+          borderCollapse: 'collapse',
+        }}
+      >
+        <tr>
+          <td data-cell='a' colSpan={0} />
+        </tr>
+        <tr>
+          <td data-cell='b' />
+          <td data-cell='c' />
+        </tr>
+      </table>,
+      {
+        width: 120,
+        height: 80,
+        fonts,
+        onNodeDetected: (node) => nodes.push(node),
+      }
+    )
+
+    const cellNodes = nodes.filter((node) => node.props?.['data-cell'])
+    const byId = new Map(
+      cellNodes.map((node) => [node.props['data-cell'], node])
+    )
+
+    const cellA = byId.get('a')
+    const cellB = byId.get('b')
+    const cellC = byId.get('c')
+
+    expect(cellA.left).toBeCloseTo(0, 4)
+    expect(cellA.top).toBeCloseTo(0, 4)
+    expect(cellA.width).toBeCloseTo(120, 4)
+    expect(cellA.height).toBeCloseTo(40, 4)
+
+    expect(cellB.left).toBeCloseTo(0, 4)
+    expect(cellB.top).toBeCloseTo(40, 4)
+    expect(cellB.width).toBeCloseTo(60, 4)
+    expect(cellB.height).toBeCloseTo(40, 4)
+
+    expect(cellC.left).toBeCloseTo(60, 4)
+    expect(cellC.top).toBeCloseTo(40, 4)
+    expect(cellC.width).toBeCloseTo(60, 4)
+    expect(cellC.height).toBeCloseTo(40, 4)
+  })
+
   it('should render mixed rowSpan and colSpan cells', async () => {
     const svg = await satori(
       <table
