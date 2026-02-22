@@ -29,10 +29,16 @@ describe('color-mix utilities', () => {
     expect(resolved.includes('color-mix(')).toBe(false)
   })
 
+  it('supports oklch color-mix() interpolation', () => {
+    expect(resolveColorMixFunctions('color-mix(in oklch, red, blue)')).toBe(
+      'rgba(186, 0, 194, 1)'
+    )
+  })
+
   it('throws on unsupported color spaces', () => {
     expect(() =>
-      resolveColorMixFunctions('color-mix(in oklab, red, blue)')
-    ).toThrow('Only "srgb" is supported')
+      resolveColorMixFunctions('color-mix(in hsl, red, blue)')
+    ).toThrow('Only "srgb" and "oklch" are supported')
   })
 
   it('throws on invalid color tokens', () => {
