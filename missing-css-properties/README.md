@@ -17,6 +17,29 @@ Satori supports ~80 CSS properties (mostly Flexbox layout, basic typography, bac
 | [scroll-interaction.md](scroll-interaction.md) | Scroll & Interaction | Scroll-snap/runtime interaction features (with SVG pass-through for `cursor`/`pointer-events`/`user-select`/`touch-action`) |
 | [logical-properties.md](logical-properties.md) | Logical Properties | Writing-mode-aware remapping (RTL/vertical), flow-relative behavior beyond ltr/horizontal |
 | [containment-misc.md](containment-misc.md) | Containment, Performance & Misc | Container queries, content-visibility, generated content |
+| [priority-roadmap.md](priority-roadmap.md) | Priority Roadmap | Highest-priority blockers, implementation plan, and acceptance criteria |
+| [puppeteer-diff.md](puppeteer-diff.md) | Browser Diff Notes | How to compare Satori output against Chromium snapshots |
+
+## Most Important Blockers (P0)
+
+These are the highest-priority browser-compat gaps to work on next:
+
+1. True `position: fixed` viewport anchoring semantics (currently approximated).
+2. Table layout support for `rowSpan` / `colSpan` (current table display tokens map to flex).
+3. CSS filter rendering parity for `blur()`, `brightness()`, `contrast()`, `saturate()`, `drop-shadow()`.
+4. `conic-gradient()` / `repeating-conic-gradient()` background support.
+5. `color-mix()` color parsing and evaluation in supported color spaces.
+
+See [priority-roadmap.md](priority-roadmap.md) for detailed acceptance criteria and implementation sequencing.
+
+## After P0 Is Done
+
+After all P0 acceptance criteria are met, prioritize browser-compat polish:
+
+1. SVG marker parity (`marker-start`, `marker-mid`, `marker-end`) and dedicated tests.
+2. Better text-decoration parity (right alignment, double/line-through precision).
+3. Heading preset/browser-default alignment pass.
+4. Additional filter function parity and consistent renderer behavior notes.
 
 ## Context
 

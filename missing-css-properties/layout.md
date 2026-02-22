@@ -29,8 +29,15 @@
 
 | Property | Feasibility | Notes |
 |----------|-------------|-------|
-| `position: fixed` | **Supported (approx.)** | Accepted and mapped to `absolute`. Viewport/scroll anchoring semantics are not modeled. |
+| `position: fixed` | **MOST IMPORTANT (P0)** | Accepted and mapped to `absolute`. True viewport anchoring semantics are not modeled yet. |
 | `position: sticky` | **Supported (approx.)** | Accepted and mapped to `relative` in static SVG output (no scroll-stickiness behavior). |
+
+#### P0 acceptance criteria for `position: fixed`
+
+1. Fixed-position nodes remain anchored to viewport coordinates in nested layouts.
+2. Fixed nodes are removed from normal flow like absolutely positioned nodes.
+3. Overflow/transform interactions are explicitly defined and tested.
+4. Comparable browser-diff fixtures stay within threshold.
 
 ### Overflow
 

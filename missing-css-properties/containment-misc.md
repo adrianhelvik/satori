@@ -32,6 +32,12 @@
 | `object-fit` | **Supported (partial)** | Supports `fill`, `contain`, `cover`, `none`, and `scale-down` for `<img>`. Behavior is based on intrinsic image dimensions and clipped to the rendered image box. |
 | `object-position` | **Supported (partial)** | Supports keyword alignment plus `%` and length coordinates for one/two-value syntax and side-offset forms (`left/right/top/bottom/center`, `25% 75%`, `10px 20px`, `right 10px`, `top 20px right`, `right 10px bottom 20px`) and simple `calc(...)` length/percentage coordinates. Coverage is still approximate for full CSS parsing edge-cases. |
 
+## Functional integration gap (non-CSS)
+
+| Capability | Priority | Notes |
+|------------|----------|-------|
+| Static rich-text serialization pipeline | P1 | Runtime editor/component trees are not executable during static SVG generation. Input should be pre-serialized to deterministic static JSX/HTML before passing into Satori. Add parser/serializer tests for nested marks, links, lists, tables, and code blocks. |
+
 ## SVG presentation properties
 
 These are CSS properties that apply to SVG elements. Satori's `preprocess.ts` maps React camelCase attribute names to SVG kebab-case (e.g., `fillOpacity` → `fill-opacity`), but these are **SVG attributes on `<svg>` children**, not CSS properties applied to the layout:
