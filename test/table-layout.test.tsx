@@ -441,4 +441,56 @@ describe('Table Layout', () => {
     expect(cellD?.left).toBeCloseTo(150, 4)
     expect(cellD?.width).toBeCloseTo(30, 4)
   })
+
+  it('should expand nested colgroup spans when inferring column geometry', async () => {
+    const nodes = []
+
+    await satori(
+      <table
+        style={{
+          display: 'table',
+          borderSpacing: 0,
+          borderCollapse: 'collapse',
+        }}
+      >
+        <colgroup span={2}>
+          <col span={2} style={{ width: 20 }} />
+        </colgroup>
+        <tr>
+          <td data-cell='a' />
+          <td data-cell='b' />
+          <td data-cell='c' />
+          <td data-cell='d' />
+        </tr>
+      </table>,
+      {
+        width: 80,
+        height: 20,
+        fonts,
+        onNodeDetected: (node) => nodes.push(node),
+      }
+    )
+
+    const tableNode = nodes.find(
+      (node) => node.type === 'div' && !node.props?.['data-cell']
+    )
+    const cellNodes = nodes.filter((node) => node.props?.['data-cell'])
+    const byId = new Map(
+      cellNodes.map((node) => [node.props['data-cell'], node])
+    )
+    const cellA = byId.get('a')
+    const cellB = byId.get('b')
+    const cellC = byId.get('c')
+    const cellD = byId.get('d')
+
+    expect(tableNode?.width).toBeCloseTo(80, 4)
+    expect(cellA?.left).toBeCloseTo(0, 4)
+    expect(cellA?.width).toBeCloseTo(20, 4)
+    expect(cellB?.left).toBeCloseTo(20, 4)
+    expect(cellB?.width).toBeCloseTo(20, 4)
+    expect(cellC?.left).toBeCloseTo(40, 4)
+    expect(cellC?.width).toBeCloseTo(20, 4)
+    expect(cellD?.left).toBeCloseTo(60, 4)
+    expect(cellD?.width).toBeCloseTo(20, 4)
+  })
 })

@@ -95,13 +95,14 @@ function collectColumnWidths(
       const groupSpan = parseTableSpan(
         element.props?.span || element.props?.colspan
       )
+      const normalizedGroupSpan = groupSpan * inheritedSpan
 
       let start = cursor
       for (const groupChild of normalizeChildren(element.props?.children)) {
-        normalizeColumnsFromElement(groupChild)
+        normalizeColumnsFromElement(groupChild, normalizedGroupSpan)
       }
       if (cursor === start) {
-        cursor += groupSpan
+        cursor += normalizedGroupSpan
       }
     }
   }
