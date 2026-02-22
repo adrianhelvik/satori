@@ -142,7 +142,9 @@ function isGradientMaskImage(image: string): boolean {
     normalized.startsWith('linear-gradient(') ||
     normalized.startsWith('repeating-linear-gradient(') ||
     normalized.startsWith('radial-gradient(') ||
-    normalized.startsWith('repeating-radial-gradient(')
+    normalized.startsWith('repeating-radial-gradient(') ||
+    normalized.startsWith('conic-gradient(') ||
+    normalized.startsWith('repeating-conic-gradient(')
   )
 }
 

@@ -267,7 +267,7 @@ const WHITE_SPACE_COLLAPSE_MAP: Record<string, string> = {
 const TEXT_DECORATION_SKIP_INK_VALUES = new Set(['auto', 'none', 'all'])
 const BORDER_NAME_RE = /^border(Top|Right|Bottom|Left)?$/
 const BACKGROUND_IMAGE_FUNCTION_RE =
-  /^(linear-gradient|radial-gradient|url|repeating-linear-gradient|repeating-radial-gradient)\(/
+  /^(linear-gradient|radial-gradient|conic-gradient|url|repeating-linear-gradient|repeating-radial-gradient|repeating-conic-gradient)\(/
 const MATRIX_TRANSFORM_RE =
   /^matrix\(\s*(-?[\d.]+)\s*,\s*(-?[\d.]+)\s*,\s*(-?[\d.]+)\s*,\s*(-?[\d.]+)\s*,\s*(-?[\d.]+)\s*,\s*(-?[\d.]+)\s*\)$/
 const LINE_BREAK_VALUES = new Set([

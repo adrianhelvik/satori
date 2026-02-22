@@ -335,6 +335,69 @@ describe('Gradient', () => {
     })
   })
 
+  describe('conic-gradient', () => {
+    it('should support conic-gradient', async () => {
+      const svg = await satori(
+        <div
+          style={{
+            width: '100%',
+            height: '100%',
+            backgroundImage:
+              'conic-gradient(from 0deg at 50% 50%, red 0deg, yellow 90deg, lime 180deg, blue 270deg, red 360deg)',
+          }}
+        />,
+        {
+          width: 100,
+          height: 100,
+          fonts,
+        }
+      )
+      expect(toImage(svg, 100)).toMatchImageSnapshot()
+    })
+
+    it('should support conic-gradient with angle and custom origin', async () => {
+      const svg = await satori(
+        <div
+          style={{
+            width: '100%',
+            height: '100%',
+            backgroundColor: '#ddd',
+            backgroundImage:
+              'conic-gradient(from 45deg at 20% 80%, rgba(255,0,0,0.9) 0deg, rgba(0,0,255,0.9) 180deg, rgba(255,0,0,0.9) 360deg)',
+          }}
+        />,
+        {
+          width: 100,
+          height: 100,
+          fonts,
+        }
+      )
+      expect(toImage(svg, 100)).toMatchImageSnapshot()
+    })
+
+    it('should support repeating-conic-gradient with background tiling', async () => {
+      const svg = await satori(
+        <div
+          style={{
+            width: '100%',
+            height: '100%',
+            backgroundColor: 'white',
+            backgroundImage:
+              'repeating-conic-gradient(from 30deg at center, red 0deg 30deg, blue 30deg 60deg)',
+            backgroundSize: '40px 40px',
+            backgroundRepeat: 'repeat',
+          }}
+        />,
+        {
+          width: 100,
+          height: 100,
+          fonts,
+        }
+      )
+      expect(toImage(svg, 100)).toMatchImageSnapshot()
+    })
+  })
+
   it('should support advanced usage', async () => {
     const svg = await satori(
       <div

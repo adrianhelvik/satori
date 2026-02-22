@@ -2,6 +2,7 @@ import CssDimension from '../vendor/parse-css-dimension/index.js'
 import { buildXMLString } from '../utils.js'
 
 import { resolveImageData } from '../handler/image.js'
+import { buildConicGradient } from './gradient/conic.js'
 import { buildLinearGradient } from './gradient/linear.js'
 import { buildRadialGradient } from './gradient/radial.js'
 import {
@@ -142,6 +143,21 @@ export default async function backgroundImage(
     image.startsWith('repeating-radial-gradient(')
   ) {
     return buildRadialGradient(
+      { id, width, height, repeatModes },
+      image,
+      dimensions,
+      offsets,
+      inheritableStyle,
+      from,
+      maskMode
+    )
+  }
+
+  if (
+    image.startsWith('conic-gradient(') ||
+    image.startsWith('repeating-conic-gradient(')
+  ) {
+    return buildConicGradient(
       { id, width, height, repeatModes },
       image,
       dimensions,
