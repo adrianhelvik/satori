@@ -119,6 +119,83 @@ describe('line-break', () => {
     )
   })
 
+  it('should keep line-break:anywhere behavior consistent when word-break is keep-all', async () => {
+    const withLineBreakAnywhere = await satori(
+      <div
+        style={{
+          width: 40,
+          height: 120,
+          backgroundColor: '#eee',
+          lineHeight: 1.2,
+          wordBreak: 'keep-all',
+          lineBreak: 'anywhere',
+          fontSize: 28,
+        }}
+      >
+        {'안녕하세요안녕하세요'}
+      </div>,
+      {
+        width: 40,
+        height: 120,
+        fonts,
+        loadAdditionalAsset: async (languageCode: string) => {
+          if (languageCode === 'ko-KR') {
+            return [
+              {
+                name: 'satori_ko_fallback',
+                data: await getDynamicAsset('안녕'),
+                weight: 400,
+                style: 'normal',
+                lang: 'ko-KR',
+              },
+            ]
+          }
+
+          return []
+        },
+      }
+    )
+
+    const withWordBreak = await satori(
+      <div
+        style={{
+          width: 40,
+          height: 120,
+          backgroundColor: '#eee',
+          lineHeight: 1.2,
+          fontSize: 28,
+          wordBreak: 'break-all',
+        }}
+      >
+        {'안녕하세요안녕하세요'}
+      </div>,
+      {
+        width: 40,
+        height: 120,
+        fonts,
+        loadAdditionalAsset: async (languageCode: string) => {
+          if (languageCode === 'ko-KR') {
+            return [
+              {
+                name: 'satori_ko_fallback',
+                data: await getDynamicAsset('안녕'),
+                weight: 400,
+                style: 'normal',
+                lang: 'ko-KR',
+              },
+            ]
+          }
+
+          return []
+        },
+      }
+    )
+
+    expect(toImage(withLineBreakAnywhere, 40)).toEqual(
+      toImage(withWordBreak, 40)
+    )
+  })
+
   it('should keep emoji grapheme clusters when using line-break:anywhere', async () => {
     const text = '👨‍👩‍👧👶🏾❤️‍🔥👨‍👩‍👧👶🏾'
 

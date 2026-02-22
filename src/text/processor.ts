@@ -143,7 +143,7 @@ function processWordBreak(
   const normalizedLineBreak =
     typeof lineBreak === 'string' ? lineBreak.trim().toLowerCase() : 'auto'
   const effectiveWordBreak =
-    normalizedLineBreak === 'anywhere' && normalizedWordBreak === 'normal'
+    normalizedLineBreak === 'anywhere' && normalizedWordBreak !== 'break-all'
       ? 'break-all'
       : normalizedWordBreak
 
