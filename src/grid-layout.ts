@@ -70,6 +70,7 @@ const GRID_TEMPLATE_COLUMN_KEYS = [
 const GRID_TEMPLATE_ROW_KEYS = ['gridTemplateRows', 'grid-template-rows']
 const GRID_AUTO_COLUMN_KEYS = ['gridAutoColumns', 'grid-auto-columns']
 const GRID_AUTO_ROW_KEYS = ['gridAutoRows', 'grid-auto-rows']
+const GRID_TEMPLATE_AREA_KEYS = ['gridTemplateAreas', 'grid-template-areas']
 const GRID_ROW_GAP_KEYS = ['rowGap', 'row-gap']
 const GRID_COLUMN_GAP_KEYS = ['columnGap', 'column-gap']
 const GRID_GAP_KEYS = ['gap']
@@ -79,6 +80,7 @@ const GRID_ROW_END_KEYS = ['gridRowEnd', 'grid-row-end']
 const GRID_COLUMN_SHORTHAND_KEYS = ['gridColumn', 'grid-column']
 const GRID_COLUMN_START_KEYS = ['gridColumnStart', 'grid-column-start']
 const GRID_COLUMN_END_KEYS = ['gridColumnEnd', 'grid-column-end']
+const GRID_AREA_KEYS = ['gridArea', 'grid-area']
 
 function clampToNonNegative(value: number): number {
   return value < 0 ? 0 : value
@@ -309,6 +311,94 @@ function parsePlacementPair(value: unknown): {
     start: parts[0],
     end: parts[1],
   }
+}
+
+export function parseGridTemplateAreas(value: unknown): string[][] {
+  if (typeof value !== 'string') return []
+  const normalized = value.trim()
+  if (!normalized || normalized.toLowerCase() === 'none') return []
+
+  const rows: string[][] = []
+  const rowRe = /"([^"]*)"|'([^']*)'/g
+  let match: RegExpExecArray | null
+  while ((match = rowRe.exec(normalized))) {
+    const rowContent = (match[1] || match[2] || '').trim()
+    if (!rowContent) return []
+    const tokens = rowContent.split(/\s+/).filter(Boolean)
+    if (!tokens.length) return []
+    rows.push(tokens)
+  }
+
+  if (!rows.length) return []
+  const columnCount = rows[0].length
+  if (!columnCount) return []
+  for (const row of rows) {
+    if (row.length !== columnCount) return []
+  }
+
+  return rows
+}
+
+function resolveTemplateAreaPlacements(
+  templateRows: string[][]
+): Map<string, GridTemplateAreaPlacement> {
+  if (!templateRows.length) return new Map()
+
+  const bounds = new Map<
+    string,
+    { minRow: number; maxRow: number; minColumn: number; maxColumn: number }
+  >()
+
+  for (let rowIndex = 0; rowIndex < templateRows.length; rowIndex++) {
+    const row = templateRows[rowIndex]
+    for (let columnIndex = 0; columnIndex < row.length; columnIndex++) {
+      const token = row[columnIndex]
+      if (!token || token === '.') continue
+
+      const existing = bounds.get(token)
+      if (!existing) {
+        bounds.set(token, {
+          minRow: rowIndex,
+          maxRow: rowIndex,
+          minColumn: columnIndex,
+          maxColumn: columnIndex,
+        })
+        continue
+      }
+
+      existing.minRow = Math.min(existing.minRow, rowIndex)
+      existing.maxRow = Math.max(existing.maxRow, rowIndex)
+      existing.minColumn = Math.min(existing.minColumn, columnIndex)
+      existing.maxColumn = Math.max(existing.maxColumn, columnIndex)
+    }
+  }
+
+  // Invalid non-rectangular template areas make the whole declaration invalid.
+  for (const [name, box] of bounds) {
+    for (let row = box.minRow; row <= box.maxRow; row++) {
+      for (let column = box.minColumn; column <= box.maxColumn; column++) {
+        if (templateRows[row][column] !== name) {
+          return new Map()
+        }
+      }
+    }
+  }
+
+  const placements = new Map<string, GridTemplateAreaPlacement>()
+  for (const [name, box] of bounds) {
+    placements.set(name, {
+      row: {
+        start: box.minRow,
+        span: box.maxRow - box.minRow + 1,
+      },
+      column: {
+        start: box.minColumn,
+        span: box.maxColumn - box.minColumn + 1,
+      },
+    })
+  }
+
+  return placements
 }
 
 export function parseGridAxisPlacement(
@@ -1013,6 +1103,11 @@ interface GridContainerMetrics {
   columnGap: number
 }
 
+interface GridTemplateAreaPlacement {
+  row: AxisPlacement
+  column: AxisPlacement
+}
+
 function parseTrackListFromStyle(
   style: Record<string, unknown> | undefined,
   keys: string[],
@@ -1097,39 +1192,126 @@ function resolveGridContainerMetrics(
   }
 }
 
-function resolveGridItemPlacements(
-  childStyle: Record<string, unknown> | undefined,
+function hasStyleValue(
+  style: Record<string, unknown> | undefined,
+  keys: string[]
+): boolean {
+  return typeof resolveStyleValue(style, keys) !== 'undefined'
+}
+
+function parseGridAreaShorthandPlacement(
+  value: unknown,
   explicitRowTrackCount: number,
   explicitColumnTrackCount: number
-): { row: AxisPlacement; column: AxisPlacement } {
+): { row?: AxisPlacement; column?: AxisPlacement } {
+  if (typeof value !== 'string') return {}
+
+  const parts = value
+    .split('/')
+    .map((part) => part.trim())
+    .filter(Boolean)
+  if (!parts.length || parts.length === 1) return {}
+
+  const [rowStart, columnStart, rowEnd, columnEnd] = parts
+
   return {
     row: parseGridAxisPlacement(
-      resolveStyleValue(childStyle, GRID_ROW_SHORTHAND_KEYS),
-      resolveStyleValue(childStyle, GRID_ROW_START_KEYS),
-      resolveStyleValue(childStyle, GRID_ROW_END_KEYS),
+      undefined,
+      rowStart,
+      rowEnd,
       explicitRowTrackCount
     ),
     column: parseGridAxisPlacement(
-      resolveStyleValue(childStyle, GRID_COLUMN_SHORTHAND_KEYS),
-      resolveStyleValue(childStyle, GRID_COLUMN_START_KEYS),
-      resolveStyleValue(childStyle, GRID_COLUMN_END_KEYS),
+      undefined,
+      columnStart,
+      columnEnd,
       explicitColumnTrackCount
     ),
   }
+}
+
+function resolveNamedGridAreaPlacement(
+  value: unknown,
+  areaPlacements: Map<string, GridTemplateAreaPlacement>
+): GridTemplateAreaPlacement | undefined {
+  if (typeof value !== 'string') return
+  const normalized = value.trim()
+  if (!normalized || normalized.includes('/') || normalized === 'auto') return
+  return areaPlacements.get(normalized)
+}
+
+function resolveGridItemPlacements(
+  childStyle: Record<string, unknown> | undefined,
+  explicitRowTrackCount: number,
+  explicitColumnTrackCount: number,
+  templateAreaPlacements: Map<string, GridTemplateAreaPlacement>
+): { row: AxisPlacement; column: AxisPlacement } {
+  const hasExplicitRowPlacement =
+    hasStyleValue(childStyle, GRID_ROW_SHORTHAND_KEYS) ||
+    hasStyleValue(childStyle, GRID_ROW_START_KEYS) ||
+    hasStyleValue(childStyle, GRID_ROW_END_KEYS)
+  const hasExplicitColumnPlacement =
+    hasStyleValue(childStyle, GRID_COLUMN_SHORTHAND_KEYS) ||
+    hasStyleValue(childStyle, GRID_COLUMN_START_KEYS) ||
+    hasStyleValue(childStyle, GRID_COLUMN_END_KEYS)
+
+  let row = parseGridAxisPlacement(
+    resolveStyleValue(childStyle, GRID_ROW_SHORTHAND_KEYS),
+    resolveStyleValue(childStyle, GRID_ROW_START_KEYS),
+    resolveStyleValue(childStyle, GRID_ROW_END_KEYS),
+    explicitRowTrackCount
+  )
+  let column = parseGridAxisPlacement(
+    resolveStyleValue(childStyle, GRID_COLUMN_SHORTHAND_KEYS),
+    resolveStyleValue(childStyle, GRID_COLUMN_START_KEYS),
+    resolveStyleValue(childStyle, GRID_COLUMN_END_KEYS),
+    explicitColumnTrackCount
+  )
+
+  const gridAreaValue = resolveStyleValue(childStyle, GRID_AREA_KEYS)
+  const areaShorthand = parseGridAreaShorthandPlacement(
+    gridAreaValue,
+    explicitRowTrackCount,
+    explicitColumnTrackCount
+  )
+
+  if (!hasExplicitRowPlacement && areaShorthand.row) {
+    row = areaShorthand.row
+  }
+  if (!hasExplicitColumnPlacement && areaShorthand.column) {
+    column = areaShorthand.column
+  }
+
+  const namedAreaPlacement = resolveNamedGridAreaPlacement(
+    gridAreaValue,
+    templateAreaPlacements
+  )
+  if (namedAreaPlacement) {
+    if (!hasExplicitRowPlacement && !areaShorthand.row) {
+      row = namedAreaPlacement.row
+    }
+    if (!hasExplicitColumnPlacement && !areaShorthand.column) {
+      column = namedAreaPlacement.column
+    }
+  }
+
+  return { row, column }
 }
 
 function buildGridItemDescriptors(
   children: ReactNode[],
   getTwStyles: TwStyleResolver,
   explicitRowTrackCount: number,
-  explicitColumnTrackCount: number
+  explicitColumnTrackCount: number,
+  templateAreaPlacements: Map<string, GridTemplateAreaPlacement>
 ): GridItemDescriptor[] {
   return children.map((child) => {
     const childStyle = resolveGridItemStyle(child, getTwStyles)
     const placements = resolveGridItemPlacements(
       childStyle,
       explicitRowTrackCount,
-      explicitColumnTrackCount
+      explicitColumnTrackCount,
+      templateAreaPlacements
     )
     return {
       child,
@@ -1178,6 +1360,24 @@ export function convertGridElement(
     autoColumnTracks,
     autoRowTracks,
   } = resolveGridTrackCollections(style, baseFontSize)
+  const templateRows = parseGridTemplateAreas(
+    normalizeGridTemplateValue(
+      resolveStyleValue(style, GRID_TEMPLATE_AREA_KEYS)
+    )
+  )
+  const templateAreaPlacements = resolveTemplateAreaPlacements(templateRows)
+  const templateColumnCount = templateRows[0]?.length || 0
+  const templateRowCount = templateRows.length
+  const explicitColumnCount = Math.max(
+    explicitColumnTracks.length,
+    templateColumnCount,
+    1
+  )
+  const explicitRowCount = Math.max(
+    explicitRowTracks.length,
+    templateRowCount,
+    1
+  )
   const { explicitWidth, explicitHeight, rowGap, columnGap } =
     resolveGridContainerMetrics(style, baseFontSize)
   const autoFlow = resolveGridAutoFlow(style)
@@ -1185,14 +1385,15 @@ export function convertGridElement(
   const items = buildGridItemDescriptors(
     normalizedChildren,
     getTwStyles,
-    explicitRowTracks.length || 1,
-    explicitColumnTracks.length || 1
+    explicitRowCount,
+    explicitColumnCount,
+    templateAreaPlacements
   )
 
   const placement = placeGridItems(
     items,
-    explicitRowTracks.length || 1,
-    explicitColumnTracks.length || 1,
+    explicitRowCount,
+    explicitColumnCount,
     autoFlow.direction,
     autoFlow.dense
   )

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import {
   parseGridAxisPlacement,
+  parseGridTemplateAreas,
   parseGridTrackList,
 } from '../src/grid-layout.js'
 
@@ -80,5 +81,21 @@ describe('grid layout utils', () => {
       start: 3,
       span: 1,
     })
+  })
+
+  it('parses quoted grid-template-areas rows', () => {
+    const rows = parseGridTemplateAreas(
+      '"header header" "sidebar content" "footer footer"'
+    )
+    expect(rows).toEqual([
+      ['header', 'header'],
+      ['sidebar', 'content'],
+      ['footer', 'footer'],
+    ])
+  })
+
+  it('returns empty rows for invalid grid-template-areas declarations', () => {
+    const rows = parseGridTemplateAreas('"a a" "b"')
+    expect(rows).toEqual([])
   })
 })

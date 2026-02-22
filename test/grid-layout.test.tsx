@@ -316,6 +316,119 @@ describe('Grid Layout', () => {
     expect(toImage(svg, 100)).toMatchImageSnapshot()
   })
 
+  it('should place children via grid-template-areas names', async () => {
+    const nodes = []
+    const svg = await satori(
+      <div
+        style={{
+          width: 120,
+          height: 80,
+          display: 'grid',
+          gridTemplateColumns: '1fr 2fr',
+          gridTemplateRows: '1fr 1fr',
+          gridTemplateAreas: '"hero hero" "side body"',
+          backgroundColor: '#ddd',
+        }}
+      >
+        <div
+          data-cell='hero'
+          style={{ gridArea: 'hero', backgroundColor: 'red' }}
+        />
+        <div
+          data-cell='side'
+          style={{ gridArea: 'side', backgroundColor: 'lime' }}
+        />
+        <div
+          data-cell='body'
+          style={{ gridArea: 'body', backgroundColor: 'blue' }}
+        />
+      </div>,
+      {
+        width: 120,
+        height: 80,
+        fonts,
+        onNodeDetected: (node) => nodes.push(node),
+      }
+    )
+
+    const cellNodes = nodes.filter((node) => node.props?.['data-cell'])
+    const byCell = new Map(
+      cellNodes.map((node) => [node.props['data-cell'], node])
+    )
+
+    const hero = byCell.get('hero')
+    const side = byCell.get('side')
+    const body = byCell.get('body')
+
+    expect(hero.left).toBeCloseTo(0, 4)
+    expect(hero.top).toBeCloseTo(0, 4)
+    expect(hero.width).toBeCloseTo(120, 4)
+    expect(hero.height).toBeCloseTo(40, 4)
+
+    expect(side.left).toBeCloseTo(0, 4)
+    expect(side.top).toBeCloseTo(40, 4)
+    expect(side.width).toBeCloseTo(40, 4)
+    expect(side.height).toBeCloseTo(40, 4)
+
+    expect(body.left).toBeCloseTo(40, 4)
+    expect(body.top).toBeCloseTo(40, 4)
+    expect(body.width).toBeCloseTo(80, 4)
+    expect(body.height).toBeCloseTo(40, 4)
+
+    expect(toImage(svg, 120)).toMatchImageSnapshot()
+  })
+
+  it('should support grid-area shorthand line placement', async () => {
+    const nodes = []
+    const svg = await satori(
+      <div
+        style={{
+          width: 90,
+          height: 90,
+          display: 'grid',
+          gridTemplateColumns: '1fr 1fr 1fr',
+          gridTemplateRows: '1fr 1fr 1fr',
+          backgroundColor: '#ddd',
+        }}
+      >
+        <div
+          data-cell='a'
+          style={{ gridArea: '1 / 1 / 3 / 3', backgroundColor: 'red' }}
+        />
+        <div
+          data-cell='b'
+          style={{ gridArea: '2 / 3 / 4 / 4', backgroundColor: 'blue' }}
+        />
+      </div>,
+      {
+        width: 90,
+        height: 90,
+        fonts,
+        onNodeDetected: (node) => nodes.push(node),
+      }
+    )
+
+    const cellNodes = nodes.filter((node) => node.props?.['data-cell'])
+    const byCell = new Map(
+      cellNodes.map((node) => [node.props['data-cell'], node])
+    )
+
+    const cellA = byCell.get('a')
+    const cellB = byCell.get('b')
+
+    expect(cellA.left).toBeCloseTo(0, 4)
+    expect(cellA.top).toBeCloseTo(0, 4)
+    expect(cellA.width).toBeCloseTo(60, 4)
+    expect(cellA.height).toBeCloseTo(60, 4)
+
+    expect(cellB.left).toBeCloseTo(60, 4)
+    expect(cellB.top).toBeCloseTo(30, 4)
+    expect(cellB.width).toBeCloseTo(30, 4)
+    expect(cellB.height).toBeCloseTo(60, 4)
+
+    expect(toImage(svg, 90)).toMatchImageSnapshot()
+  })
+
   it('should support place-items and place-self alignment', async () => {
     const svg = await satori(
       <div
