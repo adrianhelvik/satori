@@ -1,6 +1,6 @@
 import cssColorParse from 'parse-css-color'
 import { buildXMLString, lengthToNumber } from '../utils.js'
-import { parseFilterList } from '../parser/filter.js'
+import { parseFilterList, type ParsedFilterFunction } from '../parser/filter.js'
 import type { SerializedStyle } from '../handler/style-types.js'
 import { parseFiniteNumber } from '../style-number.js'
 
@@ -15,6 +15,17 @@ export interface BuiltSvgFilter {
   definition: string
   filterId: string
   unsupported: string[]
+}
+
+type TransferChannel =
+  | { type: 'identity' }
+  | { type: 'linear'; slope: number; intercept?: number }
+
+interface FilterPrimitiveContext {
+  inputId: string
+  resultId: string
+  style: SerializedStyle
+  inheritedStyle: SerializedStyle
 }
 
 function resolveLength(
@@ -41,9 +52,8 @@ function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value))
 }
 
-function normalizeColor(color: string | undefined, fallback: string): string {
-  if (!color) return fallback
-  return color
+function clampNonNegative(value: number): number {
+  return Math.max(0, value)
 }
 
 function extractFloodColor(color: string): { color: string; opacity: number } {
@@ -57,6 +67,144 @@ function extractFloodColor(color: string): { color: string; opacity: number } {
     color: `rgb(${r},${g},${b})`,
     opacity: parsed.alpha ?? 1,
   }
+}
+
+function buildTransferChannel(
+  name: 'R' | 'G' | 'B' | 'A',
+  channel: TransferChannel
+): string {
+  if (channel.type === 'identity') {
+    return buildXMLString(`feFunc${name}`, {
+      type: 'identity',
+    })
+  }
+
+  return buildXMLString(`feFunc${name}`, {
+    type: 'linear',
+    slope: channel.slope,
+    intercept: channel.intercept ?? 0,
+  })
+}
+
+function buildComponentTransferPrimitive(
+  context: FilterPrimitiveContext,
+  channels: {
+    r: TransferChannel
+    g: TransferChannel
+    b: TransferChannel
+    a: TransferChannel
+  }
+): string {
+  return buildXMLString(
+    'feComponentTransfer',
+    {
+      in: context.inputId,
+      result: context.resultId,
+    },
+    buildTransferChannel('R', channels.r) +
+      buildTransferChannel('G', channels.g) +
+      buildTransferChannel('B', channels.b) +
+      buildTransferChannel('A', channels.a)
+  )
+}
+
+function buildFilterPrimitive(
+  current: ParsedFilterFunction,
+  context: FilterPrimitiveContext
+): string | null {
+  if (current.type === 'blur') {
+    const radius = resolveLength(
+      current.radius,
+      context.style,
+      context.inheritedStyle
+    )
+    if (typeof radius !== 'number' || radius <= 0) {
+      return null
+    }
+
+    return buildXMLString('feGaussianBlur', {
+      in: context.inputId,
+      stdDeviation: radius,
+      result: context.resultId,
+    })
+  }
+
+  if (current.type === 'brightness') {
+    const amount = clampNonNegative(current.amount)
+    return buildComponentTransferPrimitive(context, {
+      r: { type: 'linear', slope: amount, intercept: 0 },
+      g: { type: 'linear', slope: amount, intercept: 0 },
+      b: { type: 'linear', slope: amount, intercept: 0 },
+      a: { type: 'identity' },
+    })
+  }
+
+  if (current.type === 'contrast') {
+    const amount = clampNonNegative(current.amount)
+    const intercept = 0.5 - 0.5 * amount
+    return buildComponentTransferPrimitive(context, {
+      r: { type: 'linear', slope: amount, intercept },
+      g: { type: 'linear', slope: amount, intercept },
+      b: { type: 'linear', slope: amount, intercept },
+      a: { type: 'identity' },
+    })
+  }
+
+  if (current.type === 'saturate') {
+    return buildXMLString('feColorMatrix', {
+      in: context.inputId,
+      type: 'saturate',
+      values: clampNonNegative(current.amount),
+      result: context.resultId,
+    })
+  }
+
+  if (current.type === 'opacity') {
+    const amount = clamp(current.amount, 0, 1)
+    return buildComponentTransferPrimitive(context, {
+      r: { type: 'identity' },
+      g: { type: 'identity' },
+      b: { type: 'identity' },
+      a: { type: 'linear', slope: amount },
+    })
+  }
+
+  if (current.type === 'drop-shadow') {
+    const offsetX = resolveLength(
+      current.offsetX,
+      context.style,
+      context.inheritedStyle
+    )
+    const offsetY = resolveLength(
+      current.offsetY,
+      context.style,
+      context.inheritedStyle
+    )
+    const blurRadius = resolveLength(
+      current.blurRadius,
+      context.style,
+      context.inheritedStyle
+    )
+    if (typeof offsetX !== 'number' || typeof offsetY !== 'number') {
+      return null
+    }
+
+    const shadowColor = current.color || context.style.color || 'black'
+    const { color, opacity } = extractFloodColor(shadowColor)
+
+    return buildXMLString('feDropShadow', {
+      in: context.inputId,
+      dx: offsetX,
+      dy: offsetY,
+      stdDeviation:
+        typeof blurRadius === 'number' && blurRadius > 0 ? blurRadius / 2 : 0,
+      'flood-color': color,
+      'flood-opacity': opacity,
+      result: context.resultId,
+    })
+  }
+
+  return null
 }
 
 export function buildSvgCssFilter({
@@ -73,167 +221,17 @@ export function buildSvgCssFilter({
   let inputId = 'SourceGraphic'
 
   for (let i = 0; i < parsed.filters.length; i++) {
-    const current = parsed.filters[i]
     const resultId = `${filterId}-r${i}`
+    const primitive = buildFilterPrimitive(parsed.filters[i], {
+      inputId,
+      resultId,
+      style,
+      inheritedStyle,
+    })
+    if (!primitive) continue
 
-    if (current.type === 'blur') {
-      const radius = resolveLength(current.radius, style, inheritedStyle, 1)
-      if (typeof radius !== 'number' || radius <= 0) {
-        continue
-      }
-
-      primitives.push(
-        buildXMLString('feGaussianBlur', {
-          in: inputId,
-          stdDeviation: radius,
-          result: resultId,
-        })
-      )
-      inputId = resultId
-      continue
-    }
-
-    if (current.type === 'brightness') {
-      const amount = Math.max(0, current.amount)
-      primitives.push(
-        buildXMLString(
-          'feComponentTransfer',
-          {
-            in: inputId,
-            result: resultId,
-          },
-          buildXMLString('feFuncR', {
-            type: 'linear',
-            slope: amount,
-            intercept: 0,
-          }) +
-            buildXMLString('feFuncG', {
-              type: 'linear',
-              slope: amount,
-              intercept: 0,
-            }) +
-            buildXMLString('feFuncB', {
-              type: 'linear',
-              slope: amount,
-              intercept: 0,
-            }) +
-            buildXMLString('feFuncA', {
-              type: 'identity',
-            })
-        )
-      )
-      inputId = resultId
-      continue
-    }
-
-    if (current.type === 'contrast') {
-      const amount = Math.max(0, current.amount)
-      const intercept = 0.5 - 0.5 * amount
-      primitives.push(
-        buildXMLString(
-          'feComponentTransfer',
-          {
-            in: inputId,
-            result: resultId,
-          },
-          buildXMLString('feFuncR', {
-            type: 'linear',
-            slope: amount,
-            intercept,
-          }) +
-            buildXMLString('feFuncG', {
-              type: 'linear',
-              slope: amount,
-              intercept,
-            }) +
-            buildXMLString('feFuncB', {
-              type: 'linear',
-              slope: amount,
-              intercept,
-            }) +
-            buildXMLString('feFuncA', {
-              type: 'identity',
-            })
-        )
-      )
-      inputId = resultId
-      continue
-    }
-
-    if (current.type === 'saturate') {
-      const amount = Math.max(0, current.amount)
-      primitives.push(
-        buildXMLString('feColorMatrix', {
-          in: inputId,
-          type: 'saturate',
-          values: amount,
-          result: resultId,
-        })
-      )
-      inputId = resultId
-      continue
-    }
-
-    if (current.type === 'opacity') {
-      const amount = clamp(current.amount, 0, 1)
-      primitives.push(
-        buildXMLString(
-          'feComponentTransfer',
-          {
-            in: inputId,
-            result: resultId,
-          },
-          buildXMLString('feFuncR', {
-            type: 'identity',
-          }) +
-            buildXMLString('feFuncG', {
-              type: 'identity',
-            }) +
-            buildXMLString('feFuncB', {
-              type: 'identity',
-            }) +
-            buildXMLString('feFuncA', {
-              type: 'linear',
-              slope: amount,
-            })
-        )
-      )
-      inputId = resultId
-      continue
-    }
-
-    if (current.type === 'drop-shadow') {
-      const offsetX = resolveLength(current.offsetX, style, inheritedStyle, 1)
-      const offsetY = resolveLength(current.offsetY, style, inheritedStyle, 1)
-      const blurRadius = resolveLength(
-        current.blurRadius,
-        style,
-        inheritedStyle,
-        1
-      )
-      if (typeof offsetX !== 'number' || typeof offsetY !== 'number') {
-        continue
-      }
-
-      const shadowColor = normalizeColor(current.color, style.color || 'black')
-      const { color, opacity } = extractFloodColor(shadowColor)
-
-      primitives.push(
-        buildXMLString('feDropShadow', {
-          in: inputId,
-          dx: offsetX,
-          dy: offsetY,
-          stdDeviation:
-            typeof blurRadius === 'number' && blurRadius > 0
-              ? blurRadius / 2
-              : 0,
-          'flood-color': color,
-          'flood-opacity': opacity,
-          result: resultId,
-        })
-      )
-      inputId = resultId
-    }
+    primitives.push(primitive)
+    inputId = resultId
   }
 
   if (primitives.length === 0) return null
