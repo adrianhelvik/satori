@@ -119,6 +119,62 @@ describe('line-break', () => {
     )
   })
 
+  it('should keep emoji grapheme clusters when using line-break:anywhere', async () => {
+    const text = '👨‍👩‍👧👶🏾❤️‍🔥👨‍👩‍👧👶🏾'
+
+    const withLineBreakAnywhere = await satori(
+      <div
+        style={{
+          width: 112,
+          height: 160,
+          backgroundColor: '#eee',
+          fontSize: 28,
+          lineBreak: 'anywhere',
+        }}
+      >
+        {text}
+      </div>,
+      {
+        width: 112,
+        height: 160,
+        fonts,
+        graphemeImages: {
+          '👨‍👩‍👧': 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlTRAfQMAAAADUlEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=',
+          '👶🏾': 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlTRAfQMAAAADUlEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=',
+          '❤️‍🔥': 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlTRAfQMAAAADUlEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=',
+        },
+      }
+    )
+
+    const withWordBreak = await satori(
+      <div
+        style={{
+          width: 112,
+          height: 160,
+          backgroundColor: '#eee',
+          fontSize: 28,
+          wordBreak: 'break-all',
+        }}
+      >
+        {text}
+      </div>,
+      {
+        width: 112,
+        height: 160,
+        fonts,
+        graphemeImages: {
+          '👨‍👩‍👧': 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlTRAfQMAAAADUlEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=',
+          '👶🏾': 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlTRAfQMAAAADUlEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=',
+          '❤️‍🔥': 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlTRAfQMAAAADUlEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=',
+        },
+      }
+    )
+
+    expect(toImage(withLineBreakAnywhere, 112)).toEqual(
+      toImage(withWordBreak, 112)
+    )
+  })
+
   it('should keep normal behavior for line-break:normal', async () => {
     const withLineBreakNormal = await satori(
       <div
