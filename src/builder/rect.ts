@@ -20,6 +20,7 @@ import {
   resolveObjectPositionOffset,
 } from './object-fit-position.js'
 import cssColorParse from 'parse-css-color'
+import { buildSvgCssFilter } from './css-filter.js'
 
 type RGBAColor = {
   r: number
@@ -748,6 +749,16 @@ export default async function rect(
     opacity = +style.opacity
   }
 
+  const svgCssFilter = buildSvgCssFilter({
+    id,
+    filter: cssFilter,
+    style,
+    inheritedStyle: inheritableStyle,
+  })
+  if (svgCssFilter) {
+    defs += svgCssFilter.definition
+  }
+
   if (isTransformInput(style.transform)) {
     matrix = transform(
       {
@@ -944,7 +955,6 @@ export default async function rect(
         d: useBorderShape && path ? path : undefined,
         transform: matrix ? matrix : undefined,
         'clip-path': style.transform ? undefined : currentClipPath,
-        style: cssFilter ? `filter:${cssFilter}` : undefined,
         mask: style.transform ? undefined : maskId,
       })
 
@@ -1060,7 +1070,6 @@ export default async function rect(
       typeof imageRendering === 'string' ? imageRendering : undefined
     )
     const imageStyle = [
-      cssFilter ? `filter:${cssFilter}` : '',
       svgImageRendering ? `image-rendering:${svgImageRendering}` : '',
       imageOrientation ? `image-orientation:${imageOrientation}` : '',
     ]
@@ -1375,7 +1384,7 @@ export default async function rect(
     type === 'rect' &&
     !path &&
     !matrix &&
-    !cssFilter &&
+    !svgCssFilter &&
     !style.transform &&
     !backgroundShapes &&
     !currentClipPath &&
@@ -1417,11 +1426,7 @@ export default async function rect(
     .filter(Boolean)
     .join(';')
 
-  return (
-    (defs ? buildXMLString('defs', {}, defs) : '') +
-    (shadow ? shadow[0] : '') +
-    (imageBorderRadius ? imageBorderRadius[0] : '') +
-    clip +
+  const paintedShape =
     (compositingStyles ? `<g style="${compositingStyles}">` : '') +
     (opacity !== 1 ? `<g opacity="${opacity}">` : '') +
     (style.transform && (currentClipPath || maskId)
@@ -1433,7 +1438,24 @@ export default async function rect(
     blendFallbackOverlays +
     (style.transform && (currentClipPath || maskId) ? '</g>' : '') +
     (opacity !== 1 ? `</g>` : '') +
-    (compositingStyles ? '</g>' : '') +
+    (compositingStyles ? '</g>' : '')
+
+  const filteredPaintedShape = svgCssFilter
+    ? buildXMLString(
+        'g',
+        {
+          filter: `url(#${svgCssFilter.filterId})`,
+        },
+        paintedShape
+      )
+    : paintedShape
+
+  return (
+    (defs ? buildXMLString('defs', {}, defs) : '') +
+    (shadow ? shadow[0] : '') +
+    (imageBorderRadius ? imageBorderRadius[0] : '') +
+    clip +
+    filteredPaintedShape +
     (shadow ? shadow[1] : '') +
     outlineShape +
     extra

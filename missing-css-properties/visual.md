@@ -7,7 +7,7 @@
 - `background-blend-mode` (partial; exact for solid-color layers)
 - `box-shadow` (including inset, spread radius)
 - `opacity`
-- `filter`
+- `filter` (supported for `blur()`, `brightness()`, `contrast()`, `saturate()`, `opacity()`, `drop-shadow()`; unsupported functions are deterministic no-ops)
 - `mix-blend-mode` (partial; native SVG support varies by renderer, with a solid-rect fallback for common `multiply`/`screen` overlap cases)
 - `isolation`
 - `color`
@@ -16,12 +16,26 @@
 - `image-rendering`, `image-orientation` (`image-rendering` is normalized to SVG-compatible values, e.g. `pixelated` → `optimizeSpeed`)
 - `clip-path` (basic shapes: `circle`, `ellipse`, `polygon`, `inset`, `xywh`, and SVG `path(...)`)
 
+## Most important (P0) visual compatibility gaps
+
+1. CSS filter rendering parity (`blur`, `brightness`, `contrast`, `saturate`, `drop-shadow` chains).
+2. `conic-gradient()` / `repeating-conic-gradient()` support.
+3. `color-mix()` parsing/evaluation in color-bearing properties.
+
+P0 acceptance criteria:
+
+1. Dedicated snapshot fixtures exist for each supported filter function and combinations.
+2. Conic gradients render with deterministic output and pass comparable browser-diff thresholds.
+3. `color-mix()` resolves to concrete RGBA values for `color`/background/border/decoration inputs.
+4. Unsupported sub-features fail predictably and are explicitly documented.
+
 ## Missing properties
 
 ### Blending & compositing
 
 | Property | Feasibility | Notes |
 |----------|-------------|-------|
+| `filter` | **MOST IMPORTANT (P0)** | Supports `blur()`, `brightness()`, `contrast()`, `saturate()`, `opacity()`, and `drop-shadow()` with explicit SVG filter generation on box/image/text paths. Unsupported functions are dropped deterministically (no-op) and tracked in tests/docs. |
 | `background-blend-mode` | **Supported (partial)** | Exact compositing for solid-color layers (including flat gradients/colors) across common blend modes (`multiply`, `screen`, `overlay`, `darken`, `lighten`, `difference`, `exclusion`, `hard-light`, `soft-light`, `color-dodge`, `color-burn`, `hue`, `saturation`, `color`, `luminosity`). Non-uniform/image layers fall back to renderer-dependent SVG blending behavior. |
 | `mix-blend-mode` | **Supported (partial)** | Native SVG blend support is renderer-dependent. Satori includes a geometric fallback for simple solid-rect overlaps on neutral parent backdrops for `multiply`, `screen`, `darken`, `lighten`, `difference`, `exclusion`, `plus-lighter`, `overlay`, and `hard-light` (with `overlay`/`hard-light` using a neutral gray backdrop). |
 
@@ -36,6 +50,7 @@
 | Property | Feasibility | Notes |
 |----------|-------------|-------|
 | `background-blend-mode` | **Supported (partial)** | See blending section above |
+| `conic-gradient()` / `repeating-conic-gradient()` | **MOST IMPORTANT (P0)** | Not supported yet in background parsing/rendering pipeline. |
 
 ### Mask (missing sub-properties)
 
@@ -55,7 +70,14 @@
 
 | Property | Feasibility | Notes |
 |----------|-------------|-------|
+| `color-mix()` | **MOST IMPORTANT (P0)** | Not parsed by the color pipeline. Needs parser + evaluator with deterministic output. |
 | `color-scheme` | N/A | OS-level light/dark preference — not applicable to static rendering |
 | `accent-color` | N/A | Form control accent — no form controls in Satori |
 | `forced-color-adjust` | N/A | High-contrast mode — not applicable |
 | `print-color-adjust` | N/A | Print hint — not applicable |
+
+### SVG marker attributes
+
+| Capability | Feasibility | Notes |
+|------------|-------------|-------|
+| `marker-start`, `marker-mid`, `marker-end` parity | P1 | Attribute pass-through exists for embedded SVG content, but dedicated parity fixtures are still needed for arrowhead sizing, orientation, and stroke-width interactions. |

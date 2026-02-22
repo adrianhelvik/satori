@@ -16,6 +16,7 @@ import { getYoga, TYoga, YogaNode } from '../yoga.js'
 import buildText, { container } from '../builder/text.js'
 import { isTransformInput, type TransformInput } from '../builder/transform.js'
 import { buildDropShadow } from '../builder/shadow.js'
+import { buildSvgCssFilter } from '../builder/css-filter.js'
 import buildDecoration from '../builder/text-decoration.js'
 import type { GlyphBox } from '../font.js'
 import {
@@ -673,11 +674,11 @@ export default async function* buildTextNodes(
     parentStyle
   )
 
-  let filter = ''
+  let textShadowFilter = ''
   if (parentStyle.textShadowOffset) {
     const { textShadowColor, textShadowOffset, textShadowRadius } = parentStyle
 
-    filter = buildDropShadow(
+    textShadowFilter = buildDropShadow(
       {
         width: measuredTextSize.width,
         height: measuredTextSize.height,
@@ -691,8 +692,15 @@ export default async function* buildTextNodes(
       isFullyTransparent(parentStyle.color)
     )
 
-    filter = buildXMLString('defs', {}, filter)
+    textShadowFilter = buildXMLString('defs', {}, textShadowFilter)
   }
+
+  const svgCssFilter = buildSvgCssFilter({
+    id: `text-${id}`,
+    filter: cssFilter,
+    style: parentStyle,
+    inheritedStyle,
+  })
 
   let decorationShape = ''
   let mergedPath = ''
@@ -999,7 +1007,7 @@ export default async function* buildTextNodes(
       const [t, shape] = buildText(
         {
           content: text,
-          filter,
+          filter: textShadowFilter,
           id,
           left: left + leftOffset,
           top: top + topOffset,
@@ -1048,7 +1056,6 @@ export default async function* buildTextNodes(
   // Embed the font as path.
   if (mergedPath) {
     const embeddedPathStyle = [
-      cssFilter ? `filter:${cssFilter}` : '',
       parentStyle.touchAction ? `touch-action:${parentStyle.touchAction}` : '',
       parentStyle.userSelect ? `user-select:${parentStyle.userSelect}` : '',
     ]
@@ -1056,13 +1063,14 @@ export default async function* buildTextNodes(
       .join(';')
 
     const p =
-      (!isFullyTransparent(parentStyle.color) || filter) && opacity !== 0
+      (!isFullyTransparent(parentStyle.color) || textShadowFilter) &&
+      opacity !== 0
         ? `<g ${overflowMaskId ? `mask="url(#${overflowMaskId})"` : ''} ${
             clipPathId ? `clip-path="url(#${clipPathId})"` : ''
           }>` +
           buildXMLString('path', {
             fill:
-              filter && isFullyTransparent(parentStyle.color)
+              textShadowFilter && isFullyTransparent(parentStyle.color)
                 ? 'black'
                 : parentStyle.color,
             d: mergedPath,
@@ -1095,8 +1103,8 @@ export default async function* buildTextNodes(
     }
 
     result +=
-      (filter
-        ? filter +
+      (textShadowFilter
+        ? textShadowFilter +
           buildXMLString(
             'g',
             { filter: `url(#satori_s-${id})` },
@@ -1104,7 +1112,7 @@ export default async function* buildTextNodes(
           )
         : p + decorationShape) + extra
   } else if (decorationShape) {
-    result += filter
+    result += textShadowFilter
       ? buildXMLString('g', { filter: `url(#satori_s-${id})` }, decorationShape)
       : decorationShape
   }
@@ -1117,6 +1125,12 @@ export default async function* buildTextNodes(
   // visibility: hidden — layout is computed but no visual output is emitted.
   if (parentStyle.visibility === 'hidden') {
     return ''
+  }
+
+  if (svgCssFilter) {
+    result =
+      buildXMLString('defs', {}, svgCssFilter.definition) +
+      buildXMLString('g', { filter: `url(#${svgCssFilter.filterId})` }, result)
   }
 
   return result

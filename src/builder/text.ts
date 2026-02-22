@@ -89,7 +89,6 @@ export default function buildText(
 ) {
   const textStyle = style as Record<string, string | number | undefined>
   const serializedStyle = [
-    textStyle.filter ? `filter:${textStyle.filter}` : '',
     textStyle.touchAction ? `touch-action:${textStyle.touchAction}` : '',
     textStyle.userSelect ? `user-select:${textStyle.userSelect}` : '',
   ]
