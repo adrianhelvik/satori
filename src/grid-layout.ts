@@ -23,8 +23,6 @@ interface GridItemDescriptor {
   childStyle: Record<string, unknown> | undefined
   row: AxisPlacement
   column: AxisPlacement
-  rowIndex: number
-  columnIndex: number
 }
 
 interface GridPlacementResult {
@@ -47,6 +45,22 @@ const GRID_PLACEMENT_STYLE_KEYS = new Set([
   'justifySelf',
   'alignSelf',
 ])
+const GRID_TEMPLATE_COLUMN_KEYS = [
+  'gridTemplateColumns',
+  'grid-template-columns',
+]
+const GRID_TEMPLATE_ROW_KEYS = ['gridTemplateRows', 'grid-template-rows']
+const GRID_AUTO_COLUMN_KEYS = ['gridAutoColumns', 'grid-auto-columns']
+const GRID_AUTO_ROW_KEYS = ['gridAutoRows', 'grid-auto-rows']
+const GRID_ROW_GAP_KEYS = ['rowGap', 'row-gap']
+const GRID_COLUMN_GAP_KEYS = ['columnGap', 'column-gap']
+const GRID_GAP_KEYS = ['gap']
+const GRID_ROW_SHORTHAND_KEYS = ['gridRow', 'grid-row']
+const GRID_ROW_START_KEYS = ['gridRowStart', 'grid-row-start']
+const GRID_ROW_END_KEYS = ['gridRowEnd', 'grid-row-end']
+const GRID_COLUMN_SHORTHAND_KEYS = ['gridColumn', 'grid-column']
+const GRID_COLUMN_START_KEYS = ['gridColumnStart', 'grid-column-start']
+const GRID_COLUMN_END_KEYS = ['gridColumnEnd', 'grid-column-end']
 
 function clampToNonNegative(value: number): number {
   return value < 0 ? 0 : value
@@ -489,6 +503,23 @@ function canPlace(
   return true
 }
 
+function ensureBoundsForPlacement(
+  occupancy: boolean[][],
+  bounds: { rowCount: number; columnCount: number },
+  row: number,
+  column: number,
+  rowSpan: number,
+  columnSpan: number
+): void {
+  if (column + columnSpan > bounds.columnCount) {
+    bounds.columnCount = column + columnSpan
+  }
+  if (row + rowSpan > bounds.rowCount) {
+    bounds.rowCount = row + rowSpan
+    ensureGridRows(occupancy, bounds.rowCount)
+  }
+}
+
 function placeGridItems(
   items: GridItemDescriptor[],
   explicitRowCount: number,
@@ -499,13 +530,15 @@ function placeGridItems(
   columnCount: number
 } {
   const occupancy: boolean[][] = []
-  let rowCount = Math.max(1, explicitRowCount)
-  let columnCount = Math.max(1, explicitColumnCount)
+  const bounds = {
+    rowCount: Math.max(1, explicitRowCount),
+    columnCount: Math.max(1, explicitColumnCount),
+  }
   let cursorRow = 0
   let cursorColumn = 0
   const placements: GridPlacementResult[] = []
 
-  ensureGridRows(occupancy, rowCount)
+  ensureGridRows(occupancy, bounds.rowCount)
 
   for (const item of items) {
     const rowSpan = item.row.span
@@ -513,24 +546,20 @@ function placeGridItems(
     let row = item.row.start
     let column = item.column.start
 
-    if (typeof column === 'number' && column + columnSpan > columnCount) {
-      columnCount = column + columnSpan
-    }
-    if (typeof row === 'number' && row + rowSpan > rowCount) {
-      rowCount = row + rowSpan
-      ensureGridRows(occupancy, rowCount)
+    if (typeof row === 'number' && typeof column === 'number') {
+      ensureBoundsForPlacement(
+        occupancy,
+        bounds,
+        row,
+        column,
+        rowSpan,
+        columnSpan
+      )
     }
 
     if (typeof row === 'number' && typeof column === 'number') {
       // Explicit row/column placements can overlap in CSS Grid. We keep the
       // requested position deterministic without re-flow.
-      if (column + columnSpan > columnCount) {
-        columnCount = column + columnSpan
-      }
-      if (row + rowSpan > rowCount) {
-        rowCount = row + rowSpan
-        ensureGridRows(occupancy, rowCount)
-      }
       markOccupied(occupancy, row, column, rowSpan, columnSpan)
       placements.push({
         rowIndex: row,
@@ -544,9 +573,14 @@ function placeGridItems(
     if (typeof row === 'number') {
       let searchColumn = 0
       for (;;) {
-        if (searchColumn + columnSpan > columnCount) {
-          columnCount = searchColumn + columnSpan
-        }
+        ensureBoundsForPlacement(
+          occupancy,
+          bounds,
+          row,
+          searchColumn,
+          rowSpan,
+          columnSpan
+        )
         if (canPlace(occupancy, row, searchColumn, rowSpan, columnSpan)) {
           column = searchColumn
           break
@@ -556,10 +590,14 @@ function placeGridItems(
     } else if (typeof column === 'number') {
       let searchRow = 0
       for (;;) {
-        if (searchRow + rowSpan > rowCount) {
-          rowCount = searchRow + rowSpan
-          ensureGridRows(occupancy, rowCount)
-        }
+        ensureBoundsForPlacement(
+          occupancy,
+          bounds,
+          searchRow,
+          column,
+          rowSpan,
+          columnSpan
+        )
         if (canPlace(occupancy, searchRow, column, rowSpan, columnSpan)) {
           row = searchRow
           break
@@ -571,16 +609,28 @@ function placeGridItems(
       let searchColumn = cursorColumn
 
       for (;;) {
-        if (searchColumn + columnSpan > columnCount) {
+        if (searchColumn + columnSpan > bounds.columnCount) {
           searchRow++
           searchColumn = 0
-          if (searchRow + rowSpan > rowCount) {
-            rowCount = searchRow + rowSpan
-            ensureGridRows(occupancy, rowCount)
-          }
+          ensureBoundsForPlacement(
+            occupancy,
+            bounds,
+            searchRow,
+            searchColumn,
+            rowSpan,
+            columnSpan
+          )
           continue
         }
 
+        ensureBoundsForPlacement(
+          occupancy,
+          bounds,
+          searchRow,
+          searchColumn,
+          rowSpan,
+          columnSpan
+        )
         if (canPlace(occupancy, searchRow, searchColumn, rowSpan, columnSpan)) {
           row = searchRow
           column = searchColumn
@@ -592,7 +642,7 @@ function placeGridItems(
 
       cursorRow = row
       cursorColumn = (column || 0) + columnSpan
-      if (cursorColumn >= columnCount) {
+      if (cursorColumn >= bounds.columnCount) {
         cursorRow++
         cursorColumn = 0
       }
@@ -600,13 +650,14 @@ function placeGridItems(
 
     const resolvedRow = row || 0
     const resolvedColumn = column || 0
-    if (resolvedColumn + columnSpan > columnCount) {
-      columnCount = resolvedColumn + columnSpan
-    }
-    if (resolvedRow + rowSpan > rowCount) {
-      rowCount = resolvedRow + rowSpan
-      ensureGridRows(occupancy, rowCount)
-    }
+    ensureBoundsForPlacement(
+      occupancy,
+      bounds,
+      resolvedRow,
+      resolvedColumn,
+      rowSpan,
+      columnSpan
+    )
     markOccupied(occupancy, resolvedRow, resolvedColumn, rowSpan, columnSpan)
     placements.push({
       rowIndex: resolvedRow,
@@ -618,8 +669,8 @@ function placeGridItems(
 
   return {
     placements,
-    rowCount: Math.max(rowCount, 1),
-    columnCount: Math.max(columnCount, 1),
+    rowCount: Math.max(bounds.rowCount, 1),
+    columnCount: Math.max(bounds.columnCount, 1),
   }
 }
 
@@ -773,9 +824,158 @@ function normalizeGridTemplateValue(value: unknown): unknown {
   return normalized
 }
 
+interface GridTrackCollections {
+  explicitColumnTracks: TrackDefinition[]
+  explicitRowTracks: TrackDefinition[]
+  autoColumnTracks: TrackDefinition[]
+  autoRowTracks: TrackDefinition[]
+}
+
+interface GridContainerMetrics {
+  explicitWidth: number | undefined
+  explicitHeight: number | undefined
+  rowGap: number
+  columnGap: number
+}
+
+function parseTrackListFromStyle(
+  style: Record<string, unknown> | undefined,
+  keys: string[],
+  baseFontSize: number
+): TrackDefinition[] {
+  return parseGridTrackList(
+    normalizeGridTemplateValue(resolveStyleValue(style, keys)),
+    baseFontSize
+  )
+}
+
+function resolveGridTrackCollections(
+  style: Record<string, unknown> | undefined,
+  baseFontSize: number
+): GridTrackCollections {
+  return {
+    explicitColumnTracks: parseTrackListFromStyle(
+      style,
+      GRID_TEMPLATE_COLUMN_KEYS,
+      baseFontSize
+    ),
+    explicitRowTracks: parseTrackListFromStyle(
+      style,
+      GRID_TEMPLATE_ROW_KEYS,
+      baseFontSize
+    ),
+    autoColumnTracks: parseTrackListFromStyle(
+      style,
+      GRID_AUTO_COLUMN_KEYS,
+      baseFontSize
+    ),
+    autoRowTracks: parseTrackListFromStyle(
+      style,
+      GRID_AUTO_ROW_KEYS,
+      baseFontSize
+    ),
+  }
+}
+
+function resolveGapValue(
+  style: Record<string, unknown> | undefined,
+  explicitAxisLength: number | undefined,
+  baseFontSize: number,
+  axis: 'row' | 'column'
+): number {
+  const axisGapRaw = resolveStyleValue(
+    style,
+    axis === 'row' ? GRID_ROW_GAP_KEYS : GRID_COLUMN_GAP_KEYS
+  )
+  const gapRaw = resolveStyleValue(style, GRID_GAP_KEYS)
+  const gapToken =
+    typeof axisGapRaw !== 'undefined'
+      ? axisGapRaw
+      : parseGapShorthand(gapRaw, axis)
+  return clampToNonNegative(
+    resolveLengthValue(gapToken, explicitAxisLength, baseFontSize, style) || 0
+  )
+}
+
+function resolveGridContainerMetrics(
+  style: Record<string, unknown> | undefined,
+  baseFontSize: number
+): GridContainerMetrics {
+  const explicitWidth = resolveLengthValue(
+    resolveStyleValue(style, ['width']),
+    undefined,
+    baseFontSize,
+    style
+  )
+  const explicitHeight = resolveLengthValue(
+    resolveStyleValue(style, ['height']),
+    undefined,
+    baseFontSize,
+    style
+  )
+
+  return {
+    explicitWidth,
+    explicitHeight,
+    rowGap: resolveGapValue(style, explicitHeight, baseFontSize, 'row'),
+    columnGap: resolveGapValue(style, explicitWidth, baseFontSize, 'column'),
+  }
+}
+
+function resolveGridItemPlacements(
+  childStyle: Record<string, unknown> | undefined
+): { row: AxisPlacement; column: AxisPlacement } {
+  return {
+    row: parseGridAxisPlacement(
+      resolveStyleValue(childStyle, GRID_ROW_SHORTHAND_KEYS),
+      resolveStyleValue(childStyle, GRID_ROW_START_KEYS),
+      resolveStyleValue(childStyle, GRID_ROW_END_KEYS)
+    ),
+    column: parseGridAxisPlacement(
+      resolveStyleValue(childStyle, GRID_COLUMN_SHORTHAND_KEYS),
+      resolveStyleValue(childStyle, GRID_COLUMN_START_KEYS),
+      resolveStyleValue(childStyle, GRID_COLUMN_END_KEYS)
+    ),
+  }
+}
+
+function buildGridItemDescriptors(
+  children: ReactNode[],
+  getTwStyles: TwStyleResolver
+): GridItemDescriptor[] {
+  return children.map((child) => {
+    const childStyle = resolveGridItemStyle(child, getTwStyles)
+    const placements = resolveGridItemPlacements(childStyle)
+    return {
+      child,
+      childStyle,
+      row: placements.row,
+      column: placements.column,
+    }
+  })
+}
+
+function resolveTrackOffset(
+  prefix: number[],
+  trackIndex: number,
+  gap: number
+): number {
+  return prefix[trackIndex] + trackIndex * gap
+}
+
+function resolveTrackSpanSize(
+  prefix: number[],
+  trackIndex: number,
+  span: number,
+  gap: number
+): number {
+  return (
+    prefix[trackIndex + span] - prefix[trackIndex] + Math.max(0, span - 1) * gap
+  )
+}
+
 export function convertGridElement(
   element: ReactNode,
-  type: string,
   style: Record<string, unknown> | undefined,
   children: ReactNode,
   getTwStyles: TwStyleResolver
@@ -787,92 +987,16 @@ export function convertGridElement(
   if (!normalizedChildren.length) return null
 
   const baseFontSize = resolveBaseFontSize(style)
-  const explicitColumnTracks = parseGridTrackList(
-    normalizeGridTemplateValue(
-      resolveStyleValue(style, ['gridTemplateColumns', 'grid-template-columns'])
-    ),
-    baseFontSize
-  )
-  const explicitRowTracks = parseGridTrackList(
-    normalizeGridTemplateValue(
-      resolveStyleValue(style, ['gridTemplateRows', 'grid-template-rows'])
-    ),
-    baseFontSize
-  )
-  const autoColumnTracks = parseGridTrackList(
-    normalizeGridTemplateValue(
-      resolveStyleValue(style, ['gridAutoColumns', 'grid-auto-columns'])
-    ),
-    baseFontSize
-  )
-  const autoRowTracks = parseGridTrackList(
-    normalizeGridTemplateValue(
-      resolveStyleValue(style, ['gridAutoRows', 'grid-auto-rows'])
-    ),
-    baseFontSize
-  )
+  const {
+    explicitColumnTracks,
+    explicitRowTracks,
+    autoColumnTracks,
+    autoRowTracks,
+  } = resolveGridTrackCollections(style, baseFontSize)
+  const { explicitWidth, explicitHeight, rowGap, columnGap } =
+    resolveGridContainerMetrics(style, baseFontSize)
 
-  const widthValue = resolveStyleValue(style, ['width'])
-  const heightValue = resolveStyleValue(style, ['height'])
-  const explicitWidth = resolveLengthValue(
-    widthValue,
-    undefined,
-    baseFontSize,
-    style
-  )
-  const explicitHeight = resolveLengthValue(
-    heightValue,
-    undefined,
-    baseFontSize,
-    style
-  )
-
-  const rowGapRaw = resolveStyleValue(style, ['rowGap', 'row-gap'])
-  const columnGapRaw = resolveStyleValue(style, ['columnGap', 'column-gap'])
-  const gapRaw = resolveStyleValue(style, ['gap'])
-  const rowGap = clampToNonNegative(
-    resolveLengthValue(
-      typeof rowGapRaw !== 'undefined'
-        ? rowGapRaw
-        : parseGapShorthand(gapRaw, 'row'),
-      explicitHeight,
-      baseFontSize,
-      style
-    ) || 0
-  )
-  const columnGap = clampToNonNegative(
-    resolveLengthValue(
-      typeof columnGapRaw !== 'undefined'
-        ? columnGapRaw
-        : parseGapShorthand(gapRaw, 'column'),
-      explicitWidth,
-      baseFontSize,
-      style
-    ) || 0
-  )
-
-  const items: GridItemDescriptor[] = normalizedChildren.map((child) => {
-    const childStyle = resolveGridItemStyle(child, getTwStyles)
-    const rowPlacement = parseGridAxisPlacement(
-      resolveStyleValue(childStyle, ['gridRow', 'grid-row']),
-      resolveStyleValue(childStyle, ['gridRowStart', 'grid-row-start']),
-      resolveStyleValue(childStyle, ['gridRowEnd', 'grid-row-end'])
-    )
-    const columnPlacement = parseGridAxisPlacement(
-      resolveStyleValue(childStyle, ['gridColumn', 'grid-column']),
-      resolveStyleValue(childStyle, ['gridColumnStart', 'grid-column-start']),
-      resolveStyleValue(childStyle, ['gridColumnEnd', 'grid-column-end'])
-    )
-
-    return {
-      child,
-      childStyle,
-      row: rowPlacement,
-      column: columnPlacement,
-      rowIndex: 0,
-      columnIndex: 0,
-    }
-  })
+  const items = buildGridItemDescriptors(normalizedChildren, getTwStyles)
 
   const placement = placeGridItems(
     items,
@@ -904,19 +1028,24 @@ export function convertGridElement(
 
   const convertedChildren = placement.placements.map((cellPlacement, index) => {
     const descriptor = items[index]
-    const left =
-      columnPrefix[cellPlacement.columnIndex] +
-      cellPlacement.columnIndex * columnGap
-    const top =
-      rowPrefix[cellPlacement.rowIndex] + cellPlacement.rowIndex * rowGap
-    const width =
-      columnPrefix[cellPlacement.columnIndex + cellPlacement.columnSpan] -
-      columnPrefix[cellPlacement.columnIndex] +
-      Math.max(0, cellPlacement.columnSpan - 1) * columnGap
-    const height =
-      rowPrefix[cellPlacement.rowIndex + cellPlacement.rowSpan] -
-      rowPrefix[cellPlacement.rowIndex] +
-      Math.max(0, cellPlacement.rowSpan - 1) * rowGap
+    const left = resolveTrackOffset(
+      columnPrefix,
+      cellPlacement.columnIndex,
+      columnGap
+    )
+    const top = resolveTrackOffset(rowPrefix, cellPlacement.rowIndex, rowGap)
+    const width = resolveTrackSpanSize(
+      columnPrefix,
+      cellPlacement.columnIndex,
+      cellPlacement.columnSpan,
+      columnGap
+    )
+    const height = resolveTrackSpanSize(
+      rowPrefix,
+      cellPlacement.rowIndex,
+      cellPlacement.rowSpan,
+      rowGap
+    )
 
     const itemAlignment = resolveEffectiveItemAlignment(
       descriptor.childStyle,

@@ -315,7 +315,6 @@ export default async function* layout(
 
   const convertedGridElement = convertGridElement(
     element,
-    type,
     style as Record<string, unknown> | undefined,
     children,
     getTwStyles
