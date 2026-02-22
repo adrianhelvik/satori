@@ -119,6 +119,23 @@ describe('Position', () => {
   })
 
   describe('fixed', () => {
+    it('should support fixed positioning on the root element', async () => {
+      const svg = await satori(
+        <div
+          style={{
+            position: 'fixed',
+            top: 7,
+            left: 9,
+            width: 18,
+            height: 18,
+            background: 'blue',
+          }}
+        />,
+        { width: 100, height: 100, fonts }
+      )
+      expect(toImage(svg, 100)).toMatchImageSnapshot()
+    })
+
     it('should anchor nested fixed elements to the viewport', async () => {
       const svg = await satori(
         <div
