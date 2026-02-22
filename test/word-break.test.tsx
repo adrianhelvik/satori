@@ -1,6 +1,11 @@
 import { it, describe, expect } from 'vitest'
 
-import { initFonts, loadDynamicAsset, toImage } from './utils.js'
+import {
+  getDynamicAsset,
+  initFonts,
+  loadDynamicAsset,
+  toImage,
+} from './utils.js'
 import satori from '../src/index.js'
 
 describe('word-break', () => {
@@ -76,6 +81,44 @@ describe('word-break', () => {
       )
 
       expect(toImage(svg, 100)).toMatchImageSnapshot()
+    })
+
+    it('should wrap complex script text by grapheme clusters', async () => {
+      const svg = await satori(
+        <div
+          style={{
+            width: 96,
+            height: 140,
+            fontSize: 40,
+            color: 'red',
+            wordBreak: 'normal',
+          }}
+        >
+          {'안녕하세요안녕하세요'}
+        </div>,
+        {
+          width: 96,
+          height: 140,
+          fonts,
+          loadAdditionalAsset: async (languageCode) => {
+            if (languageCode === 'ko-KR') {
+              return [
+                {
+                  name: 'satori_ko_fallback',
+                  data: await getDynamicAsset('안녕'),
+                  weight: 400,
+                  style: 'normal',
+                  lang: 'ko-KR',
+                },
+              ]
+            }
+
+            return []
+          },
+        }
+      )
+
+      expect(toImage(svg, 96)).toMatchImageSnapshot()
     })
   })
 

@@ -481,6 +481,15 @@ export function splitByBreakOpportunities(
         softHyphenBreaks: localizedWords.map(() => false),
       }
     }
+
+    const graphemeWords = segment(content, 'grapheme', locale)
+    if (/[^\p{ASCII}]/u.test(content) && graphemeWords.length > 1) {
+      return {
+        words: graphemeWords,
+        requiredBreaks: graphemeWords.map(() => false),
+        softHyphenBreaks: graphemeWords.map(() => false),
+      }
+    }
   }
 
   return { words, requiredBreaks, softHyphenBreaks }
