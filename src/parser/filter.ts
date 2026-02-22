@@ -26,6 +26,11 @@ export interface ParsedFilterList {
   unsupported: string[]
 }
 
+type FilterFunctionNode = valueParser.FunctionNode
+type FilterFunctionParser = (
+  node: FilterFunctionNode
+) => ParsedFilterFunction | null
+
 function parseAmount(value: string): number | undefined {
   const token = value.trim().toLowerCase()
   if (!token) return
@@ -75,6 +80,34 @@ function parseDropShadow(args: valueParser.Node[]): DropShadowFilter | null {
   }
 }
 
+function parseBlur(node: FilterFunctionNode): BlurFilter | null {
+  const radius = valueParser.stringify(node.nodes).trim()
+  if (!radius) return null
+  return { type: 'blur', radius }
+}
+
+function parseNumericFilter(
+  type: NumericFilter['type'],
+  node: FilterFunctionNode
+): NumericFilter | null {
+  const argsText = valueParser.stringify(node.nodes).trim()
+  if (!argsText) return null
+
+  const amount = parseAmount(argsText)
+  if (typeof amount !== 'number') return null
+
+  return { type, amount }
+}
+
+const FILTER_FUNCTION_PARSERS: Record<string, FilterFunctionParser> = {
+  blur: parseBlur,
+  brightness: (node) => parseNumericFilter('brightness', node),
+  contrast: (node) => parseNumericFilter('contrast', node),
+  saturate: (node) => parseNumericFilter('saturate', node),
+  opacity: (node) => parseNumericFilter('opacity', node),
+  'drop-shadow': (node) => parseDropShadow(node.nodes),
+}
+
 export function parseFilterList(value: unknown): ParsedFilterList {
   if (typeof value !== 'string') {
     return { filters: [], unsupported: [] }
@@ -99,48 +132,19 @@ export function parseFilterList(value: unknown): ParsedFilterList {
     }
 
     const fnName = node.value.trim().toLowerCase()
-    const argsText = valueParser.stringify(node.nodes).trim()
-
-    if (!argsText) {
+    const parser = FILTER_FUNCTION_PARSERS[fnName]
+    if (!parser) {
       unsupported.push(rawToken)
       continue
     }
 
-    if (fnName === 'blur') {
-      filters.push({ type: 'blur', radius: argsText })
+    const parsedFilter = parser(node)
+    if (!parsedFilter) {
+      unsupported.push(rawToken)
       continue
     }
 
-    if (
-      fnName === 'brightness' ||
-      fnName === 'contrast' ||
-      fnName === 'saturate' ||
-      fnName === 'opacity'
-    ) {
-      const amount = parseAmount(argsText)
-      if (typeof amount !== 'number') {
-        unsupported.push(rawToken)
-        continue
-      }
-
-      filters.push({
-        type: fnName,
-        amount,
-      })
-      continue
-    }
-
-    if (fnName === 'drop-shadow') {
-      const parsedShadow = parseDropShadow(node.nodes)
-      if (parsedShadow) {
-        filters.push(parsedShadow)
-      } else {
-        unsupported.push(rawToken)
-      }
-      continue
-    }
-
-    unsupported.push(rawToken)
+    filters.push(parsedFilter)
   }
 
   return { filters, unsupported }
