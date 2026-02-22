@@ -363,6 +363,32 @@ describe('Color Models', () => {
       expect(toImage(svg, 100)).toMatchImageSnapshot()
     })
 
+    it('should support oklch color-mix in color, backgroundColor, and borderColor', async () => {
+      const svg = await satori(
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: '100%',
+            height: '100%',
+            backgroundColor: 'color-mix(in oklch, red 25%, blue)',
+            border: '8px solid color-mix(in oklch, lime 40%, black)',
+            color: 'color-mix(in oklch, white 80%, black)',
+            fontSize: 20,
+          }}
+        >
+          mix
+        </div>,
+        {
+          width: 100,
+          height: 100,
+          fonts,
+        }
+      )
+      expect(toImage(svg, 100)).toMatchImageSnapshot()
+    })
+
     it('should support color-mix in text decoration color', async () => {
       const svg = await satori(
         <div
