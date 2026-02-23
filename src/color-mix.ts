@@ -259,7 +259,7 @@ function evaluateColorMixFunction(expression: string): string {
     )
   }
 
-  const colorSpace = interpolationMatch[1].trim()
+  const colorSpace = interpolationMatch[1].trim().toLowerCase()
   if (colorSpace !== 'srgb' && colorSpace !== 'oklch') {
     throw new Error(
       `Unsupported color-mix() color space "${colorSpace}". Only "srgb" and "oklch" are supported.`

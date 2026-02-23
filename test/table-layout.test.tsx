@@ -124,7 +124,52 @@ describe('Table Layout', () => {
     expect(cellC.height).toBeCloseTo(40, 4)
   })
 
-  it('should treat colSpan="0" as spanning to the end of the row', async () => {
+  it('should treat fractional rowSpan values as whole-row spans', async () => {
+    const nodes = []
+
+    await satori(
+      <table
+        style={{
+          display: 'table',
+          width: 120,
+          height: 80,
+          borderSpacing: 0,
+          borderCollapse: 'collapse',
+        }}
+      >
+        <tr>
+          <td data-cell='a' rowSpan={0.5} />
+          <td data-cell='b' />
+        </tr>
+        <tr>
+          <td data-cell='c' />
+        </tr>
+      </table>,
+      {
+        width: 120,
+        height: 80,
+        fonts,
+        onNodeDetected: (node) => nodes.push(node),
+      }
+    )
+
+    const cellNodes = nodes.filter((node) => node.props?.['data-cell'])
+    const byId = new Map(
+      cellNodes.map((node) => [node.props['data-cell'], node])
+    )
+
+    const cellA = byId.get('a')
+    const cellB = byId.get('b')
+    const cellC = byId.get('c')
+
+    expect(cellA.height).toBeCloseTo(40, 4)
+    expect(cellB.height).toBeCloseTo(40, 4)
+    expect(cellC.height).toBeCloseTo(40, 4)
+    expect(cellB.top).toBeCloseTo(0, 4)
+    expect(cellC.top).toBeCloseTo(40, 4)
+  })
+
+  it('should treat colSpan="0" as a single column span', async () => {
     const nodes = []
 
     await satori(
@@ -164,7 +209,7 @@ describe('Table Layout', () => {
 
     expect(cellA.left).toBeCloseTo(0, 4)
     expect(cellA.top).toBeCloseTo(0, 4)
-    expect(cellA.width).toBeCloseTo(120, 4)
+    expect(cellA.width).toBeCloseTo(60, 4)
     expect(cellA.height).toBeCloseTo(40, 4)
 
     expect(cellB.left).toBeCloseTo(0, 4)
@@ -442,6 +487,126 @@ describe('Table Layout', () => {
     expect(cellD?.width).toBeCloseTo(30, 4)
   })
 
+  it('should treat fractional colSpan values as whole-column spans', async () => {
+    const nodes = []
+
+    await satori(
+      <table
+        style={{
+          display: 'table',
+          width: 120,
+          height: 40,
+          borderSpacing: 0,
+          borderCollapse: 'collapse',
+        }}
+      >
+        <tr>
+          <td data-cell='a' colSpan={1.5} />
+          <td data-cell='b' />
+        </tr>
+      </table>,
+      {
+        width: 120,
+        height: 40,
+        fonts,
+        onNodeDetected: (node) => nodes.push(node),
+      }
+    )
+
+    const cellNodes = nodes.filter((node) => node.props?.['data-cell'])
+    const byId = new Map(
+      cellNodes.map((node) => [node.props['data-cell'], node])
+    )
+    const cellA = byId.get('a')
+    const cellB = byId.get('b')
+
+    expect(cellA.width).toBeCloseTo(60, 4)
+    expect(cellB.width).toBeCloseTo(60, 4)
+    expect(cellB.left).toBeCloseTo(60, 4)
+  })
+
+  it('should parse string colSpan values like browsers', async () => {
+    const nodes = []
+
+    await satori(
+      <table
+        style={{
+          display: 'table',
+          width: 120,
+          height: 40,
+          borderSpacing: 0,
+          borderCollapse: 'collapse',
+        }}
+      >
+        <tr>
+          <td data-cell='a' colSpan={'2.0' as any} />
+          <td data-cell='b' />
+        </tr>
+      </table>,
+      {
+        width: 120,
+        height: 40,
+        fonts,
+        onNodeDetected: (node) => nodes.push(node),
+      }
+    )
+
+    const cellNodes = nodes.filter((node) => node.props?.['data-cell'])
+    const byId = new Map(
+      cellNodes.map((node) => [node.props['data-cell'], node])
+    )
+    const cellA = byId.get('a')
+    const cellB = byId.get('b')
+
+    expect(cellA.width).toBeCloseTo(80, 4)
+    expect(cellB.left).toBeCloseTo(80, 4)
+    expect(cellB.width).toBeCloseTo(40, 4)
+  })
+
+  it('should parse string rowSpan values like browsers', async () => {
+    const nodes = []
+
+    await satori(
+      <table
+        style={{
+          display: 'table',
+          width: 120,
+          height: 80,
+          borderSpacing: 0,
+          borderCollapse: 'collapse',
+        }}
+      >
+        <tr>
+          <td data-cell='a' rowSpan={'2abc' as any} />
+          <td data-cell='b' />
+        </tr>
+        <tr>
+          <td data-cell='c' />
+        </tr>
+      </table>,
+      {
+        width: 120,
+        height: 80,
+        fonts,
+        onNodeDetected: (node) => nodes.push(node),
+      }
+    )
+
+    const cellNodes = nodes.filter((node) => node.props?.['data-cell'])
+    const byId = new Map(
+      cellNodes.map((node) => [node.props['data-cell'], node])
+    )
+    const cellA = byId.get('a')
+    const cellB = byId.get('b')
+    const cellC = byId.get('c')
+
+    expect(cellA.height).toBeCloseTo(80, 4)
+    expect(cellB.height).toBeCloseTo(40, 4)
+    expect(cellC.left).toBeCloseTo(60, 4)
+    expect(cellC.top).toBeCloseTo(40, 4)
+    expect(cellC.height).toBeCloseTo(40, 4)
+  })
+
   it('should expand nested colgroup spans when inferring column geometry', async () => {
     const nodes = []
 
@@ -492,6 +657,63 @@ describe('Table Layout', () => {
     expect(cellC?.width).toBeCloseTo(20, 4)
     expect(cellD?.left).toBeCloseTo(60, 4)
     expect(cellD?.width).toBeCloseTo(20, 4)
+  })
+
+  it('should keep subsequent col widths aligned after nested colgroup spans', async () => {
+    const nodes = []
+
+    await satori(
+      <table
+        style={{
+          display: 'table',
+          borderSpacing: 0,
+          borderCollapse: 'collapse',
+        }}
+      >
+        <colgroup span={2}>
+          <col span={2} style={{ width: 20 }} />
+        </colgroup>
+        <col style={{ width: 50 }} />
+        <tr>
+          <td data-cell='a' />
+          <td data-cell='b' />
+          <td data-cell='c' />
+          <td data-cell='d' />
+          <td data-cell='e' />
+        </tr>
+      </table>,
+      {
+        width: 130,
+        height: 20,
+        fonts,
+        onNodeDetected: (node) => nodes.push(node),
+      }
+    )
+
+    const tableNode = nodes.find(
+      (node) => node.type === 'div' && !node.props?.['data-cell']
+    )
+    const cellNodes = nodes.filter((node) => node.props?.['data-cell'])
+    const byId = new Map(
+      cellNodes.map((node) => [node.props['data-cell'], node])
+    )
+    const cellA = byId.get('a')
+    const cellB = byId.get('b')
+    const cellC = byId.get('c')
+    const cellD = byId.get('d')
+    const cellE = byId.get('e')
+
+    expect(tableNode?.width).toBeCloseTo(130, 4)
+    expect(cellA?.left).toBeCloseTo(0, 4)
+    expect(cellA?.width).toBeCloseTo(20, 4)
+    expect(cellB?.left).toBeCloseTo(20, 4)
+    expect(cellB?.width).toBeCloseTo(20, 4)
+    expect(cellC?.left).toBeCloseTo(40, 4)
+    expect(cellC?.width).toBeCloseTo(20, 4)
+    expect(cellD?.left).toBeCloseTo(60, 4)
+    expect(cellD?.width).toBeCloseTo(20, 4)
+    expect(cellE?.left).toBeCloseTo(80, 4)
+    expect(cellE?.width).toBeCloseTo(50, 4)
   })
 
   it('should apply explicit spans to inferred row/column geometry', async () => {

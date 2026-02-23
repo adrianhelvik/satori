@@ -70,6 +70,12 @@ describe('color-mix utilities', () => {
     )
   })
 
+  it('parses color-space keywords case-insensitively', () => {
+    expect(resolveColorMixFunctions('color-mix(IN OKLCH, red 20%, blue)')).toBe(
+      'rgba(107, 0, 250, 1)'
+    )
+  })
+
   it('throws on unsupported color spaces', () => {
     expect(() =>
       resolveColorMixFunctions('color-mix(in hsl, red, blue)')

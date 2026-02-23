@@ -104,6 +104,11 @@ const MARKER_STYLE_PROPERTIES = {
   'marker-mid': 'marker-mid',
   'marker-end': 'marker-end',
 } as const
+const MARKER_ATTRIBUTE_PROP_KEYS = {
+  'marker-start': ['markerStart', 'marker-start'],
+  'marker-mid': ['markerMid', 'marker-mid'],
+  'marker-end': ['markerEnd', 'marker-end'],
+} as const
 
 function translateSVGNodeToSVGString(
   node: ReactElement | string | (ReactElement | string)[],
@@ -134,9 +139,16 @@ function translateSVGNodeToSVGString(
             MARKER_STYLE_PROPERTIES[key as keyof typeof MARKER_STYLE_PROPERTIES]
 
           if (markerAttr) {
+            const explicitMarkerPropKeys =
+              MARKER_ATTRIBUTE_PROP_KEYS[markerAttr]
+            const hasExplicitMarkerProp = explicitMarkerPropKeys.some(
+              (propKey) =>
+                Object.prototype.hasOwnProperty.call(restProps, propKey)
+            )
+
             if (
-              !Object.prototype.hasOwnProperty.call(restProps, key) &&
-              !Object.prototype.hasOwnProperty.call(restProps, markerAttr)
+              !hasExplicitMarkerProp &&
+              !Object.prototype.hasOwnProperty.call(restProps, key)
             ) {
               result.markerStyleAttributes[markerAttr] = value
             }

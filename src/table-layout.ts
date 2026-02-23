@@ -21,15 +21,25 @@ const TABLE_ROW_GROUP_DISPLAYS = new Set([
   'table-footer-group',
 ])
 
-function parseTableColSpan(value: unknown): number {
-  const parsed =
-    typeof value === 'number'
-      ? value
-      : typeof value === 'string'
-      ? parseInt(value, 10)
-      : NaN
+function parseTableSpanValue(value: unknown): number {
+  if (typeof value === 'number') {
+    if (!Number.isFinite(value) || !Number.isInteger(value)) return Number.NaN
+    return value
+  }
 
-  if (!Number.isFinite(parsed) || parsed < 0) return 1
+  if (typeof value === 'string') {
+    const trimmed = value.trim()
+    if (!trimmed) return Number.NaN
+    return Number.parseInt(trimmed, 10)
+  }
+
+  return Number.NaN
+}
+
+function parseTableColSpan(value: unknown): number {
+  const parsed = parseTableSpanValue(value)
+
+  if (!Number.isFinite(parsed) || parsed < 1) return 1
   return Math.floor(parsed)
 }
 
@@ -38,12 +48,7 @@ function parseTableRowSpan(
   rowIndex: number,
   totalRows: number
 ): number {
-  const parsed =
-    typeof value === 'number'
-      ? value
-      : typeof value === 'string'
-      ? parseInt(value, 10)
-      : NaN
+  const parsed = parseTableSpanValue(value)
 
   if (!Number.isFinite(parsed) || parsed < 0) return 1
   if (parsed === 0) return Math.max(1, totalRows - rowIndex)
@@ -51,12 +56,7 @@ function parseTableRowSpan(
 }
 
 function parseTableSpan(value: unknown): number {
-  const parsed =
-    typeof value === 'number'
-      ? value
-      : typeof value === 'string'
-      ? parseInt(value, 10)
-      : NaN
+  const parsed = parseTableSpanValue(value)
 
   if (!Number.isFinite(parsed) || parsed < 1) return 1
   return Math.floor(parsed)
@@ -87,7 +87,7 @@ function collectColumnWidths(
         columns[targetIndex] = Math.max(columns[targetIndex] || 0, width)
       }
 
-      cursor += span
+      cursor += span * inheritedSpan
       return
     }
 
@@ -257,8 +257,7 @@ function buildTableMatrix(
 
       for (let r = rowIndex; r < rowIndex + rowSpan; r++) {
         occupied[r] ||= []
-        const provisionalColSpan = colSpan === 0 ? 1 : colSpan
-        for (let c = columnIndex; c < columnIndex + provisionalColSpan; c++) {
+        for (let c = columnIndex; c < columnIndex + colSpan; c++) {
           occupied[r][c] = true
         }
       }
@@ -292,43 +291,6 @@ function buildTableMatrix(
     ...placements.map((placement) => placement.row + placement.rowSpan)
   )
   if (!Number.isFinite(rowCount) || rowCount <= 0) return null
-
-  for (const placement of placements) {
-    if (placement.colSpan !== 0) continue
-
-    const resolvedColSpan = Math.max(1, columnCount - placement.column)
-    let canExpand = true
-
-    for (let r = placement.row; r < placement.row + placement.rowSpan; r++) {
-      occupied[r] ||= []
-      for (
-        let c = placement.column + 1;
-        c < placement.column + resolvedColSpan;
-        c++
-      ) {
-        if (occupied[r][c]) {
-          canExpand = false
-          break
-        }
-      }
-      if (!canExpand) break
-    }
-
-    if (canExpand) {
-      for (let r = placement.row; r < placement.row + placement.rowSpan; r++) {
-        for (
-          let c = placement.column + 1;
-          c < placement.column + resolvedColSpan;
-          c++
-        ) {
-          occupied[r][c] = true
-        }
-      }
-      placement.colSpan = resolvedColSpan
-    } else {
-      placement.colSpan = 1
-    }
-  }
 
   for (const placement of placements) {
     rowCount = Math.max(rowCount, placement.row + placement.rowSpan)
