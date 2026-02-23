@@ -247,6 +247,36 @@ describe('word-break', () => {
       expect(toImage(svg, 100)).toMatchImageSnapshot()
     })
 
+    it('should preserve emoji grapheme clusters in mixed scripts', async () => {
+      const text = '안녕하세요世界 world 👨‍👩‍👧👶🏾 hello❤️‍🔥안녕'
+
+      const withBreakWord = await satori(
+        <div
+          style={{
+            width: 108,
+            height: 180,
+            fontSize: 24,
+            color: 'red',
+            wordBreak: 'break-word',
+          }}
+        >
+          {text}
+        </div>,
+        {
+          width: 108,
+          height: 180,
+          fonts,
+          graphemeImages: {
+            '👨‍👩‍👧': 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlTRAfQMAAAADUlEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=',
+            '👶🏾': 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlTRAfQMAAAADUlEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=',
+            '❤️‍🔥': 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlTRAfQMAAAADUlEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=',
+          },
+        }
+      )
+
+      expect(toImage(withBreakWord, 108)).toMatchImageSnapshot()
+    })
+
     it('should wrap first and then break long words', async () => {
       const svg = await satori(
         <div

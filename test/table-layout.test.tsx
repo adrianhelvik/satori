@@ -493,4 +493,81 @@ describe('Table Layout', () => {
     expect(cellD?.left).toBeCloseTo(60, 4)
     expect(cellD?.width).toBeCloseTo(20, 4)
   })
+
+  it('should apply explicit spans to inferred row/column geometry', async () => {
+    const nodes = []
+
+    await satori(
+      <table
+        style={{
+          display: 'table',
+          borderSpacing: 0,
+          borderCollapse: 'collapse',
+        }}
+      >
+        <tr>
+          <td
+            data-cell='a'
+            colSpan={2}
+            rowSpan={2}
+            style={{ width: 90, height: 70 }}
+          />
+          <td data-cell='b' />
+          <td data-cell='c' />
+        </tr>
+        <tr>
+          <td data-cell='d' />
+          <td data-cell='e' />
+        </tr>
+      </table>,
+      {
+        width: 250,
+        height: 100,
+        fonts,
+        onNodeDetected: (node) => nodes.push(node),
+      }
+    )
+
+    const cellNodes = nodes.filter((node) => node.props?.['data-cell'])
+    const byId = new Map(
+      cellNodes.map((node) => [node.props['data-cell'], node])
+    )
+    const tableNode = nodes.find(
+      (node) => node.type === 'div' && !node.props?.['data-cell']
+    )
+
+    const cellA = byId.get('a')
+    const cellB = byId.get('b')
+    const cellC = byId.get('c')
+    const cellD = byId.get('d')
+    const cellE = byId.get('e')
+
+    expect(tableNode?.width).toBeCloseTo(250, 4)
+    expect(tableNode?.height).toBeCloseTo(70, 4)
+
+    expect(cellA?.left).toBeCloseTo(0, 4)
+    expect(cellA?.top).toBeCloseTo(0, 4)
+    expect(cellA?.width).toBeCloseTo(90, 4)
+    expect(cellA?.height).toBeCloseTo(70, 4)
+
+    expect(cellB?.left).toBeCloseTo(90, 4)
+    expect(cellB?.top).toBeCloseTo(0, 4)
+    expect(cellB?.width).toBeCloseTo(80, 4)
+    expect(cellB?.height).toBeCloseTo(35, 4)
+
+    expect(cellC?.left).toBeCloseTo(170, 4)
+    expect(cellC?.top).toBeCloseTo(0, 4)
+    expect(cellC?.width).toBeCloseTo(80, 4)
+    expect(cellC?.height).toBeCloseTo(35, 4)
+
+    expect(cellD?.left).toBeCloseTo(90, 4)
+    expect(cellD?.top).toBeCloseTo(35, 4)
+    expect(cellD?.width).toBeCloseTo(80, 4)
+    expect(cellD?.height).toBeCloseTo(35, 4)
+
+    expect(cellE?.left).toBeCloseTo(170, 4)
+    expect(cellE?.top).toBeCloseTo(35, 4)
+    expect(cellE?.width).toBeCloseTo(80, 4)
+    expect(cellE?.height).toBeCloseTo(35, 4)
+  })
 })

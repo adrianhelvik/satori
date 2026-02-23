@@ -252,13 +252,14 @@ function evaluateColorMixFunction(expression: string): string {
   }
 
   const interpolation = args[0].trim().toLowerCase()
-  if (!interpolation.startsWith('in ')) {
+  const interpolationMatch = /^in\s+(.+)$/i.exec(interpolation)
+  if (!interpolationMatch) {
     throw new Error(
       `Invalid color-mix() interpolation method in "${expression}"`
     )
   }
 
-  const colorSpace = interpolation.slice(3).trim()
+  const colorSpace = interpolationMatch[1].trim()
   if (colorSpace !== 'srgb' && colorSpace !== 'oklch') {
     throw new Error(
       `Unsupported color-mix() color space "${colorSpace}". Only "srgb" and "oklch" are supported.`

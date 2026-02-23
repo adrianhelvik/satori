@@ -497,4 +497,152 @@ describe('SVG', () => {
 
     expect(toImage(svg, 220)).toMatchImageSnapshot()
   })
+
+  it('should promote style-based marker props for path, line, and polyline elements', async () => {
+    const svg = await satori(
+      <div
+        style={{
+          width: '100%',
+          height: '100%',
+          background: '#fff',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        <svg
+          width='260'
+          height='140'
+          viewBox='0 0 260 140'
+          xmlns='http://www.w3.org/2000/svg'
+        >
+          <defs>
+            <marker
+              id='arrow'
+              viewBox='0 0 10 10'
+              refX='8'
+              refY='5'
+              markerWidth='7'
+              markerHeight='7'
+              markerUnits='strokeWidth'
+              orient='auto'
+            >
+              <path d='M0,0 L10,5 L0,10 L2,5 z' fill='#000' />
+            </marker>
+          </defs>
+          <path
+            d='M30 30 L110 30'
+            fill='none'
+            stroke='#000'
+            strokeWidth='4'
+            style={{
+              markerStart: 'url(#arrow)',
+              markerEnd: 'url(#arrow)',
+            }}
+          />
+          <line
+            x1='30'
+            y1='70'
+            x2='230'
+            y2='70'
+            stroke='#000'
+            strokeWidth='4'
+            style={{
+              markerMid: 'url(#arrow)',
+              markerStart: 'url(#arrow)',
+            }}
+          />
+          <polyline
+            points='30,110 110,110 230,110'
+            fill='none'
+            stroke='#000'
+            strokeWidth='4'
+            style={{
+              markerMid: 'url(#arrow)',
+            }}
+          />
+        </svg>
+      </div>,
+      { width: 260, height: 140, fonts }
+    )
+
+    const embeddedSVG = decodeURIComponent(
+      svg.match(/data:image\/svg\+xml;utf8,([^"]+)/)?.[1] || ''
+    )
+
+    expect(embeddedSVG).toContain('marker-start="url(#arrow)"')
+    expect(embeddedSVG).toContain('marker-end="url(#arrow)"')
+    expect(embeddedSVG).toContain('marker-mid="url(#arrow)"')
+  })
+
+  it('should keep explicit marker attributes over style marker props', async () => {
+    const svg = await satori(
+      <div
+        style={{
+          width: '100%',
+          height: '100%',
+          background: '#fff',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        <svg
+          width='220'
+          height='80'
+          viewBox='0 0 220 80'
+          xmlns='http://www.w3.org/2000/svg'
+        >
+          <defs>
+            <marker
+              id='arrow-a'
+              viewBox='0 0 10 10'
+              refX='8'
+              refY='5'
+              markerWidth='6'
+              markerHeight='6'
+              orient='auto'
+            >
+              <path d='M0,0 L10,5 L0,10 L2,5 z' fill='#000' />
+            </marker>
+            <marker
+              id='arrow-b'
+              viewBox='0 0 10 10'
+              refX='8'
+              refY='5'
+              markerWidth='6'
+              markerHeight='6'
+              orient='auto'
+            >
+              <path d='M0,0 L10,5 L0,10 L2,5 z' fill='#000' />
+            </marker>
+          </defs>
+          <line
+            x1='20'
+            y1='40'
+            x2='200'
+            y2='40'
+            stroke='#000'
+            strokeWidth='4'
+            markerStart='url(#arrow-a)'
+            markerEnd='url(#arrow-b)'
+            style={{
+              markerStart: 'url(#arrow-b)',
+              markerEnd: 'url(#arrow-a)',
+            }}
+          />
+        </svg>
+      </div>,
+      { width: 220, height: 80, fonts }
+    )
+
+    const embeddedSVG = decodeURIComponent(
+      svg.match(/data:image\/svg\+xml;utf8,([^"]+)/)?.[1] || ''
+    )
+
+    expect(embeddedSVG).toContain('marker-start="url(#arrow-a)"')
+    expect(embeddedSVG).toContain('marker-end="url(#arrow-b)"')
+    expect(embeddedSVG).not.toContain('marker-start="url(#arrow-b)"')
+    expect(embeddedSVG).not.toContain('marker-end="url(#arrow-a)"')
+  })
 })

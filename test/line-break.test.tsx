@@ -252,6 +252,60 @@ describe('line-break', () => {
     )
   })
 
+  it('should preserve mixed-width complex script clusters with line-break:anywhere', async () => {
+    const text = '안녕하세요👨‍👩‍👧👶🏾世界world👨‍👩‍👧👶🏾안녕하세요'
+
+    const withLineBreakAnywhere = await satori(
+      <div
+        style={{
+          width: 128,
+          height: 180,
+          backgroundColor: '#eee',
+          lineBreak: 'anywhere',
+        }}
+      >
+        {text}
+      </div>,
+      {
+        width: 128,
+        height: 180,
+        fonts,
+        graphemeImages: {
+          '👨‍👩‍👧': 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=',
+          '👶🏾': 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlTRAfQMAAAADUlEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=',
+          '❤️‍🔥': 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=',
+        },
+      }
+    )
+
+    const withWordBreak = await satori(
+      <div
+        style={{
+          width: 128,
+          height: 180,
+          backgroundColor: '#eee',
+          wordBreak: 'break-all',
+        }}
+      >
+        {text}
+      </div>,
+      {
+        width: 128,
+        height: 180,
+        fonts,
+        graphemeImages: {
+          '👨‍👩‍👧': 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=',
+          '👶🏾': 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlTRAfQMAAAADUlEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=',
+          '❤️‍🔥': 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=',
+        },
+      }
+    )
+
+    expect(toImage(withLineBreakAnywhere, 128)).toEqual(
+      toImage(withWordBreak, 128)
+    )
+  })
+
   it('should keep normal behavior for line-break:normal', async () => {
     const withLineBreakNormal = await satori(
       <div
