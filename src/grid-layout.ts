@@ -47,6 +47,8 @@ type TrackDefinition =
 
 type AxisPlacement = GridAxisPlacement
 
+type NamedGridLineMap = Record<string, number[]>
+
 interface GridItemDescriptor {
   child: ReactNode
   childStyle: Record<string, unknown> | undefined
@@ -365,6 +367,90 @@ export function parseGridTrackList(
   }
 
   return tracks
+}
+
+function mergeNamedLine(
+  namedLineMap: NamedGridLineMap,
+  name: string,
+  lineIndex: number
+) {
+  const normalizedName = name.trim().toLowerCase()
+  if (!normalizedName) return
+  const lines = namedLineMap[normalizedName]
+  if (lines) {
+    lines.push(lineIndex)
+  } else {
+    namedLineMap[normalizedName] = [lineIndex]
+  }
+}
+
+function parseGridTrackNames(token: string): string[] {
+  if (!(token.startsWith('[') && token.endsWith(']'))) return []
+
+  const body = token.slice(1, -1).trim()
+  if (!body) return []
+  return splitByWhitespaceOutsideParens(body).map((name) => name.trim())
+}
+
+function parseGridTrackListWithLineNames(
+  value: unknown,
+  baseFontSize = 16
+): { tracks: TrackDefinition[]; namedLines: NamedGridLineMap } {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return {
+      tracks: [{ kind: 'fixed', value: clampToNonNegative(value) }],
+      namedLines: {},
+    }
+  }
+  if (typeof value !== 'string') return { tracks: [], namedLines: {} }
+
+  const tokens = splitByWhitespaceOutsideParens(value.trim())
+  const tracks: TrackDefinition[] = []
+  const namedLines: NamedGridLineMap = {}
+  let lineIndex = 1
+
+  for (const token of tokens) {
+    if (!token || token === '/') continue
+
+    const names = parseGridTrackNames(token)
+    if (names.length) {
+      for (const name of names) {
+        mergeNamedLine(namedLines, name, lineIndex)
+      }
+      continue
+    }
+
+    const repeated = parseRepeatTrackList(token, baseFontSize)
+    if (repeated?.length) {
+      tracks.push(...repeated)
+      for (let i = 0; i < repeated.length; i++) {
+        lineIndex++
+      }
+      continue
+    }
+
+    const normalized = token.trim()
+    if (!normalized || normalized.toLowerCase() === 'none') continue
+
+    const minmaxTrack = parseMinMaxTrackToken(normalized, baseFontSize)
+    if (minmaxTrack) {
+      tracks.push(minmaxTrack)
+      lineIndex++
+      continue
+    }
+
+    const fitContentTrack = parseFitContentTrackToken(normalized, baseFontSize)
+    if (fitContentTrack) {
+      tracks.push(fitContentTrack)
+      lineIndex++
+      continue
+    }
+
+    tracks.push(parseGridSimpleTrackToken(normalized, baseFontSize))
+    lineIndex++
+  }
+
+  return { tracks, namedLines }
 }
 
 function isGridContainerElement(
@@ -1131,6 +1217,8 @@ function parseGridTemplateTrackShorthand(value: unknown): {
 interface GridTrackCollections {
   explicitColumnTracks: TrackDefinition[]
   explicitRowTracks: TrackDefinition[]
+  explicitColumnLineNames: NamedGridLineMap
+  explicitRowLineNames: NamedGridLineMap
   autoColumnTracks: TrackDefinition[]
   autoRowTracks: TrackDefinition[]
 }
@@ -1176,10 +1264,20 @@ function resolveGridTrackCollections(
     typeof explicitRowValue === 'undefined'
       ? templateShorthandValue.rows
       : explicitRowValue
+  const explicitColumnsWithNames = parseGridTrackListWithLineNames(
+    resolvedColumnValue,
+    baseFontSize
+  )
+  const explicitRowsWithNames = parseGridTrackListWithLineNames(
+    resolvedRowValue,
+    baseFontSize
+  )
 
   return {
-    explicitColumnTracks: parseGridTrackList(resolvedColumnValue, baseFontSize),
-    explicitRowTracks: parseGridTrackList(resolvedRowValue, baseFontSize),
+    explicitColumnTracks: explicitColumnsWithNames.tracks,
+    explicitRowTracks: explicitRowsWithNames.tracks,
+    explicitColumnLineNames: explicitColumnsWithNames.namedLines,
+    explicitRowLineNames: explicitRowsWithNames.namedLines,
     autoColumnTracks: parseTrackListFromStyle(
       style,
       GRID_AUTO_COLUMN_KEYS,
@@ -1290,7 +1388,9 @@ function resolveGridItemPlacements(
   childStyle: Record<string, unknown> | undefined,
   explicitRowTrackCount: number,
   explicitColumnTrackCount: number,
-  templateAreaPlacements: Map<string, GridTemplateAreaPlacement>
+  templateAreaPlacements: Map<string, GridTemplateAreaPlacement>,
+  explicitRowLineNames: NamedGridLineMap,
+  explicitColumnLineNames: NamedGridLineMap
 ): { row: AxisPlacement; column: AxisPlacement } {
   const hasExplicitRowPlacement =
     hasStyleValue(childStyle, GRID_ROW_SHORTHAND_KEYS) ||
@@ -1305,13 +1405,15 @@ function resolveGridItemPlacements(
     resolveStyleValue(childStyle, GRID_ROW_SHORTHAND_KEYS),
     resolveStyleValue(childStyle, GRID_ROW_START_KEYS),
     resolveStyleValue(childStyle, GRID_ROW_END_KEYS),
-    explicitRowTrackCount
+    explicitRowTrackCount,
+    explicitRowLineNames
   )
   let column = parseGridAxisPlacement(
     resolveStyleValue(childStyle, GRID_COLUMN_SHORTHAND_KEYS),
     resolveStyleValue(childStyle, GRID_COLUMN_START_KEYS),
     resolveStyleValue(childStyle, GRID_COLUMN_END_KEYS),
-    explicitColumnTrackCount
+    explicitColumnTrackCount,
+    explicitColumnLineNames
   )
 
   const gridAreaValue = resolveStyleValue(childStyle, GRID_AREA_KEYS)
@@ -1349,7 +1451,9 @@ function buildGridItemDescriptors(
   getTwStyles: TwStyleResolver,
   explicitRowTrackCount: number,
   explicitColumnTrackCount: number,
-  templateAreaPlacements: Map<string, GridTemplateAreaPlacement>
+  templateAreaPlacements: Map<string, GridTemplateAreaPlacement>,
+  explicitRowLineNames: NamedGridLineMap,
+  explicitColumnLineNames: NamedGridLineMap
 ): GridItemDescriptor[] {
   return children.map((child) => {
     const childStyle = resolveGridItemStyle(child, getTwStyles)
@@ -1357,7 +1461,9 @@ function buildGridItemDescriptors(
       childStyle,
       explicitRowTrackCount,
       explicitColumnTrackCount,
-      templateAreaPlacements
+      templateAreaPlacements,
+      explicitRowLineNames,
+      explicitColumnLineNames
     )
     return {
       child,
@@ -1403,6 +1509,8 @@ export function convertGridElement(
   const {
     explicitColumnTracks,
     explicitRowTracks,
+    explicitColumnLineNames,
+    explicitRowLineNames,
     autoColumnTracks,
     autoRowTracks,
   } = resolveGridTrackCollections(style, baseFontSize)
@@ -1433,7 +1541,9 @@ export function convertGridElement(
     getTwStyles,
     explicitRowCount,
     explicitColumnCount,
-    templateAreaPlacements
+    templateAreaPlacements,
+    explicitRowLineNames,
+    explicitColumnLineNames
   )
 
   const placement = placeGridItems(

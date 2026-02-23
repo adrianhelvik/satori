@@ -115,6 +115,36 @@ describe('grid layout utils', () => {
     })
   })
 
+  it('resolves named line placement tokens for columns', () => {
+    const namedLines = { center: [2], right: [3] }
+    const placement = parseGridAxisPlacement(
+      undefined,
+      'center',
+      'right',
+      2,
+      namedLines
+    )
+    expect(placement).toEqual({
+      start: 1,
+      span: 2,
+    })
+  })
+
+  it('supports span syntax with named lines and numeric line fallback', () => {
+    const namedLines = { c2: [2] }
+    const placement = parseGridAxisPlacement(
+      undefined,
+      'c2',
+      'span 2',
+      3,
+      namedLines
+    )
+    expect(placement).toEqual({
+      start: 1,
+      span: 2,
+    })
+  })
+
   it('parses quoted grid-template-areas rows', () => {
     const rows = parseGridTemplateAreas(
       '"header header" "sidebar content" "footer footer"'

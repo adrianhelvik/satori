@@ -16,10 +16,20 @@ function parsePositiveIntegerToken(token: string): number | undefined {
   return parsed
 }
 
-function parseGridLineToken(token: string | undefined): {
+function parseGridLineToken(
+  token: string | undefined,
+  namedLines?: Record<string, number[]>
+): {
   line?: number
   span?: number
 } {
+  return parseGridLineTokenWithNamedLines(token, namedLines)
+}
+
+function parseGridLineTokenWithNamedLines(
+  token: string | undefined,
+  namedLines?: Record<string, number[]>
+): { line?: number; span?: number } {
   if (!token) return {}
   const normalized = token.trim().toLowerCase()
   if (!normalized || normalized === 'auto') return {}
@@ -34,6 +44,11 @@ function parseGridLineToken(token: string | undefined): {
   const line = parseIntegerToken(normalized)
   if (typeof line === 'number' && line !== 0) {
     return { line }
+  }
+
+  const explicitLine = namedLines?.[normalized]
+  if (explicitLine?.length) {
+    return { line: explicitLine[0] }
   }
 
   return {}
@@ -72,18 +87,21 @@ export function parseGridAxisPlacement(
   shorthandValue: unknown,
   explicitStart: unknown,
   explicitEnd: unknown,
-  explicitTrackCount = 1
+  explicitTrackCount = 1,
+  namedLines?: Record<string, number[]>
 ): GridAxisPlacement {
   const parsedPair = parsePlacementPair(shorthandValue)
   const startToken = parseGridLineToken(
     typeof explicitStart === 'string' || typeof explicitStart === 'number'
       ? String(explicitStart)
-      : parsedPair.start
+      : parsedPair.start,
+    namedLines
   )
   const endToken = parseGridLineToken(
     typeof explicitEnd === 'string' || typeof explicitEnd === 'number'
       ? String(explicitEnd)
-      : parsedPair.end
+      : parsedPair.end,
+    namedLines
   )
 
   let startLine = resolveGridLineIndexFromToken(
