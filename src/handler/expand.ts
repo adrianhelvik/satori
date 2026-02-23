@@ -1024,7 +1024,7 @@ function getCurrentColor(
   inheritedColor: string
 ): string {
   if (color && color.toLowerCase() !== 'currentcolor') {
-    return refineHSL(color)
+    return refineHSL(resolveColorMixFunctions(color))
   }
 
   return refineHSL(inheritedColor)

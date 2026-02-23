@@ -120,7 +120,21 @@ function oklchToRgb(
   ]
 }
 
-function interpolateHueShortest(from: number, to: number, t: number): number {
+function interpolateHueShortest(
+  from: number,
+  to: number,
+  t: number,
+  fromChroma: number,
+  toChroma: number
+): number {
+  const EPSILON = 1e-7
+  if (toChroma < EPSILON) {
+    return from
+  }
+  if (fromChroma < EPSILON) {
+    return to
+  }
+
   const normalizedFrom = from % 360
   const normalizedTo = to % 360
   const diff = ((normalizedTo - normalizedFrom + 540) % 360) - 180
@@ -300,7 +314,13 @@ function evaluateColorMixFunction(expression: string): string {
     const mixedOklch: [number, number, number] = [
       leftOklch[0] * leftWeight + rightOklch[0] * rightWeight,
       leftOklch[1] * leftWeight + rightOklch[1] * rightWeight,
-      interpolateHueShortest(leftOklch[2], rightOklch[2], rightWeight),
+      interpolateHueShortest(
+        leftOklch[2],
+        rightOklch[2],
+        rightWeight,
+        leftOklch[1],
+        rightOklch[1]
+      ),
     ]
     const mixedRgb = oklchToRgb(...mixedOklch)
     ;[r, g, b] = mixedRgb.map((value) => Math.round(value))
