@@ -645,4 +645,65 @@ describe('SVG', () => {
     expect(embeddedSVG).not.toContain('marker-start="url(#arrow-b)"')
     expect(embeddedSVG).not.toContain('marker-end="url(#arrow-a)"')
   })
+
+  it('should preserve currentColor inside marker definitions', async () => {
+    const svg = await satori(
+      <div
+        style={{
+          width: '100%',
+          height: '100%',
+          background: '#fff',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        <svg
+          width='220'
+          height='80'
+          viewBox='0 0 220 80'
+          xmlns='http://www.w3.org/2000/svg'
+          style={{
+            color: 'red',
+          }}
+        >
+          <defs>
+            <marker
+              id='arrow'
+              viewBox='0 0 10 10'
+              refX='8'
+              refY='5'
+              markerWidth='6'
+              markerHeight='6'
+              orient='auto'
+            >
+              <path d='M0,0 L10,5 L0,10 L2,5 z' fill='currentColor' />
+            </marker>
+          </defs>
+          <line
+            x1='20'
+            y1='40'
+            x2='200'
+            y2='40'
+            stroke='currentColor'
+            strokeWidth='4'
+            markerStart='url(#arrow)'
+            markerEnd='url(#arrow)'
+          />
+        </svg>
+      </div>,
+      { width: 220, height: 80, fonts }
+    )
+
+    const embeddedSVG = decodeURIComponent(
+      svg.match(/data:image\/svg\+xml;utf8,([^"]+)/)?.[1] || ''
+    )
+
+    expect(embeddedSVG).toContain('stroke="red"')
+    expect(embeddedSVG).toMatch(
+      /fill="(?:red|#ff0000|#f00|rgb\(255,\s*0,\s*0\))"/
+    )
+    expect(embeddedSVG).toContain('marker-start="url(#arrow)"')
+    expect(embeddedSVG).toContain('marker-end="url(#arrow)"')
+  })
 })
