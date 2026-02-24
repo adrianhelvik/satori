@@ -216,6 +216,8 @@ body {
   height: ${height}px;
   overflow: hidden;
   background: transparent;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: geometricPrecision;
   ${escapedDefaultFontFamily ? `font-family: ${escapedDefaultFontFamily};` : ''}
 }
 ${BROWSER_PRESET_CSS}
@@ -250,15 +252,35 @@ async function applyBrowserCaptureNormalizations(
   })
 }
 
-function satoriPngFromSvg(svg: string, width: number): Buffer {
+function satoriPngFromSvg(
+  svg: string,
+  width: number,
+  fonts: any[] = []
+): Buffer {
+  const fontFiles = fonts.map((font) => {
+    if (!font?.data) return null
+
+    if (Buffer.isBuffer(font.data)) return font.data
+
+    if (font.data instanceof Uint8Array) return Buffer.from(font.data)
+    if (font.data instanceof ArrayBuffer) return Buffer.from(font.data)
+
+    if (ArrayBuffer.isView(font.data)) return Buffer.from(font.data.buffer)
+
+    return null
+  })
+
+  const defaultFontFamily =
+    fonts[0]?.name?.toString().trim() || 'Playfair Display'
+
   const resvg = new Resvg(svg, {
     fitTo: { mode: 'width', value: width },
     font: {
-      fontFiles: [
-        join(process.cwd(), 'test', 'assets', 'playfair-display.ttf'),
-      ],
+      fontFiles: fontFiles.filter((font) => font !== null) as
+        | Buffer[]
+        | undefined,
       loadSystemFonts: false,
-      defaultFontFamily: 'Playfair Display',
+      defaultFontFamily,
     },
   })
   return Buffer.from(resvg.render().asPng())
@@ -349,7 +371,7 @@ afterEach(async (ctx) => {
       })
 
       // Satori PNG
-      const satoriPng = satoriPngFromSvg(svg, w)
+      const satoriPng = satoriPngFromSvg(svg, w, options.fonts || [])
 
       // Decode both PNGs
       const browserImg = PNG.sync.read(Buffer.from(browserPng))

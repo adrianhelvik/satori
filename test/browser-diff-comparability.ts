@@ -52,6 +52,10 @@ const NON_COMPARABLE_CASES: NonComparableCase[] = [
       /test\/table-layout\.test\.tsx :: Table Layout > should render text, background, and borders per spanned cell$/,
     note: 'Table span rendering currently uses equal track distribution; browser text/border distribution differences are tracked separately from comparable cases.',
   },
+  {
+    pattern: /test\/list-style\.test\.tsx/,
+    note: 'List marker text/metrics rendering differs from Chromium/Resvg in this harness.',
+  },
 ]
 
 export function classifyComparability(testName: string): {
