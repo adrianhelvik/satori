@@ -619,16 +619,12 @@ const complexSpecialCaseHandlers: Record<string, ComplexSpecialCaseHandler> = {
   placeItems: (value) => {
     const { first } = parsePlaceShorthandValues(value)
     if (!first) return {}
-    return {
-      alignItems: first,
-    }
+    return { alignItems: first }
   },
   placeSelf: (value) => {
     const { first } = parsePlaceShorthandValues(value)
     if (!first) return {}
-    return {
-      alignSelf: first,
-    }
+    return { alignSelf: first }
   },
   justifyItems: () => ({}),
   justifySelf: () => ({}),

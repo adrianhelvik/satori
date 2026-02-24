@@ -546,7 +546,11 @@ export default async function* layout(
     iterators.push({ iter, orderIndex, zIndex, renderMeta })
   }
   const isParentBlockLike = !isInlineLikeDisplay(computedStyle.display)
-  if (!hasExplicitFlexDirection && isParentBlockLike) {
+  if (
+    !hasExplicitFlexDirection &&
+    isParentBlockLike &&
+    normalizeDisplayValue(computedStyle.display) !== 'flex'
+  ) {
     const blockChildren = iterators
       .map(({ renderMeta }) => renderMeta)
       .filter(

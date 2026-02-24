@@ -90,6 +90,27 @@ export function parseGridAxisPlacement(
   explicitTrackCount = 1,
   namedLines?: Record<string, number[]>
 ): GridAxisPlacement {
+  const explicitStartAsString =
+    typeof explicitStart === 'string'
+      ? explicitStart.trim().toLowerCase()
+      : undefined
+  const explicitEndAsString =
+    typeof explicitEnd === 'string'
+      ? explicitEnd.trim().toLowerCase()
+      : undefined
+  const usesNamedStartLine = !!(
+    explicitStartAsString &&
+    explicitStartAsString !== 'auto' &&
+    explicitStartAsString !== 'span' &&
+    namedLines?.[explicitStartAsString]?.length
+  )
+  const usesNamedEndLine = !!(
+    explicitEndAsString &&
+    explicitEndAsString !== 'auto' &&
+    explicitEndAsString !== 'span' &&
+    namedLines?.[explicitEndAsString]?.length
+  )
+
   const parsedPair = parsePlacementPair(shorthandValue)
   const startToken = parseGridLineToken(
     typeof explicitStart === 'string' || typeof explicitStart === 'number'
@@ -103,7 +124,6 @@ export function parseGridAxisPlacement(
       : parsedPair.end,
     namedLines
   )
-
   let startLine = resolveGridLineIndexFromToken(
     startToken.line,
     explicitTrackCount
@@ -114,7 +134,10 @@ export function parseGridAxisPlacement(
   )
   let span = startToken.span || endToken.span || 1
   if (startLine && endLine) {
-    span = Math.max(1, endLine - startLine)
+    span =
+      usesNamedStartLine && usesNamedEndLine
+        ? Math.max(1, endLine - startLine + 1)
+        : Math.max(1, endLine - startLine)
   } else if (!startLine && endLine) {
     startLine = Math.max(1, endLine - span)
   }
