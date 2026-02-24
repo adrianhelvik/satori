@@ -25,6 +25,7 @@ import { isTransformInput, type TransformInput } from './builder/transform.js'
 import rect, { type BlendPrimitive } from './builder/rect.js'
 import { Locale, normalizeLocale } from './language.js'
 import type { SerializedStyle } from './handler/style-types.js'
+import { resolveElementStyle } from './element-style.js'
 import {
   getListMarkerText,
   isOrderedListMarkerType,
@@ -49,7 +50,6 @@ import {
 } from './layout-protocol.js'
 import cssColorParse from 'parse-css-color'
 import { parseFiniteNumber } from './style-number.js'
-import { resolveElementStyle } from './element-style.js'
 import { convertTableElement } from './table-layout.js'
 import { convertGridElement } from './grid-layout.js'
 import {
@@ -112,6 +112,17 @@ interface ChildSortMeta {
   order: number
   zIndex: number
   originalIndex: number
+}
+
+function isInlineLikeDisplay(value: unknown): boolean {
+  const normalized = normalizeDisplayValue(value)
+  return (
+    normalized === 'inline' ||
+    normalized === 'inline-block' ||
+    normalized === 'inline-flex' ||
+    normalized === 'inline-grid' ||
+    normalized === 'inline-table'
+  )
 }
 
 function resolveBlendPrimitive(
@@ -331,6 +342,10 @@ export default async function* layout(
     style && typeof style === 'object'
       ? (style as Record<string, unknown>)
       : undefined
+  const hasExplicitFlexDirection = Boolean(
+    styleObject &&
+      Object.prototype.hasOwnProperty.call(styleObject, 'flexDirection')
+  )
   const isFixedElement = isFixedPositionStyle(styleObject)
   const hasAncestorFixedContainingBlock =
     isFixedElement && createsFixedContainingBlock(inheritedStyle)
@@ -461,6 +476,7 @@ export default async function* layout(
       getChildSortMeta(child, originalIndex, getTwStyles)
     )
     .sort((a, b) => a.order - b.order || a.originalIndex - b.originalIndex)
+
   const iterators: {
     iter: ReturnType<typeof layout>
     orderIndex: number
@@ -528,6 +544,69 @@ export default async function* layout(
       segmentsMissingFont.push(...childMissingFonts)
     }
     iterators.push({ iter, orderIndex, zIndex, renderMeta })
+  }
+  const isParentBlockLike = !isInlineLikeDisplay(computedStyle.display)
+  if (!hasExplicitFlexDirection && isParentBlockLike) {
+    const blockChildren = iterators
+      .map(({ renderMeta }) => renderMeta)
+      .filter(
+        (renderMeta): renderMeta is ChildRenderMeta =>
+          typeof renderMeta.style?.display === 'string' &&
+          !isInlineLikeDisplay(renderMeta.style.display)
+      )
+
+    if (blockChildren.length === iterators.length && blockChildren.length > 0) {
+      node.setFlexDirection(Yoga.FLEX_DIRECTION_COLUMN)
+
+      const firstChild = blockChildren[0]
+      const firstChildStyle = firstChild.style as SerializedStyle
+      const firstChildTopMargin = parseFiniteNumber(
+        firstChildStyle?.marginTop,
+        0
+      )
+      const parentVerticalPadding =
+        parseFiniteNumber(computedStyle.paddingTop, 0) +
+        parseFiniteNumber(computedStyle.paddingBottom, 0)
+      const parentVerticalBorders =
+        parseFiniteNumber(computedStyle.borderTopWidth, 0) +
+        parseFiniteNumber(computedStyle.borderBottomWidth, 0)
+      const parentOwnTopMargin = parseFiniteNumber(computedStyle.marginTop, 0)
+
+      if (
+        firstChildTopMargin > 0 &&
+        parentVerticalPadding === 0 &&
+        parentVerticalBorders === 0 &&
+        parentOwnTopMargin === 0
+      ) {
+        node.setMargin(Yoga.EDGE_TOP, firstChildTopMargin)
+        firstChild.node?.setMargin(Yoga.EDGE_TOP, 0)
+        computedStyle.marginTop = firstChildTopMargin
+        if (firstChildStyle) firstChildStyle.marginTop = 0
+      }
+
+      for (
+        let childIndex = 1;
+        childIndex < blockChildren.length;
+        childIndex++
+      ) {
+        const prev = blockChildren[childIndex - 1]
+        const current = blockChildren[childIndex]
+        const prevMarginBottom = parseFiniteNumber(prev.style?.marginBottom, 0)
+        const currentMarginTop = parseFiniteNumber(current.style?.marginTop, 0)
+        const collapsedMargin = Math.max(prevMarginBottom, currentMarginTop)
+
+        if (prev.node) {
+          prev.node.setMargin(Yoga.EDGE_BOTTOM, 0)
+          if (prev.style) prev.style.marginBottom = 0
+        }
+        if (current.node) {
+          current.node.setMargin(Yoga.EDGE_TOP, collapsedMargin)
+        }
+        if (current.style) {
+          current.style.marginTop = collapsedMargin
+        }
+      }
+    }
   }
   yield createMissingFontsPhase(segmentsMissingFont)
   for (const { iter, orderIndex } of iterators) {

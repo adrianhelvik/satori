@@ -298,6 +298,9 @@ export default async function compute(
 
   // Set properties for Yoga.
   const normalizedDisplay = normalizeDisplayValue(style.display)
+  const isInlineDisplay = normalizedDisplay === 'inline'
+  const isInlineLikeDisplay =
+    normalizedDisplay === 'inline' || normalizedDisplay === 'inline-block'
   const display = v(
     normalizedDisplay || undefined,
     DISPLAY_VALUE_TO_CANONICAL,
@@ -359,6 +362,14 @@ export default async function compute(
       'alignItems'
     )
   )
+  if (isInlineDisplay) {
+    style.width = undefined
+    style.height = undefined
+    style.alignSelf = 'flex-start'
+  }
+  if (isInlineLikeDisplay && !style.alignSelf) {
+    style.alignSelf = 'flex-start'
+  }
 
   const alignSelfValue = normalizeBoxAlignmentValue(
     style.alignSelf,
