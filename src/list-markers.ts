@@ -99,7 +99,8 @@ export function buildListItemChildren(
   children: ReactNode,
   marker: { text: string | null; image: string | null; position: string },
   fontSize: number,
-  markerTextWidth?: number
+  markerTextWidth?: number,
+  isDisplayListItem = false
 ): { children: ReactNode[]; requiresRelativePosition: boolean } {
   const markerGap = Math.max(4, Math.round(fontSize * 0.25))
   const markerBoxWidth =
@@ -117,7 +118,7 @@ export function buildListItemChildren(
   const isOutsideMarker = marker.position !== 'inside'
   const markerWrapper: Record<string, string | number> = isOutsideMarker
     ? {
-        display: 'flex',
+        display: 'inline-flex',
         position: 'absolute',
         left: -((markerBoxWidth || markerSize) + markerGap),
         top: 0,
@@ -127,7 +128,7 @@ export function buildListItemChildren(
         flexShrink: 0,
       }
     : {
-        display: 'flex',
+        display: 'inline-flex',
         flexShrink: 0,
         marginRight: markerGap,
         justifyContent: 'flex-start',
@@ -162,7 +163,7 @@ export function buildListItemChildren(
     {
       key: '__satori-list-content',
       style: {
-        display: 'flex',
+        display: 'inline-flex',
         flexDirection: 'column',
         flexGrow: 1,
         minWidth: 0,
