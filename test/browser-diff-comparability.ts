@@ -85,10 +85,6 @@ const NON_COMPARABLE_CASES: NonComparableCase[] = [
     note: 'Browser-diff parity differs in this file in the current harness.',
   },
   {
-    pattern: /test\/gradient\.test\.tsx/,
-    note: 'Browser-diff parity differs in this file in the current harness.',
-  },
-  {
     pattern: /test\/grid-layout\.test\.tsx/,
     note: 'Browser-diff parity differs in this file in the current harness.',
   },
@@ -100,10 +96,6 @@ const NON_COMPARABLE_CASES: NonComparableCase[] = [
     pattern:
       /test\/image\.test\.tsx :: Image > should support ArrayBuffer as src$/,
     note: 'ArrayBuffer src is a Satori-only runtime input and cannot be represented in static browser HTML.',
-  },
-  {
-    pattern: /test\/image\.test\.tsx/,
-    note: 'Browser-diff parity differs in this file in the current harness.',
   },
   {
     pattern: /test\/interaction-pass-through\.test\.tsx/,
@@ -267,6 +259,21 @@ const NON_COMPARABLE_CASES: NonComparableCase[] = [
     pattern:
       /test\/image\.test\.tsx :: Image > should not throw when image is not valid$/,
     note: 'Error fallback rendering differs between Chromium and resvg in this environment.',
+  },
+  {
+    pattern:
+      /test\/gradient\.test\.tsx :: repeating-linear-gradient > should compute correct cycle$/,
+    note: 'Repeating-linear gradient cycle length calculation differs from Chromium in this harness.',
+  },
+  {
+    pattern:
+      /test\/gradient\.test\.tsx :: repeating-linear-gradient > should support repeating-linear-gradient$/,
+    note: 'Repeating-linear gradient color-stop wrapping differs from Chromium in this harness.',
+  },
+  {
+    pattern:
+      /test\/gradient\.test\.tsx :: repeating-radial-gradient > should support repeating-radial-gradient$/,
+    note: 'Repeating-radial gradient rendering differs from Chromium in this harness.',
   },
   {
     pattern: /test\/word-break\.test\.tsx/,
