@@ -106,10 +106,6 @@ const NON_COMPARABLE_CASES: NonComparableCase[] = [
     note: 'Browser-diff parity differs in this file in the current harness.',
   },
   {
-    pattern: /test\/layout-extras\.test\.tsx/,
-    note: 'Browser-diff parity differs in this file in the current harness.',
-  },
-  {
     pattern: /test\/layout-parity-gaps\.test\.tsx/,
     note: 'Browser-diff parity differs in this file in the current harness.',
   },
