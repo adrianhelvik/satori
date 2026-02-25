@@ -13,6 +13,21 @@ const NON_COMPARABLE_CASES: NonComparableCase[] = [
     note: 'Browser-diff parity differs in this file in the current harness.',
   },
   {
+    pattern:
+      /test\/clip-path\.test\.tsx :: clipPath > should render clip-path$/,
+    note: 'Clip-path geometry serialization differs from Chromium in this harness.',
+  },
+  {
+    pattern:
+      /test\/clip-path\.test\.tsx :: clipPath > should make clip-path compatible with overflow$/,
+    note: 'Clip-path overflow interaction differs from Chromium in this harness.',
+  },
+  {
+    pattern:
+      /test\/clip-path\.test\.tsx :: clipPath > should respect the position value$/,
+    note: 'Clip-path position resolution differs from Chromium in this harness.',
+  },
+  {
     pattern: /test\/background-position-axis\.test\.tsx/,
     note: 'Browser-diff parity differs in this file in the current harness.',
   },
@@ -38,10 +53,6 @@ const NON_COMPARABLE_CASES: NonComparableCase[] = [
   },
   {
     pattern: /test\/box-sizing\.test\.tsx/,
-    note: 'Browser-diff parity differs in this file in the current harness.',
-  },
-  {
-    pattern: /test\/clip-path\.test\.tsx/,
     note: 'Browser-diff parity differs in this file in the current harness.',
   },
   {
