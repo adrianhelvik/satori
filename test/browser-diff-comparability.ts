@@ -9,10 +9,6 @@ const COMPARABLE_EXCEPTIONS: RegExp[] = [
 
 const NON_COMPARABLE_CASES: NonComparableCase[] = [
   {
-    pattern: /test\/all-property\.test\.tsx/,
-    note: 'Browser-diff parity differs in this file in the current harness.',
-  },
-  {
     pattern: /test\/background-clip\.test\.tsx/,
     note: 'Browser-diff parity differs in this file in the current harness.',
   },
@@ -70,10 +66,6 @@ const NON_COMPARABLE_CASES: NonComparableCase[] = [
   },
   {
     pattern: /test\/error\.test\.tsx/,
-    note: 'Browser-diff parity differs in this file in the current harness.',
-  },
-  {
-    pattern: /test\/event\.test\.tsx/,
     note: 'Browser-diff parity differs in this file in the current harness.',
   },
   {
@@ -238,10 +230,6 @@ const NON_COMPARABLE_CASES: NonComparableCase[] = [
     note: 'Browser-diff parity differs in this file in the current harness.',
   },
   {
-    pattern: /test\/transform\.test\.tsx/,
-    note: 'Browser-diff parity differs in this file in the current harness.',
-  },
-  {
     pattern: /test\/typesetting\.test\.tsx/,
     note: 'Browser-diff parity differs in this file in the current harness.',
   },
@@ -255,10 +243,6 @@ const NON_COMPARABLE_CASES: NonComparableCase[] = [
   },
   {
     pattern: /test\/visibility\.test\.tsx/,
-    note: 'Browser-diff parity differs in this file in the current harness.',
-  },
-  {
-    pattern: /test\/visual-extras\.test\.tsx/,
     note: 'Browser-diff parity differs in this file in the current harness.',
   },
   {
@@ -296,6 +280,26 @@ const NON_COMPARABLE_CASES: NonComparableCase[] = [
     pattern:
       /test\/image\.test\.tsx :: background-image: url\(\) > should handle charset=utf-8 with comma in data$/,
     note: 'Data URI charset image parsing and rasterization differs between Chromium and resvg in this environment.',
+  },
+  {
+    pattern:
+      /test\/all-property\.test\.tsx :: all property > should treat all: unset as inherit for inherited text properties$/,
+    note: 'This inherited all:unset text behavior remains browser-harmonic only under edge conditions.',
+  },
+  {
+    pattern:
+      /test\/event\.test\.tsx :: Event > should trigger the onNodeDetected callback$/,
+    note: 'Event callback observability differs in test harness callback capture order.',
+  },
+  {
+    pattern:
+      /test\/transform\.test\.tsx :: rotate > should rotate text with overflow$/,
+    note: 'Sub-pixel transform rasterization differs from Chromium in this harness.',
+  },
+  {
+    pattern:
+      /test\/visual-extras\.test\.tsx :: image-orientation > should pass image-orientation through to img rendering$/,
+    note: 'Minor rasterization differences for image-orientation serialization in this environment.',
   },
   {
     pattern:
