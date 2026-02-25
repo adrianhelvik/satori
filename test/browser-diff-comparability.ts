@@ -178,10 +178,6 @@ const NON_COMPARABLE_CASES: NonComparableCase[] = [
     note: 'Browser-diff parity differs in this file in the current harness.',
   },
   {
-    pattern: /test\/react\.test\.tsx/,
-    note: 'Browser-diff parity differs in this file in the current harness.',
-  },
-  {
     pattern: /test\/shadow\.test\.tsx/,
     note: 'Browser-diff parity differs in this file in the current harness.',
   },
@@ -285,6 +281,11 @@ const NON_COMPARABLE_CASES: NonComparableCase[] = [
     pattern:
       /test\/all-property\.test\.tsx :: all property > should treat all: unset as inherit for inherited text properties$/,
     note: 'This inherited all:unset text behavior remains browser-harmonic only under edge conditions.',
+  },
+  {
+    pattern:
+      /test\/react\.test\.tsx :: React APIs > should support `forwardRef` wrapped components$/,
+    note: 'Subtle callback boundary serialization differs under harness comparison.',
   },
   {
     pattern:
