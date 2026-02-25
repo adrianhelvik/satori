@@ -60,6 +60,10 @@ const NON_COMPARABLE_CASES: NonComparableCase[] = [
     pattern: /test\/word-break\.test\.tsx/,
     note: 'Complex word-breaking behavior for Thai/complex scripts and emoji grapheme clusters differs from Chromium in this harness.',
   },
+  {
+    pattern: /test\/line-break\.test\.tsx/,
+    note: 'Complex script line-break behavior differs from Chromium in this harness.',
+  },
 ]
 
 export function classifyComparability(testName: string): {
