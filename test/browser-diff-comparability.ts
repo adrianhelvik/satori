@@ -141,11 +141,12 @@ const NON_COMPARABLE_CASES: NonComparableCase[] = [
     note: 'List marker text/metrics rendering differs from Chromium/Resvg in this harness.',
   },
   {
-    pattern: /test\/logical-properties\.test\.tsx/,
-    note: 'Browser-diff parity differs in this file in the current harness.',
+    pattern:
+      /test\/mask-image\.test\.tsx :: Mask-\* > should support mask-image on text$/,
+    note: 'Mask-image text behavior differs from Chromium in this harness.',
   },
   {
-    pattern: /test\/mask-image\.test\.tsx/,
+    pattern: /test\/logical-properties\.test\.tsx/,
     note: 'Browser-diff parity differs in this file in the current harness.',
   },
   {
