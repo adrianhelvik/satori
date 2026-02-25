@@ -22,6 +22,12 @@ interface DiffResult {
   comparabilityNote?: string
 }
 
+type ReactLikeElement = {
+  type: any
+  props?: Record<string, any>
+  children?: any
+}
+
 declare global {
   // eslint-disable-next-line no-var
   var __satoriCaptures: Array<{ element: any; options: any; svg: string }>
@@ -174,6 +180,90 @@ function slugify(name: string): string {
     .replace(/(^-|-$)/g, '')
   const hash = createHash('sha1').update(name).digest('hex').slice(0, 10)
   return `${normalized.slice(0, 64)}-${hash}`
+}
+
+function isArrayBufferLike(
+  value: unknown
+): value is ArrayBuffer | ArrayBufferView {
+  return value instanceof ArrayBuffer || ArrayBuffer.isView(value)
+}
+
+function toDataUri(value: ArrayBuffer | ArrayBufferView): string {
+  const bytes =
+    value instanceof ArrayBuffer
+      ? new Uint8Array(value)
+      : new Uint8Array(value.buffer, value.byteOffset, value.byteLength)
+
+  if (bytes.length >= 8) {
+    if (
+      bytes[0] === 0x89 &&
+      bytes[1] === 0x50 &&
+      bytes[2] === 0x4e &&
+      bytes[3] === 0x47
+    ) {
+      return `data:image/png;base64,${Buffer.from(bytes).toString('base64')}`
+    }
+
+    if (bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) {
+      return `data:image/jpeg;base64,${Buffer.from(bytes).toString('base64')}`
+    }
+
+    if (bytes[0] === 0x47 && bytes[1] === 0x49 && bytes[2] === 0x46) {
+      return `data:image/gif;base64,${Buffer.from(bytes).toString('base64')}`
+    }
+  }
+
+  return `data:application/octet-stream;base64,${Buffer.from(bytes).toString(
+    'base64'
+  )}`
+}
+
+function normalizeAssetProps(
+  node: Record<string, unknown>
+): Record<string, unknown> {
+  if (!node) return node
+
+  const normalized: Record<string, unknown> = { ...node }
+
+  if (isArrayBufferLike(normalized.src)) {
+    normalized.src = toDataUri(normalized.src as ArrayBuffer | ArrayBufferView)
+  }
+
+  if (normalized.children) {
+    normalized.children = normalizeBrowserNodes(normalized.children)
+  }
+
+  if (normalized.style && typeof normalized.style === 'object') {
+    normalized.style = {
+      ...(normalized.style as Record<string, unknown>),
+    }
+  }
+
+  return normalized
+}
+
+function normalizeBrowserNodes(node: unknown): unknown {
+  if (Array.isArray(node)) {
+    return node.map((item) => normalizeBrowserNodes(item))
+  }
+
+  if (
+    node &&
+    typeof node === 'object' &&
+    typeof (node as ReactLikeElement).type !== 'undefined'
+  ) {
+    const element = node as ReactLikeElement
+    const props = element.props
+      ? normalizeAssetProps(element.props as Record<string, unknown>)
+      : element.props
+
+    return {
+      ...element,
+      props,
+    }
+  }
+
+  return node
 }
 
 function fontsToFontFaceRules(fonts: any[]): string {
@@ -346,7 +436,7 @@ afterEach(async (ctx) => {
 
     try {
       // Render element to HTML
-      const html = renderToStaticMarkup(element)
+      const html = renderToStaticMarkup(normalizeBrowserNodes(element))
       const fontFaceRules = fontsToFontFaceRules(options.fonts || [])
       const defaultFontFamily =
         Array.isArray(options.fonts) && options.fonts[0]?.name

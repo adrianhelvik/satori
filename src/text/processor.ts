@@ -143,9 +143,7 @@ function processWordBreak(
   const normalizedLineBreak =
     typeof lineBreak === 'string' ? lineBreak.trim().toLowerCase() : 'auto'
   const effectiveWordBreak =
-    normalizedLineBreak === 'anywhere' && normalizedWordBreak !== 'break-all'
-      ? 'break-all'
-      : normalizedWordBreak
+    normalizedLineBreak === 'anywhere' ? 'break-all' : normalizedWordBreak
 
   const allowBreakWord =
     ['break-all', 'break-word'].includes(effectiveWordBreak) ||
@@ -160,6 +158,7 @@ function processWordBreak(
     effectiveWordBreak,
     locale
   )
+
   applyHyphenateLimitChars(
     words,
     requiredBreaks,
@@ -168,7 +167,12 @@ function processWordBreak(
     locale
   )
 
-  return { words, requiredBreaks, softHyphenBreaks, allowBreakWord }
+  return {
+    words,
+    requiredBreaks,
+    softHyphenBreaks,
+    allowBreakWord,
+  }
 }
 function processWhiteSpace(
   content: string,

@@ -191,7 +191,7 @@ export default async function* buildTextNodes(
 
   // Yield segments that are missing a font.
   const wordsMissingFont = canLoadAdditionalAssets
-    ? segment(processedContent, 'grapheme').filter(
+    ? segment(processedContent, 'grapheme', locale).filter(
         (word) => !shouldSkipWhenFindingMissingFont(word) && !engine.has(word)
       )
     : []
@@ -271,6 +271,7 @@ export default async function* buildTextNodes(
       letterSpacing,
       wordSpacing: wordSpacingValue,
       kerning,
+      locale,
     }
   )
 
@@ -414,7 +415,7 @@ export default async function* buildTextNodes(
 
       if (needToBreakWord) {
         // Break the word into multiple segments and continue the loop.
-        const chars = segment(word, 'grapheme')
+        const chars = segment(word, 'grapheme', locale)
         words.splice(i, 1, ...chars)
         if (currentWidth > 0) {
           // Start a new line, spaces can be ignored.
@@ -487,7 +488,7 @@ export default async function* buildTextNodes(
 
       let x = currentWidth - w
 
-      const graphemes = w === 0 ? [] : segment(word, 'grapheme')
+      const graphemes = w === 0 ? [] : segment(word, 'grapheme', locale)
       if (allowedToJustify && !justifyByCharacter) {
         lineIndex++
       }
@@ -502,7 +503,9 @@ export default async function* buildTextNodes(
           isImage: false,
         })
       } else {
-        const _texts = justifyByCharacter ? graphemes : segment(word, 'word')
+        const _texts = justifyByCharacter
+          ? graphemes
+          : segment(word, 'word', locale)
 
         for (let j = 0; j < _texts.length; j++) {
           const _text = _texts[j]

@@ -427,7 +427,7 @@ export function splitByBreakOpportunities(
 
   if (wordBreak === 'break-all') {
     return {
-      words: segment(content, 'grapheme'),
+      words: segment(content, 'grapheme', locale),
       requiredBreaks: [],
       softHyphenBreaks: [],
     }
@@ -435,7 +435,7 @@ export function splitByBreakOpportunities(
 
   if (wordBreak === 'keep-all') {
     return {
-      words: segment(content, 'word'),
+      words: segment(content, 'word', locale),
       requiredBreaks: [],
       softHyphenBreaks: [],
     }

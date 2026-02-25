@@ -9,6 +9,7 @@ export function genMeasurer(
     letterSpacing: number
     wordSpacing?: number
     kerning?: boolean
+    locale?: string
   }
 ): {
   measureGrapheme: (grapheme: string) => number
@@ -49,7 +50,7 @@ export function genMeasurer(
   }
 
   function measureText(text: string): number {
-    return measureGraphemeArray(segment(text, 'grapheme'))
+    return measureGraphemeArray(segment(text, 'grapheme', style.locale))
   }
 
   return {
