@@ -89,17 +89,21 @@ describe('text-indent helpers', () => {
     })
   })
 
-  it('computes line indentation by line position and forced-break context', () => {
+  it('computes line indentation by line position and modifiers', () => {
     const firstLineOnly = { width: 20, eachLine: false, hanging: false }
-    expect(getLineIndent(0, false, firstLineOnly)).toBe(20)
-    expect(getLineIndent(1, false, firstLineOnly)).toBe(0)
+    expect(getLineIndent(0, firstLineOnly)).toBe(20)
+    expect(getLineIndent(1, firstLineOnly)).toBe(0)
 
     const eachLine = { width: 20, eachLine: true, hanging: false }
-    expect(getLineIndent(1, true, eachLine)).toBe(20)
-    expect(getLineIndent(1, false, eachLine)).toBe(0)
+    expect(getLineIndent(0, eachLine)).toBe(20)
+    expect(getLineIndent(1, eachLine)).toBe(20)
 
     const hanging = { width: 20, eachLine: false, hanging: true }
-    expect(getLineIndent(0, false, hanging)).toBe(0)
-    expect(getLineIndent(1, false, hanging)).toBe(20)
+    expect(getLineIndent(0, hanging)).toBe(0)
+    expect(getLineIndent(1, hanging)).toBe(20)
+
+    const eachLineHanging = { width: 20, eachLine: true, hanging: true }
+    expect(getLineIndent(0, eachLineHanging)).toBe(0)
+    expect(getLineIndent(1, eachLineHanging)).toBe(0)
   })
 })

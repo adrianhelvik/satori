@@ -14,7 +14,7 @@ import {
 } from '../utils.js'
 import { getYoga, TYoga, YogaNode } from '../yoga.js'
 import buildText, { container } from '../builder/text.js'
-import { isTransformInput, type TransformInput } from '../builder/transform.js'
+import { isTransformInput } from '../builder/transform.js'
 import { buildDropShadow } from '../builder/shadow.js'
 import { buildSvgCssFilter } from '../builder/css-filter.js'
 import buildDecoration from '../builder/text-decoration.js'
@@ -360,7 +360,8 @@ export default async function* buildTextNodes(
     texts = []
     wordPositionInLayout = []
 
-    currentWidth = getLineIndent(0, false, textIndentConfig)
+    currentWidth = getLineIndent(0, textIndentConfig)
+    const emptyLineHeight = Math.round(engine.height())
 
     // We naively implement the width calculation without proper kerning.
     // @TODO: Support different writing modes.
@@ -406,7 +407,7 @@ export default async function* buildTextNodes(
       // - we have break-word
       // - the word is wider than the container width
       // - the word will be put at the beginning of the line
-      const currentLineIndent = getLineIndent(lines, false, textIndentConfig)
+      const currentLineIndent = getLineIndent(lines, textIndentConfig)
       const isAtLineStart =
         currentWidth === currentLineIndent || currentWidth === 0
 
@@ -423,7 +424,7 @@ export default async function* buildTextNodes(
           baselines.push(currentBaselineOffset)
           lines++
           height += currentLineHeight
-          currentWidth = getLineIndent(lines, false, textIndentConfig)
+          currentWidth = getLineIndent(lines, textIndentConfig)
           currentLineHeight = 0
           currentBaselineOffset = 0
           lineSegmentNumber.push(justifyByCharacter ? 0 : 1)
@@ -460,9 +461,11 @@ export default async function* buildTextNodes(
         baselines.push(currentBaselineOffset)
         lines++
         height += currentLineHeight
-        const lineIndent = getLineIndent(lines, forceBreak, textIndentConfig)
+        const lineIndent = getLineIndent(lines, textIndentConfig)
         currentWidth = lineIndent + w
-        currentLineHeight = w ? Math.round(engine.height(word)) : 0
+        currentLineHeight = w
+          ? Math.round(engine.height(word))
+          : emptyLineHeight
         currentBaselineOffset = w ? Math.round(engine.baseline(word)) : 0
         lineSegmentNumber.push(justifyByCharacter ? 0 : 1)
         lineIndex = -1

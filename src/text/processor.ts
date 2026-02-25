@@ -147,7 +147,10 @@ function processWordBreak(
 
   const allowBreakWord =
     ['break-all', 'break-word'].includes(effectiveWordBreak) ||
-    ['break-word', 'anywhere'].includes(normalizedOverflowWrap)
+    ['break-word', 'anywhere'].includes(normalizedOverflowWrap) ||
+    (normalizedWordBreak === 'normal' &&
+      !/\s/.test(content) &&
+      /[^\p{ASCII}]/u.test(content))
 
   if (normalizedHyphens === 'none') {
     content = content.replace(/\u00ad/g, '')
@@ -199,7 +202,15 @@ function processWhiteSpace(
   }
 
   if (shouldCollapseTabsAndSpaces) {
-    content = content.replace(/([ ]|\t)+/g, Space).replace(/^[ ]|[ ]$/g, '')
+    const collapseWhitespace = (value: string) =>
+      value.replace(/([ ]|\t)+/g, Space).replace(/^[ ]+|[ ]+$/g, '')
+
+    content = shouldKeepLinebreak
+      ? content
+          .split('\n')
+          .map((line) => collapseWhitespace(line))
+          .join('\n')
+      : collapseWhitespace(content)
   }
 
   return { content, shouldCollapseTabsAndSpaces, allowSoftWrap }

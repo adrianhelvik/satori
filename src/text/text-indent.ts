@@ -107,18 +107,21 @@ export function resolveTextIndentConfig(
 
 export function getLineIndent(
   lineNumber: number,
-  startsAfterForcedBreak: boolean,
   textIndentConfig: TextIndentConfig
 ): number {
   if (!textIndentConfig.width) return 0
 
-  let shouldIndent = lineNumber === 0
-  if (textIndentConfig.eachLine && startsAfterForcedBreak) {
-    shouldIndent = true
-  }
-  if (textIndentConfig.hanging) {
-    shouldIndent = !shouldIndent
+  const isFirstLine = lineNumber === 0
+
+  if (textIndentConfig.eachLine) {
+    return textIndentConfig.hanging ? 0 : textIndentConfig.width
   }
 
-  return shouldIndent ? textIndentConfig.width : 0
+  return textIndentConfig.hanging
+    ? isFirstLine
+      ? 0
+      : textIndentConfig.width
+    : isFirstLine
+    ? textIndentConfig.width
+    : 0
 }

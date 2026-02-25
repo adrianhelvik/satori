@@ -27,10 +27,19 @@ export function initFonts(callback: (fonts: SatoriOptions['fonts']) => void) {
   beforeAll(async () => {
     const fontPath = join(process.cwd(), 'test', 'assets', 'Roboto-Regular.ttf')
     const fontData = await readFile(fontPath)
+    const playfairFontData = await readFile(
+      join(process.cwd(), 'test', 'assets', 'playfair-display.ttf')
+    )
     callback([
       {
         name: 'Roboto',
         data: fontData,
+        weight: 400,
+        style: 'normal',
+      },
+      {
+        name: 'Playfair Display',
+        data: playfairFontData,
         weight: 400,
         style: 'normal',
       },
