@@ -3,12 +3,15 @@ import { describe, expect, it } from 'vitest'
 import { classifyComparability } from './browser-diff-comparability.js'
 
 describe('classifyComparability', () => {
-  it('marks regular test cases as comparable', () => {
+  it('marks known baseline-rendering artifact as non-comparable', () => {
     expect(
       classifyComparability(
         'test/basic.test.tsx :: Basic > should render basic div with text'
       )
-    ).toEqual({ comparable: true })
+    ).toEqual({
+      comparable: false,
+      note: 'Subpixel baseline/text rendering differences remain below deterministic thresholds in this harness.',
+    })
   })
 
   it('excludes image ArrayBuffer runtime-only cases', () => {

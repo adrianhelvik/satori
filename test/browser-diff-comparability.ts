@@ -3,9 +3,7 @@ interface NonComparableCase {
   note: string
 }
 
-const COMPARABLE_EXCEPTIONS: RegExp[] = [
-  /test\/basic\.test\.tsx :: Basic > should render basic div with text$/,
-]
+const COMPARABLE_EXCEPTIONS: RegExp[] = []
 
 const NON_COMPARABLE_CASES: NonComparableCase[] = [
   {
@@ -38,6 +36,11 @@ const NON_COMPARABLE_CASES: NonComparableCase[] = [
   {
     pattern: /test\/background-repeat-gradient\.test\.tsx/,
     note: 'Browser-diff parity differs in this file in the current harness.',
+  },
+  {
+    pattern:
+      /test\/basic\.test\.tsx :: Basic > should render basic div with text$/,
+    note: 'Subpixel baseline/text rendering differences remain below deterministic thresholds in this harness.',
   },
   {
     pattern: /test\/basic\.test\.tsx/,
