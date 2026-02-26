@@ -37,6 +37,10 @@ export function getListMarkerText(
   index: number
 ): string | null {
   const rawType = (type || '').trim()
+  if (rawType.toLowerCase() === 'none') {
+    return null
+  }
+
   const markerString = parseListStyleStringToken(rawType)
   if (typeof markerString === 'string') {
     return markerString

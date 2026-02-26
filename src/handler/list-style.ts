@@ -19,6 +19,9 @@ export function parseListStyleTypeValue(
   if (listStyleTypes.has(normalized)) {
     return normalized
   }
+  if (normalized === 'none') {
+    return 'none'
+  }
 
   const quote = token[0]
   if (
