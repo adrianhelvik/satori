@@ -199,6 +199,8 @@ const simpleSpecialCaseHandlers: Record<string, SimpleSpecialCaseHandler> = {
 
   overflowWrap: (value) => ({ overflowWrap: value }),
   wordWrap: (value) => ({ overflowWrap: value }),
+  hyphens: (value) => ({ hyphens: String(value).trim().toLowerCase() }),
+  hyphenateCharacter: (value) => ({ hyphenateCharacter: String(value).trim() }),
   hyphenateLimitChars: (value) => ({
     hyphenateLimitChars: String(value).trim(),
   }),

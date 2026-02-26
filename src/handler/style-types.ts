@@ -16,6 +16,8 @@ export type MainStyle = {
   textTransform: string
   whiteSpace: string
   wordBreak: string
+  hyphens: string
+  hyphenateCharacter: string
   hyphenateLimitChars: string
   textAlign: string
   textAlignLast: string
