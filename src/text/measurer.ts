@@ -50,7 +50,11 @@ export function genMeasurer(
   }
 
   function measureText(text: string): number {
-    return measureGraphemeArray(segment(text, 'grapheme', style.locale))
+    let width = 0
+    for (const grapheme of segment(text, 'grapheme', style.locale)) {
+      width += isImage(grapheme) ? fontSize : measureGrapheme(grapheme)
+    }
+    return width
   }
 
   return {
