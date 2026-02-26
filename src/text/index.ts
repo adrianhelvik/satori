@@ -182,7 +182,17 @@ export default async function* buildTextNodes(
   parent.insertChild(textContainer, parent.getChildCount())
 
   if (isUndefined(flexShrink) && !hasExplicitWidth(parentStyle.width)) {
-    parent.setFlexShrink(1)
+    // Only allow shrinking along the cross axis (width in column layouts).
+    // In column layouts, shrinking the main axis would collapse the element's
+    // height to zero when siblings overflow the container.
+    const grandparent = parent.getParent()
+    const containerDirection = grandparent?.getFlexDirection()
+    if (
+      containerDirection !== Yoga.FLEX_DIRECTION_COLUMN &&
+      containerDirection !== Yoga.FLEX_DIRECTION_COLUMN_REVERSE
+    ) {
+      parent.setFlexShrink(1)
+    }
   }
 
   // Get the correct font according to the container style.
