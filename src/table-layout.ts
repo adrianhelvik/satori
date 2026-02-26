@@ -209,6 +209,7 @@ function buildTableMatrix(
   rowCount: number
   columnWidths: number[]
   rowHeights: number[]
+  cellGrid: number[][]
 } | null {
   const placements: TableCellPlacement[] = []
   const occupied: boolean[][] = []
@@ -296,13 +297,79 @@ function buildTableMatrix(
     rowCount = Math.max(rowCount, placement.row + placement.rowSpan)
   }
 
+  const cellGrid: number[][] = []
+  for (let index = 0; index < placements.length; index++) {
+    const placement = placements[index]
+    for (
+      let row = placement.row;
+      row < placement.row + placement.rowSpan;
+      row++
+    ) {
+      cellGrid[row] ||= []
+      for (
+        let column = placement.column;
+        column < placement.column + placement.colSpan;
+        column++
+      ) {
+        cellGrid[row][column] = index
+      }
+    }
+  }
+
   return {
     placements,
     columnCount,
     rowCount,
     columnWidths,
     rowHeights,
+    cellGrid,
   }
+}
+
+function setZeroBorder(
+  style: Record<string, unknown>,
+  side: 'Top' | 'Right' | 'Bottom' | 'Left'
+) {
+  style[`border${side}Width`] = 0
+  style[`border${side}Style`] = 'none'
+}
+
+function hasFullHorizontalNeighbor(
+  tableCellGrid: number[][],
+  placement: TableCellPlacement,
+  row: number
+) {
+  if (row < 0 || row >= tableCellGrid.length) return false
+
+  for (
+    let column = placement.column;
+    column < placement.column + placement.colSpan;
+    column++
+  ) {
+    if (typeof tableCellGrid[row]?.[column] !== 'number') return false
+  }
+
+  return true
+}
+
+function hasFullVerticalNeighbor(
+  tableCellGrid: number[][],
+  placement: TableCellPlacement,
+  column: number
+) {
+  if (column < 0 || column >= placement.column + placement.colSpan) return false
+  const maxColumn = placement.column + placement.colSpan
+  if (maxColumn <= 0) return false
+
+  for (
+    let row = placement.row;
+    row < placement.row + placement.rowSpan;
+    row++
+  ) {
+    if (typeof tableCellGrid[row]?.[column] !== 'number') return false
+  }
+
+  return true
 }
 
 function resolveTrackSizes(values: number[], fallback: number, count: number) {
@@ -351,6 +418,10 @@ export function convertTableElement(
   if (!tableStyle.position || tableStyle.position === 'static') {
     tableStyle.position = 'relative'
   }
+  const isBorderCollapsed =
+    typeof tableStyle.borderCollapse === 'string' &&
+    tableStyle.borderCollapse.trim().toLowerCase() === 'collapse'
+
   tableStyle.display = 'flex'
   const columnSizes = resolveTrackSizes(
     matrix.columnWidths,
@@ -399,6 +470,23 @@ export function convertTableElement(
       }%`,
       display: 'flex',
       boxSizing: placementStyle?.boxSizing || 'border-box',
+    }
+
+    if (isBorderCollapsed) {
+      if (
+        hasFullHorizontalNeighbor(matrix.cellGrid, placement, placement.row - 1)
+      ) {
+        setZeroBorder(cellStyle, 'Top')
+      }
+      if (
+        hasFullVerticalNeighbor(
+          matrix.cellGrid,
+          placement,
+          placement.column - 1
+        )
+      ) {
+        setZeroBorder(cellStyle, 'Left')
+      }
     }
 
     const cellProps = placement.cell.props || {}
