@@ -308,7 +308,7 @@ export default async function* buildTextNodes(
         tabWidth === 0
           ? textWidthBeforeTab
           : (Math.floor(offsetBeforeTab / tabWidth) + tabCount) * tabWidth
-      originWidth = tabMoveDistance + measureText(textAfterTab)
+      originWidth = tabMoveDistance - currentWidth + measureText(textAfterTab)
     } else {
       originWidth = measureText(text)
     }
@@ -515,7 +515,13 @@ export default async function* buildTextNodes(
           let _width = 0
           let _isImage = false
 
-          if (isImage(_text)) {
+          if (_text === '\t') {
+            // Advance to the next tab stop from the current line position.
+            if (tabWidth > 0) {
+              const nextStop = (Math.floor(x / tabWidth) + 1) * tabWidth
+              _width = nextStop - x
+            }
+          } else if (isImage(_text)) {
             _width = resolvedFontSize
             _isImage = true
           } else {
