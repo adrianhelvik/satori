@@ -27,10 +27,16 @@ type ReactLikeElement = {
   props?: Record<string, any>
   children?: any
 }
+type SatoriCapture = {
+  element: any
+  options: any
+  svg: string
+  additionalAssets?: Array<Record<string, any>>
+}
 
 declare global {
   // eslint-disable-next-line no-var
-  var __satoriCaptures: Array<{ element: any; options: any; svg: string }>
+  var __satoriCaptures: SatoriCapture[]
   // eslint-disable-next-line no-var
   var __browserDiffResults: DiffResult[]
 }
@@ -290,10 +296,16 @@ function buildHtmlDocument(
   width: number,
   height: number,
   fontFaceRules: string,
-  defaultFontFamily?: string
+  fontFamily?: string
 ): string {
-  const escapedDefaultFontFamily = defaultFontFamily
-    ? `'${defaultFontFamily.replace(/\\/g, '\\\\').replace(/'/g, "\\'")}'`
+  const escapedFontFamily = fontFamily
+    ? fontFamily
+        .split(',')
+        .map(
+          (font) =>
+            `'${font.trim().replace(/\\/g, '\\\\').replace(/'/g, "\\'")}'`
+        )
+        .join(',')
     : ''
 
   return `<!DOCTYPE html>
@@ -308,7 +320,7 @@ body {
   background: transparent;
   -webkit-font-smoothing: antialiased;
   text-rendering: geometricPrecision;
-  ${escapedDefaultFontFamily ? `font-family: ${escapedDefaultFontFamily};` : ''}
+  ${escapedFontFamily ? `font-family: ${escapedFontFamily};` : ''}
 }
 ${BROWSER_PRESET_CSS}
 </style></head>
@@ -429,7 +441,8 @@ afterEach(async (ctx) => {
   const comparability = classifyComparability(displayName)
 
   for (let i = 0; i < captures.length; i++) {
-    const { element, options, svg } = captures[i]
+    const { element, options, svg, additionalAssets } = captures[i]
+    const fontOptions = [...(options.fonts || []), ...(additionalAssets || [])]
     const { width: w, height: h } = resolveBrowserCaptureSize(options, svg)
     const suffix = captures.length > 1 ? `-${i}` : ''
     const baseName = `${slug}${suffix}`
@@ -437,18 +450,14 @@ afterEach(async (ctx) => {
     try {
       // Render element to HTML
       const html = renderToStaticMarkup(normalizeBrowserNodes(element))
-      const fontFaceRules = fontsToFontFaceRules(options.fonts || [])
-      const defaultFontFamily =
-        Array.isArray(options.fonts) && options.fonts[0]?.name
-          ? String(options.fonts[0].name)
-          : undefined
-      const doc = buildHtmlDocument(
-        html,
-        w,
-        h,
-        fontFaceRules,
-        defaultFontFamily
-      )
+      const fontFaceRules = fontsToFontFaceRules(fontOptions)
+      const fontFamily = Array.isArray(fontOptions)
+        ? fontOptions
+            .map((font) => String(font?.name || '').trim())
+            .filter((fontName) => fontName.length > 0)
+            .join(',')
+        : undefined
+      const doc = buildHtmlDocument(html, w, h, fontFaceRules, fontFamily)
 
       // Browser screenshot
       await page.setViewportSize({ width: w, height: h })
@@ -461,7 +470,7 @@ afterEach(async (ctx) => {
       })
 
       // Satori PNG
-      const satoriPng = satoriPngFromSvg(svg, w, options.fonts || [])
+      const satoriPng = satoriPngFromSvg(svg, w, fontOptions)
 
       // Decode both PNGs
       const browserImg = PNG.sync.read(Buffer.from(browserPng))

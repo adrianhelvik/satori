@@ -21,8 +21,32 @@ function satoriCapturePlugin() {
         `import { default as __origSatori } from '${satoriAbsPath}'
 const $1 = async function(element, options) {
   globalThis.__satoriCaptures ??= []
-  const svg = await __origSatori(element, options)
-  globalThis.__satoriCaptures.push({ element, options, svg })
+  const wrappedOptions = {
+    ...(options || {}),
+  }
+  const additionalAssets = []
+  const originalLoadAdditionalAsset = wrappedOptions.loadAdditionalAsset
+  if (typeof originalLoadAdditionalAsset === 'function') {
+    wrappedOptions.loadAdditionalAsset = async (languageCode, segment) => {
+      const assets = await originalLoadAdditionalAsset(languageCode, segment)
+      if (!assets) return assets
+      if (typeof assets === 'string') return assets
+      if (Array.isArray(assets)) {
+        additionalAssets.push(...assets)
+      } else {
+        additionalAssets.push(assets)
+      }
+      return assets
+    }
+  }
+
+  const svg = await __origSatori(element, wrappedOptions)
+  globalThis.__satoriCaptures.push({
+    element,
+    options: wrappedOptions,
+    svg,
+    additionalAssets,
+  })
   return svg
 }`
       )
