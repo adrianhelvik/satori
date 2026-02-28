@@ -147,20 +147,21 @@ function processWordBreak(
 
   const allowBreakWord =
     ['break-all', 'break-word'].includes(effectiveWordBreak) ||
-    ['break-word', 'anywhere'].includes(normalizedOverflowWrap) ||
-    (normalizedWordBreak === 'normal' &&
-      !/\s/.test(content) &&
-      /[^\p{ASCII}]/u.test(content))
+    ['break-word', 'anywhere'].includes(normalizedOverflowWrap)
 
   if (normalizedHyphens === 'none') {
     content = content.replace(/\u00ad/g, '')
   }
 
-  const { words, requiredBreaks, softHyphenBreaks } = splitByBreakOpportunities(
-    content,
-    effectiveWordBreak,
-    locale
-  )
+  const {
+    words,
+    requiredBreaks,
+    softHyphenBreaks,
+    shouldBreakLongWords = false,
+  } = splitByBreakOpportunities(content, effectiveWordBreak, locale)
+
+  const allowBreakWordWithFallback =
+    allowBreakWord || (effectiveWordBreak === 'normal' && shouldBreakLongWords)
 
   applyHyphenateLimitChars(
     words,
@@ -174,7 +175,7 @@ function processWordBreak(
     words,
     requiredBreaks,
     softHyphenBreaks,
-    allowBreakWord,
+    allowBreakWord: allowBreakWordWithFallback,
   }
 }
 function processWhiteSpace(

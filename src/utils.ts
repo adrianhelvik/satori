@@ -422,23 +422,32 @@ export function splitByBreakOpportunities(
   words: string[]
   requiredBreaks: boolean[]
   softHyphenBreaks: boolean[]
+  shouldBreakLongWords?: boolean
 } {
+  const createResult = (
+    words: string[],
+    requiredBreaks: boolean[],
+    softHyphenBreaks: boolean[],
+    shouldBreakLongWords = false
+  ) => {
+    const result = { words, requiredBreaks, softHyphenBreaks }
+    if (shouldBreakLongWords) {
+      Object.defineProperty(result, 'shouldBreakLongWords', {
+        value: true,
+        enumerable: false,
+      })
+    }
+    return result
+  }
+
   const SOFT_HYPHEN = '\u00ad'
 
   if (wordBreak === 'break-all') {
-    return {
-      words: segment(content, 'grapheme', locale),
-      requiredBreaks: [],
-      softHyphenBreaks: [],
-    }
+    return createResult(segment(content, 'grapheme', locale), [], [], true)
   }
 
   if (wordBreak === 'keep-all') {
-    return {
-      words: segment(content, 'word', locale),
-      requiredBreaks: [],
-      softHyphenBreaks: [],
-    }
+    return createResult(segment(content, 'word', locale), [], [])
   }
 
   const breaker = new LineBreaker(content)
@@ -475,24 +484,26 @@ export function splitByBreakOpportunities(
   if (wordBreak === 'normal' && words.length === 1 && !/\s/.test(content)) {
     const localizedWords = segment(content, 'word', locale)
     if (localizedWords.length > 1) {
-      return {
-        words: localizedWords,
-        requiredBreaks: localizedWords.map(() => false),
-        softHyphenBreaks: localizedWords.map(() => false),
-      }
+      return createResult(
+        localizedWords,
+        localizedWords.map(() => false),
+        localizedWords.map(() => false),
+        true
+      )
     }
 
     const graphemeWords = segment(content, 'grapheme', locale)
     if (/[^\p{ASCII}]/u.test(content) && graphemeWords.length > 1) {
-      return {
-        words: graphemeWords,
-        requiredBreaks: graphemeWords.map(() => false),
-        softHyphenBreaks: graphemeWords.map(() => false),
-      }
+      return createResult(
+        graphemeWords,
+        graphemeWords.map(() => false),
+        graphemeWords.map(() => false),
+        true
+      )
     }
   }
 
-  return { words, requiredBreaks, softHyphenBreaks }
+  return createResult(words, requiredBreaks, softHyphenBreaks)
 }
 
 export const midline = (s: string) => {
