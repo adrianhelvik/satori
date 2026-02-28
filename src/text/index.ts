@@ -182,17 +182,7 @@ export default async function* buildTextNodes(
   parent.insertChild(textContainer, parent.getChildCount())
 
   if (isUndefined(flexShrink) && !hasExplicitWidth(parentStyle.width)) {
-    // Only allow shrinking along the cross axis (width in column layouts).
-    // In column layouts, shrinking the main axis would collapse the element's
-    // height to zero when siblings overflow the container.
-    const grandparent = parent.getParent()
-    const containerDirection = grandparent?.getFlexDirection()
-    if (
-      containerDirection !== Yoga.FLEX_DIRECTION_COLUMN &&
-      containerDirection !== Yoga.FLEX_DIRECTION_COLUMN_REVERSE
-    ) {
-      parent.setFlexShrink(1)
-    }
+    parent.setFlexShrink(1)
   }
 
   // Get the correct font according to the container style.
@@ -584,6 +574,25 @@ export default async function* buildTextNodes(
   // size, because the container might have a fixed width or height or being
   // expanded by its parent.
   let measuredTextSize = { width: 0, height: 0 }
+  // CSS min-height: auto — flex items in column layouts can't shrink below
+  // their content height. We set minHeight on the parent node during text
+  // measurement so Yoga enforces it in the same layout pass.
+  // Row layouts don't need this: text wrapping naturally constrains width,
+  // and CSS min-width:auto for text equals the longest-word width (complex
+  // to compute here; the existing flexShrink=1 + wrapping handles it).
+  const hasExplicitMinHeight = !isUndefined(parentStyle.minHeight)
+  const applyContentMinSize = (contentHeight: number) => {
+    if (hasExplicitMinHeight) return
+    const grandparent = parent.getParent()
+    const dir = grandparent?.getFlexDirection()
+    if (
+      dir === Yoga.FLEX_DIRECTION_COLUMN ||
+      dir === Yoga.FLEX_DIRECTION_COLUMN_REVERSE
+    ) {
+      parent.setMinHeight(contentHeight)
+    }
+  }
+
   textContainer.setMeasureFunc((containerWidth) => {
     const { width, height } = flow(containerWidth)
 
@@ -606,6 +615,7 @@ export default async function* buildTextNodes(
       flow(r)
       const _width = Math.ceil(r)
       measuredTextSize = { width: _width, height }
+      applyContentMinSize(height)
       return { width: _width, height }
     }
 
@@ -636,6 +646,7 @@ export default async function* buildTextNodes(
         // Use the result if it reduces orphans without adding too many lines
         if (result.height <= height * 1.3) {
           measuredTextSize = { width, height: result.height }
+          applyContentMinSize(result.height)
           return { width, height: result.height }
         }
       }
@@ -643,6 +654,15 @@ export default async function* buildTextNodes(
 
     const _width = Math.ceil(width)
     measuredTextSize = { width: _width, height }
+
+    // Implement CSS min-height/min-width: auto for flex items.
+    // Without this, Yoga can shrink the parent below the text content
+    // size, collapsing elements to zero height in column layouts or
+    // zero width in row layouts. Setting min-size to the text content
+    // dimensions matches CSS behavior where flex items shrink to their
+    // min-content size but no further.
+    applyContentMinSize(height)
+
     // This may be a temporary fix, I didn't dig deep into yoga.
     // But when the return value of width here doesn't change (assuming the value of width is 216.9),
     // when we later get the width through `parent.getComputedWidth()`, sometimes it returns 216 and sometimes 217.

@@ -7,19 +7,16 @@ describe('flex-shrink text behavior', () => {
   let fonts
   initFonts((f) => (fonts = f))
 
-  // Satori defaults flexShrink to 0 (diverging from CSS default of 1).
-  // Text layout auto-sets flexShrink=1 for text containers in row layouts
-  // so text can wrap within constrained widths. In column layouts it does
-  // NOT auto-set flexShrink, preventing items from collapsing to zero
-  // height. This means column items overflow rather than shrink — which
-  // diverges from CSS (where items shrink to min-content) but avoids the
-  // worse outcome of zero-height elements.
+  // Text layout auto-sets flexShrink=1 on parent elements without
+  // explicit flex-shrink, matching CSS default. To prevent items from
+  // collapsing below their content size (CSS min-height:auto behavior),
+  // the text measure function sets minHeight on the parent during layout.
 
-  describe('column layout — items overflow instead of collapsing', () => {
-    it('should maintain item height even when overflowing column container', async () => {
-      // CSS would shrink these to ~33px each (flexShrink:1 + min-height:auto).
-      // Satori keeps them at 60px and lets them overflow (flexShrink:0 default).
-      // The key invariant: items never collapse to zero height.
+  describe('column layout — items shrink to content size', () => {
+    it('should shrink items to content height, not to zero', async () => {
+      // Three items totaling more than container height (3×60 > 100).
+      // Items shrink to share the container, but never below their text
+      // content height (min-height:auto behavior).
       const svg = await satori(
         <div
           style={{
@@ -61,7 +58,7 @@ describe('flex-shrink text behavior', () => {
       expect(toImage(svg, 200)).toMatchImageSnapshot()
     })
 
-    it('should maintain item height in column-reverse layout', async () => {
+    it('should shrink items to content height in column-reverse layout', async () => {
       const svg = await satori(
         <div
           style={{
