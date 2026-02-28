@@ -212,4 +212,42 @@ describe('tab-size', () => {
 
     expect(toImage(svg, 150)).toMatchImageSnapshot()
   })
+
+  it('Tab stops should align correctly for inline text with preceding content', async () => {
+    // When a tab appears inside inline text that follows other content,
+    // currentWidth is non-zero. The tab stop must still advance to the
+    // correct column position relative to the container origin.
+    const tab = String.fromCodePoint(0x09)
+    const svg = await satori(
+      <div
+        style={{
+          height: '100%',
+          width: '100%',
+          display: 'flex',
+          flexDirection: 'column',
+          backgroundColor: '#fff',
+          whiteSpace: 'pre',
+          tabSize: 4,
+          fontSize: 16,
+        }}
+      >
+        <div style={{ display: 'flex' }}>
+          <span>AB</span>
+          <span>{tab}X</span>
+        </div>
+        <div style={{ display: 'flex' }}>
+          <span>ABCD</span>
+          <span>{tab}X</span>
+        </div>
+        <div style={{ display: 'flex' }}>
+          <span>A</span>
+          <span>
+            {tab}B{tab}C
+          </span>
+        </div>
+      </div>,
+      { width: 300, height: 100, fonts }
+    )
+    expect(toImage(svg, 300)).toMatchImageSnapshot()
+  })
 })
