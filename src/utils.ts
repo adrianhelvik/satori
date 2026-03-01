@@ -280,7 +280,7 @@ export function segment(
 
 export function buildXMLString(
   type: string,
-  attrs: Record<string, string | number>,
+  attrs: Record<string, string | number | undefined>,
   children?: string
 ) {
   let attrString = ''
