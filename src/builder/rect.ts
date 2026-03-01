@@ -677,6 +677,10 @@ export default async function rect(
     parentTransform,
     parentTransformSize,
     src,
+    srcWidth,
+    srcHeight,
+    viewportWidth,
+    viewportHeight,
     debug,
   }: {
     id: string
@@ -688,12 +692,18 @@ export default async function rect(
     parentTransform?: TransformInput
     parentTransformSize?: { width: number; height: number }
     src?: string
+    srcWidth?: number
+    srcHeight?: number
+    viewportWidth?: number
+    viewportHeight?: number
     debug?: boolean
   },
   style: SerializedStyle,
   inheritableStyle: SerializedStyle,
   siblingBlendBackdrops: BlendPrimitive[] = [],
-  parentBackgroundColor?: string
+  parentBackgroundColor?: string,
+  inheritedClipPathId?: string,
+  inheritedOverflowMaskId?: string
 ) {
   if (style.display === 'none') return ''
   const primitiveStyle = style as Record<string, string | number>
@@ -883,8 +893,8 @@ export default async function rect(
   defs += mi
   const maskId = miId
     ? `url(#${miId})`
-    : style._inheritedMaskId
-    ? `url(#${style._inheritedMaskId})`
+    : inheritedOverflowMaskId
+    ? `url(#${inheritedOverflowMaskId})`
     : undefined
 
   const path = radius(
@@ -895,7 +905,7 @@ export default async function rect(
     type = 'path'
   }
 
-  const clipPathId = style._inheritedClipPathId as string | undefined
+  const clipPathId = inheritedClipPathId
 
   if (debug) {
     extra = buildXMLString('rect', {
@@ -921,7 +931,18 @@ export default async function rect(
       : undefined
 
   const clip = overflow(
-    { left, top, width, height, path, id, matrix, currentClipPath, src },
+    {
+      left,
+      top,
+      width,
+      height,
+      path,
+      id,
+      matrix,
+      currentClipPath,
+      src,
+      parentOverflowMaskId: inheritedOverflowMaskId,
+    },
     primitiveStyle,
     primitiveInheritedStyle
   )
@@ -1008,12 +1029,12 @@ export default async function rect(
     const contentWidth = Math.max(0, width - offsetLeft - offsetRight)
     const contentHeight = Math.max(0, height - offsetTop - offsetBottom)
     const intrinsicWidth =
-      typeof style.__srcWidth === 'number' && style.__srcWidth > 0
-        ? (style.__srcWidth as number)
+      typeof srcWidth === 'number' && srcWidth > 0
+        ? srcWidth
         : contentWidth || 1
     const intrinsicHeight =
-      typeof style.__srcHeight === 'number' && style.__srcHeight > 0
-        ? (style.__srcHeight as number)
+      typeof srcHeight === 'number' && srcHeight > 0
+        ? srcHeight
         : contentHeight || 1
 
     const normalizedObjectFit = String(style.objectFit || 'fill')
@@ -1354,6 +1375,8 @@ export default async function rect(
       height,
       id,
       opacity,
+      viewportWidth,
+      viewportHeight,
       shape: buildXMLString(type, {
         x: left,
         y: top,

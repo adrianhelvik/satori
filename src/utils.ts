@@ -67,7 +67,8 @@ export function lengthToNumber(
   baseFontSize: number,
   baseLength: number,
   inheritedStyle: Record<string, string | number | object>,
-  percentage = false
+  percentage = false,
+  viewport?: { width: number; height: number }
 ): number | undefined {
   if (typeof length === 'number') return length
 
@@ -90,12 +91,15 @@ export function lengthToNumber(
           return parsed.value * 16
         case 'vw':
           return ~~(
-            (parsed.value * (inheritedStyle._viewportWidth as number)) /
+            (parsed.value *
+              ((viewport?.width ?? inheritedStyle._viewportWidth) as number)) /
             100
           )
         case 'vh':
           return ~~(
-            (parsed.value * (inheritedStyle._viewportHeight as number)) /
+            (parsed.value *
+              ((viewport?.height ??
+                inheritedStyle._viewportHeight) as number)) /
             100
           )
         default:

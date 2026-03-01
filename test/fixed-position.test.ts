@@ -25,7 +25,7 @@ describe('fixed position helpers', () => {
     expect(isFixedPositionStyle(undefined)).toBe(false)
   })
 
-  it('should isolate inherited transform and mask/clip state', () => {
+  it('should isolate inherited transform and containing-block state', () => {
     const inherited = {
       ...baseInheritedStyle(),
       transform: [{ translateX: 10 }],
@@ -33,9 +33,6 @@ describe('fixed position helpers', () => {
       perspective: 100,
       contain: 'paint',
       willChange: 'transform',
-      _inheritedClipPathId: 'clip-id',
-      _inheritedMaskId: 'mask-id',
-      _inheritedBackgroundClipTextPath: 'bg-clip-id',
       letterSpacing: 0.2,
     } as SerializedStyle
 
@@ -46,9 +43,6 @@ describe('fixed position helpers', () => {
     expect(isolated.perspective).toBeUndefined()
     expect(isolated.contain).toBeUndefined()
     expect(isolated.willChange).toBeUndefined()
-    expect(isolated._inheritedClipPathId).toBeUndefined()
-    expect(isolated._inheritedMaskId).toBeUndefined()
-    expect(isolated._inheritedBackgroundClipTextPath).toBeUndefined()
     expect(isolated.letterSpacing).toBe(0.2)
   })
 

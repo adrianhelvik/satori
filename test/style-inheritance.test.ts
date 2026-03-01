@@ -18,9 +18,6 @@ describe('style inheritance sets', () => {
       .sort()
 
     expect(runtimeOnly).toEqual([
-      '_inheritedBackgroundClipTextPath',
-      '_inheritedClipPathId',
-      '_inheritedMaskId',
       '_viewportHeight',
       '_viewportWidth',
       'contain',

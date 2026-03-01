@@ -85,6 +85,8 @@ export default function buildDecoration(
     clipPathId,
     matrix,
     glyphBoxes,
+    textUnderlineOffsetFromFont,
+    textDecorationThicknessFromFont,
   }: {
     width: number
     left: number
@@ -93,6 +95,8 @@ export default function buildDecoration(
     clipPathId?: string
     matrix?: string
     glyphBoxes?: GlyphBox[]
+    textUnderlineOffsetFromFont?: number
+    textDecorationThicknessFromFont?: number
   },
   style: SerializedStyle
 ) {
@@ -118,18 +122,11 @@ export default function buildDecoration(
   const fontSize = typeof style.fontSize === 'number' ? style.fontSize : 16
 
   const textDecorationThickness = style.textDecorationThickness
-  const textDecorationThicknessFromFont =
-    typeof style._textDecorationThicknessFromFont === 'number'
-      ? style._textDecorationThicknessFromFont
-      : undefined
   const textUnderlineOffset = style.textUnderlineOffset
   const textUnderlinePosition = String(
     style.textUnderlinePosition || 'auto'
   ).toLowerCase()
-  const textUnderlinePositionFromFont =
-    typeof style._textUnderlineOffsetFromFont === 'number'
-      ? style._textUnderlineOffsetFromFont
-      : undefined
+  const textUnderlinePositionFromFont = textUnderlineOffsetFromFont
 
   // The UA should use such font-based information when choosing auto line thicknesses wherever appropriate.
   // https://drafts.csswg.org/css-text-decor-4/#text-decoration-thickness

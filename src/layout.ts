@@ -58,6 +58,11 @@ import {
   isFixedPositionStyle,
   resolveFixedPosition,
 } from './fixed-position.js'
+import {
+  type RenderContext,
+  deriveChildRenderContext,
+  BackgroundClipTextPathCollector,
+} from './render-context.js'
 
 interface ListItemContext {
   listType: 'ul' | 'ol'
@@ -87,6 +92,7 @@ export interface LayoutContext {
   onNodeDetected?: (node: SatoriNode) => void
   listItemContext?: ListItemContext
   childRenderMeta?: ChildRenderMeta
+  renderContext: RenderContext
 }
 
 interface ChildRenderMeta {
@@ -354,6 +360,16 @@ export default async function* layout(
       ? isolateFixedInheritance(inheritedStyle)
       : inheritedStyle
 
+  // Fixed elements escape ancestor clip/mask unless a containing block exists.
+  const effectiveRenderContext =
+    isFixedElement && !hasAncestorFixedContainingBlock
+      ? deriveChildRenderContext(context.renderContext, {
+          clipPathId: undefined,
+          overflowMaskId: undefined,
+          backgroundClipTextPath: undefined,
+        })
+      : context.renderContext
+
   const node = Yoga.Node.create()
   parent.insertChild(node, parent.getChildCount())
 
@@ -377,34 +393,37 @@ export default async function* layout(
   const isInheritingTransform =
     computedStyle.transform === effectiveInheritedStyle.transform
 
-  // If the element has clipping overflow or clip-path set, we need to create a
-  // clip path and use it in all its children.
+  // Build render context overrides for child elements.
+  const childRenderContextOverrides: Partial<RenderContext> = {}
+
+  // If the element has clipping overflow or clip-path set, children need
+  // the clip path and mask IDs.
   if (
     isClippedOverflow(computedStyle.overflow) ||
     isClippedOverflow(computedStyle.overflowX) ||
     isClippedOverflow(computedStyle.overflowY) ||
     (computedStyle.clipPath && computedStyle.clipPath !== 'none')
   ) {
-    newInheritableStyle._inheritedClipPathId = `satori_cp-${id}`
-    newInheritableStyle._inheritedMaskId = `satori_om-${id}`
+    childRenderContextOverrides.clipPathId = `satori_cp-${id}`
+    childRenderContextOverrides.overflowMaskId = `satori_om-${id}`
   }
 
   if (computedStyle.maskImage) {
-    newInheritableStyle._inheritedMaskId = `satori_mi-${id}`
+    childRenderContextOverrides.overflowMaskId = `satori_mi-${id}`
   }
 
   if (typeof computedStyle.backgroundColor === 'string') {
-    newInheritableStyle._parentBackgroundColor = computedStyle.backgroundColor
+    childRenderContextOverrides.parentBackgroundColor =
+      computedStyle.backgroundColor
   }
 
-  // If the element has `background-clip: text` set, we need to create a clip
-  // path and use it in all its children.
+  // If the element has `background-clip: text` set, create a collector
+  // for children to append their text paths into.
+  let ownBackgroundClipCollector: BackgroundClipTextPathCollector | undefined
   if (computedStyle.backgroundClip === 'text') {
-    const mutateRefValue: NonNullable<
-      SerializedStyle['_inheritedBackgroundClipTextPath']
-    > = { value: '' }
-    newInheritableStyle._inheritedBackgroundClipTextPath = mutateRefValue
-    computedStyle._inheritedBackgroundClipTextPath = mutateRefValue
+    ownBackgroundClipCollector = new BackgroundClipTextPathCollector()
+    childRenderContextOverrides.backgroundClipTextPath =
+      ownBackgroundClipCollector
   }
 
   const shouldApplyListMarker =
@@ -518,6 +537,13 @@ export default async function* layout(
       }
     }
     const renderMeta: ChildRenderMeta = {}
+
+    // Build child render context with any overrides from this element.
+    const childRenderContext = deriveChildRenderContext(
+      effectiveRenderContext,
+      childRenderContextOverrides
+    )
+
     const iter = layout(child, {
       id: id + '-' + i++,
       parentStyle: computedStyle,
@@ -534,6 +560,7 @@ export default async function* layout(
       onNodeDetected: context.onNodeDetected,
       listItemContext: childListItemContext,
       childRenderMeta: renderMeta,
+      renderContext: childRenderContext,
     })
     const childMissingFontsResult = await iter.next()
     const childMissingFonts = expectMissingFontsPhase(
@@ -625,17 +652,17 @@ export default async function* layout(
   const parentLayout = parent.getComputedLayout()
   let { left, top, width, height } = node.getComputedLayout()
   if (computedStyle.position === 'fixed') {
-    const fixedReferenceStyle = hasAncestorFixedContainingBlock
-      ? ({
-          ...computedStyle,
-          _viewportWidth: parentLayout.width,
-          _viewportHeight: parentLayout.height,
-        } as SerializedStyle)
-      : computedStyle
+    const fixedViewport = hasAncestorFixedContainingBlock
+      ? { width: parentLayout.width, height: parentLayout.height }
+      : {
+          width: effectiveRenderContext.viewportWidth,
+          height: effectiveRenderContext.viewportHeight,
+        }
     const fixedPosition = resolveFixedPosition(
       { left, top, width, height },
-      fixedReferenceStyle,
-      effectiveInheritedStyle
+      computedStyle,
+      effectiveInheritedStyle,
+      fixedViewport
     )
     left = hasAncestorFixedContainingBlock
       ? fixedPosition.left + x
@@ -669,7 +696,7 @@ export default async function* layout(
   })
 
   // Generate the rendered markup for the current node.
-  const parentBackgroundColor = effectiveInheritedStyle._parentBackgroundColor
+  const parentBackgroundColor = effectiveRenderContext.parentBackgroundColor
   const parentTransform: TransformInput | undefined = isTransformInput(
     effectiveInheritedStyle.transform
   )
@@ -689,6 +716,10 @@ export default async function* layout(
         width,
         height,
         src,
+        srcWidth: computedStyle.__srcWidth,
+        srcHeight: computedStyle.__srcHeight,
+        viewportWidth: effectiveRenderContext.viewportWidth,
+        viewportHeight: effectiveRenderContext.viewportHeight,
         isInheritingTransform,
         parentTransform,
         parentTransformSize: {
@@ -700,7 +731,9 @@ export default async function* layout(
       computedStyle,
       newInheritableStyle,
       siblingBlendBackdrops,
-      parentBackgroundColor
+      parentBackgroundColor,
+      effectiveRenderContext.clipPathId,
+      effectiveRenderContext.overflowMaskId
     )
   } else if (type === 'svg') {
     // When entering a <svg> node, we need to convert it to a <img> with the
@@ -715,6 +748,8 @@ export default async function* layout(
         width,
         height,
         src,
+        viewportWidth: effectiveRenderContext.viewportWidth,
+        viewportHeight: effectiveRenderContext.viewportHeight,
         isInheritingTransform,
         parentTransform,
         parentTransformSize: {
@@ -726,7 +761,9 @@ export default async function* layout(
       computedStyle,
       newInheritableStyle,
       siblingBlendBackdrops,
-      parentBackgroundColor
+      parentBackgroundColor,
+      effectiveRenderContext.clipPathId,
+      effectiveRenderContext.overflowMaskId
     )
   } else {
     const display = normalizeDisplayValue(
@@ -749,6 +786,8 @@ export default async function* layout(
         top,
         width,
         height,
+        viewportWidth: effectiveRenderContext.viewportWidth,
+        viewportHeight: effectiveRenderContext.viewportHeight,
         isInheritingTransform,
         parentTransform,
         parentTransformSize: {
@@ -760,7 +799,9 @@ export default async function* layout(
       computedStyle,
       newInheritableStyle,
       siblingBlendBackdrops,
-      parentBackgroundColor
+      parentBackgroundColor,
+      effectiveRenderContext.clipPathId,
+      effectiveRenderContext.overflowMaskId
     )
   }
 
@@ -787,16 +828,16 @@ export default async function* layout(
 
   // An extra pass to generate the special background-clip shape collected from
   // children.
-  if (computedStyle._inheritedBackgroundClipTextPath) {
+  if (ownBackgroundClipCollector && ownBackgroundClipCollector.hasContent) {
     depsRenderResult += buildXMLString(
       'clipPath',
       {
         id: `satori_bct-${id}`,
-        'clip-path': computedStyle._inheritedClipPathId
-          ? `url(#${computedStyle._inheritedClipPathId})`
+        'clip-path': effectiveRenderContext.clipPathId
+          ? `url(#${effectiveRenderContext.clipPathId})`
           : undefined,
       },
-      computedStyle._inheritedBackgroundClipTextPath.value
+      ownBackgroundClipCollector.build()
     )
   }
 

@@ -21,6 +21,7 @@ export default function contentMask(
     height,
     matrix,
     borderOnly,
+    parentOverflowMaskId,
   }: {
     id: string
     left: number
@@ -29,6 +30,7 @@ export default function contentMask(
     height: number
     matrix: string | undefined
     borderOnly?: boolean
+    parentOverflowMaskId?: string
   },
   style: Record<string, number | string>
 ) {
@@ -116,9 +118,7 @@ export default function contentMask(
         matrix
           ? matrix
           : undefined,
-      mask: style._inheritedMaskId
-        ? `url(#${style._inheritedMaskId})`
-        : undefined,
+      mask: parentOverflowMaskId ? `url(#${parentOverflowMaskId})` : undefined,
     }) +
       (keepBorderAreaForClipMarginBox
         ? ''

@@ -139,12 +139,16 @@ export function boxShadow(
     shape,
     opacity,
     id,
+    viewportWidth,
+    viewportHeight,
   }: {
     width: number
     height: number
     shape: string
     opacity: number
     id: string
+    viewportWidth?: number
+    viewportHeight?: number
   },
   style: Record<string, any>
 ) {
@@ -202,8 +206,8 @@ export function boxShadow(
       buildXMLString('rect', {
         x: 0,
         y: 0,
-        width: style._viewportWidth || '100%',
-        height: style._viewportHeight || '100%',
+        width: viewportWidth || '100%',
+        height: viewportHeight || '100%',
         fill: shadowStyle.inset ? '#000' : '#fff',
       }) +
         shapeWithSpread

@@ -22,7 +22,4 @@ export const RUNTIME_INHERITED_PROPS: Set<string> = new Set([
   // Internal rendering context fields.
   '_viewportWidth',
   '_viewportHeight',
-  '_inheritedClipPathId',
-  '_inheritedMaskId',
-  '_inheritedBackgroundClipTextPath',
 ])

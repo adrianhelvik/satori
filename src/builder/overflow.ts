@@ -23,6 +23,7 @@ export default function overflow(
     id,
     currentClipPath,
     src,
+    parentOverflowMaskId,
   }: {
     left: number
     top: number
@@ -33,6 +34,7 @@ export default function overflow(
     id: string
     currentClipPath: string | string
     src?: string
+    parentOverflowMaskId?: string
   },
   style: Record<string, string | number>,
   inheritableStyle: Record<string, string | number>
@@ -121,6 +123,7 @@ export default function overflow(
       height,
       matrix,
       borderOnly: src ? false : true,
+      parentOverflowMaskId,
     },
     style
   )

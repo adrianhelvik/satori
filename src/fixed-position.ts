@@ -10,9 +10,6 @@ const FIXED_ISOLATED_INHERITED_PROPS: ReadonlyArray<keyof SerializedStyle> = [
   'perspective',
   'contain',
   'willChange',
-  '_inheritedClipPathId',
-  '_inheritedMaskId',
-  '_inheritedBackgroundClipTextPath',
 ]
 
 function hasNonNoneFilter(value: unknown): boolean {
@@ -107,16 +104,21 @@ export function createsFixedContainingBlock(style: SerializedStyle): boolean {
 export function resolveFixedPosition(
   layoutBox: { left: number; top: number; width: number; height: number },
   style: SerializedStyle,
-  inheritedStyle: SerializedStyle
+  inheritedStyle: SerializedStyle,
+  viewportDimensions?: { width: number; height: number }
 ): { left: number; top: number } {
-  const viewportWidth = parseFiniteNumber(
-    style._viewportWidth,
-    parseFiniteNumber(inheritedStyle._viewportWidth, 0)
-  )
-  const viewportHeight = parseFiniteNumber(
-    style._viewportHeight,
-    parseFiniteNumber(inheritedStyle._viewportHeight, 0)
-  )
+  const viewportWidth = viewportDimensions
+    ? viewportDimensions.width
+    : parseFiniteNumber(
+        style._viewportWidth,
+        parseFiniteNumber(inheritedStyle._viewportWidth, 0)
+      )
+  const viewportHeight = viewportDimensions
+    ? viewportDimensions.height
+    : parseFiniteNumber(
+        style._viewportHeight,
+        parseFiniteNumber(inheritedStyle._viewportHeight, 0)
+      )
 
   const leftInset = resolveFixedInset(
     style.left,

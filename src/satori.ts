@@ -18,6 +18,7 @@ import {
   expectReadyForRenderPhase,
   type MissingFontSegment,
 } from './layout-protocol.js'
+import { createRenderContext } from './render-context.js'
 
 // We don't need to initialize the opentype instances every time.
 const fontCache = new WeakMap()
@@ -129,6 +130,7 @@ export default async function satori(
     canLoadAdditionalAssets: !!options.loadAdditionalAsset,
     onNodeDetected: options.onNodeDetected,
     getTwStyles,
+    renderContext: createRenderContext(definedWidth, definedHeight),
   })
   const layoutSession = createLayoutSession(handler)
 

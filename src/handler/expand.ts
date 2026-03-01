@@ -31,7 +31,7 @@ import {
 } from './logical-properties.js'
 import { resolveColorMixFunctions } from '../color-mix.js'
 
-export type { BackgroundClipPathRef, SerializedStyle } from './style-types.js'
+export type { SerializedStyle } from './style-types.js'
 
 // https://react-cn.github.io/react/tips/style-props-value-px.html
 const optOutPx = new Set([
