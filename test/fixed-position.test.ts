@@ -13,10 +13,10 @@ function baseInheritedStyle(): SerializedStyle {
     color: '#000',
     opacity: 1,
     fontSize: 16,
-    _viewportWidth: 200,
-    _viewportHeight: 100,
   } as SerializedStyle
 }
+
+const baseViewport = { width: 200, height: 100 }
 
 describe('fixed position helpers', () => {
   it('should detect fixed position styles', () => {
@@ -96,7 +96,8 @@ describe('fixed position helpers', () => {
     const position = resolveFixedPosition(
       { left: 0, top: 0, width: 40, height: 10 },
       style,
-      baseInheritedStyle()
+      baseInheritedStyle(),
+      baseViewport
     )
 
     expect(position.left).toBeCloseTo(140, 4)

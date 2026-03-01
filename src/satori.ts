@@ -117,10 +117,6 @@ export default async function satori(
       color: 'black',
       opacity: 1,
       whiteSpace: 'normal',
-
-      // Special style properties:
-      _viewportWidth: definedWidth,
-      _viewportHeight: definedHeight,
     },
     parent: root,
     font,

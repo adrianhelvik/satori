@@ -207,14 +207,6 @@ export type MainStyle = {
   counterSet: string
 }
 
-export type InternalStyle = {
-  _viewportWidth: number
-  _viewportHeight: number
-  __src: string
-  __srcWidth: number
-  __srcHeight: number
-}
-
 export type StyleValue = string | number | object | undefined
 
-export type SerializedStyle = Partial<MainStyle & InternalStyle>
+export type SerializedStyle = Partial<MainStyle>

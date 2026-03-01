@@ -90,18 +90,9 @@ export function lengthToNumber(
         case 'rem':
           return parsed.value * 16
         case 'vw':
-          return ~~(
-            (parsed.value *
-              ((viewport?.width ?? inheritedStyle._viewportWidth) as number)) /
-            100
-          )
+          return ~~((parsed.value * (viewport?.width ?? 0)) / 100)
         case 'vh':
-          return ~~(
-            (parsed.value *
-              ((viewport?.height ??
-                inheritedStyle._viewportHeight) as number)) /
-            100
-          )
+          return ~~((parsed.value * (viewport?.height ?? 0)) / 100)
         default:
           return parsed.value
       }

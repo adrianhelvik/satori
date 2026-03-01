@@ -155,7 +155,8 @@ export function normalizeStops(
   inheritedStyle: Record<string, string | number>,
   repeating: boolean,
   from?: 'background' | 'mask',
-  maskMode?: string
+  maskMode?: string,
+  viewport?: { width: number; height: number }
 ) {
   // Resolve the color stops based on the spec:
   // https://drafts.csswg.org/css-images/#color-stop-syntax
@@ -193,7 +194,8 @@ export function normalizeStops(
               inheritedStyle.fontSize as number,
               totalLength,
               inheritedStyle,
-              true
+              true,
+              viewport
             )
           ) / totalLength
 

@@ -23,20 +23,19 @@ import FontLoader from './font.js'
 import buildTextNodes from './text/index.js'
 import { isTransformInput, type TransformInput } from './builder/transform.js'
 import rect, { type BlendPrimitive } from './builder/rect.js'
+import { resolveBlendPrimitive } from './builder/blend.js'
 import { Locale, normalizeLocale } from './language.js'
 import type { SerializedStyle } from './handler/style-types.js'
 import { resolveElementStyle } from './element-style.js'
-import {
-  getListMarkerText,
-  isOrderedListMarkerType,
-} from './handler/list-style.js'
+import { isOrderedListMarkerType } from './handler/list-style.js'
 import {
   applyListItemCounterStyles,
-  buildListItemChildren,
-  measureListMarkerTextWidth,
-  parseListImageURL,
   type OrderedListCounterState,
 } from './list-markers.js'
+import {
+  resolveListMarker,
+  type ListItemContext,
+} from './builder/list-marker.js'
 import { isClippedOverflow } from './overflow-semantics.js'
 import {
   createMissingFontsPhase,
@@ -48,7 +47,6 @@ import {
   type LayoutRenderInput,
   type MissingFontSegment,
 } from './layout-protocol.js'
-import cssColorParse from 'parse-css-color'
 import { parseFiniteNumber } from './style-number.js'
 import { convertTableElement } from './table-layout.js'
 import { convertGridElement } from './grid-layout.js'
@@ -63,15 +61,6 @@ import {
   deriveChildRenderContext,
   BackgroundClipTextPathCollector,
 } from './render-context.js'
-
-interface ListItemContext {
-  listType: 'ul' | 'ol'
-  index: number
-  styleType?: string
-  stylePosition?: string
-  styleImage?: string
-  orderedCounter?: OrderedListCounterState
-}
 
 export interface LayoutContext {
   id: string
@@ -129,61 +118,6 @@ function isInlineLikeDisplay(value: unknown): boolean {
     normalized === 'inline-grid' ||
     normalized === 'inline-table'
   )
-}
-
-function resolveBlendPrimitive(
-  meta: ChildRenderMeta | undefined,
-  parentLeft: number,
-  parentTop: number
-): BlendPrimitive | null {
-  if (!meta?.node || !meta?.style) return null
-  if (meta.type !== 'div') return null
-
-  const {
-    mixBlendMode,
-    transform,
-    backgroundImage,
-    clipPath,
-    maskImage,
-    filter,
-    opacity,
-    backgroundColor,
-    borderLeftWidth,
-    borderTopWidth,
-    borderRightWidth,
-    borderBottomWidth,
-  } = meta.style
-
-  if (mixBlendMode && mixBlendMode !== 'normal') return null
-  if (transform) return null
-  if (backgroundImage) return null
-  if (clipPath && clipPath !== 'none') return null
-  if (maskImage && maskImage !== 'none') return null
-  if (filter && filter !== 'none') return null
-  if (typeof opacity === 'number' && opacity < 1) return null
-  if (
-    (borderLeftWidth as number) > 0 ||
-    (borderTopWidth as number) > 0 ||
-    (borderRightWidth as number) > 0 ||
-    (borderBottomWidth as number) > 0
-  ) {
-    return null
-  }
-
-  if (typeof backgroundColor !== 'string') return null
-  const parsed = cssColorParse(backgroundColor)
-  if (!parsed || (parsed.alpha ?? 1) < 1) return null
-
-  const { left, top, width, height } = meta.node.getComputedLayout()
-  if (width <= 0 || height <= 0) return null
-
-  return {
-    left: parentLeft + left,
-    top: parentTop + top,
-    width,
-    height,
-    color: backgroundColor,
-  }
 }
 
 function getChildSortMeta(
@@ -373,12 +307,21 @@ export default async function* layout(
   const node = Yoga.Node.create()
   parent.insertChild(node, parent.getChildCount())
 
-  const [computedStyle, newInheritableStyle] = await computeStyle(
+  const viewport = {
+    width: effectiveRenderContext.viewportWidth,
+    height: effectiveRenderContext.viewportHeight,
+  }
+  const {
+    style: computedStyle,
+    inheritedStyle: newInheritableStyle,
+    imageMetadata,
+  } = await computeStyle(
     node,
     type,
     effectiveInheritedStyle,
     style,
-    props
+    props,
+    viewport
   )
 
   if (childRenderMeta) {
@@ -432,56 +375,18 @@ export default async function* layout(
       normalizeDisplayValue(computedStyle.display) === 'list-item')
 
   if (shouldApplyListMarker && listItemContext) {
-    const listStyleType =
-      (computedStyle.listStyleType as string | undefined) ||
-      listItemContext.styleType ||
-      (listItemContext.listType === 'ol' ? 'decimal' : 'disc')
-    const listStylePosition =
-      ((computedStyle.listStylePosition as string | undefined) ||
-        listItemContext.stylePosition ||
-        'outside') + ''
-    const listStyleImage = parseListImageURL(
-      (computedStyle.listStyleImage as string | undefined) ||
-        listItemContext.styleImage
+    const markerResult = resolveListMarker(
+      listItemContext,
+      computedStyle,
+      effectiveInheritedStyle,
+      children,
+      font,
+      newLocale
     )
-    let markerIndex = listItemContext.index
-    if (listItemContext.orderedCounter) {
-      applyListItemCounterStyles(
-        listItemContext.orderedCounter,
-        computedStyle,
-        1
-      )
-      markerIndex = listItemContext.orderedCounter.value
-    }
-    const markerText = getListMarkerText(listStyleType, markerIndex)
-
-    if (listStyleImage || markerText) {
-      const markerFontSize = parseFiniteNumber(
-        computedStyle.fontSize,
-        parseFiniteNumber(effectiveInheritedStyle.fontSize, 16)
-      )
-      const markerTextWidth = measureListMarkerTextWidth(
-        markerText,
-        markerFontSize,
-        computedStyle,
-        font,
-        newLocale
-      )
-      const normalizedMarkerPosition = listStylePosition.trim().toLowerCase()
-      const listItemChildren = buildListItemChildren(
-        children,
-        {
-          text: markerText,
-          image: listStyleImage,
-          position: normalizedMarkerPosition,
-        },
-        markerFontSize,
-        markerTextWidth
-      )
-      children = listItemChildren.children
-
+    if (markerResult) {
+      children = markerResult.children
       if (
-        listItemChildren.requiresRelativePosition &&
+        markerResult.requiresRelativePosition &&
         (!computedStyle.position || computedStyle.position === 'static')
       ) {
         computedStyle.position = 'relative'
@@ -704,8 +609,7 @@ export default async function* layout(
     : undefined
 
   if (type === 'img') {
-    const src = computedStyle.__src
-    if (typeof src !== 'string') {
+    if (!imageMetadata) {
       throw new Error('Image source is missing after image resolution.')
     }
     baseRenderResult = await rect(
@@ -715,9 +619,9 @@ export default async function* layout(
         top,
         width,
         height,
-        src,
-        srcWidth: computedStyle.__srcWidth,
-        srcHeight: computedStyle.__srcHeight,
+        src: imageMetadata.src,
+        srcWidth: imageMetadata.width,
+        srcHeight: imageMetadata.height,
         viewportWidth: effectiveRenderContext.viewportWidth,
         viewportHeight: effectiveRenderContext.viewportHeight,
         isInheritingTransform,

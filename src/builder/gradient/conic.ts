@@ -252,7 +252,8 @@ function resolvePositionToken(
   token: string,
   axis: 'x' | 'y',
   axisLength: number,
-  inheritableStyle: Record<string, number | string>
+  inheritableStyle: Record<string, number | string>,
+  viewport?: { width: number; height: number }
 ): number | undefined {
   if (axis === 'x') {
     if (token === 'left') return 0
@@ -269,7 +270,8 @@ function resolvePositionToken(
     Number(inheritableStyle.fontSize) || 16,
     axisLength,
     inheritableStyle,
-    true
+    true,
+    viewport
   )
 }
 
@@ -277,7 +279,8 @@ export function resolveConicPosition(
   position: string,
   width: number,
   height: number,
-  inheritableStyle: Record<string, number | string>
+  inheritableStyle: Record<string, number | string>,
+  viewport?: { width: number; height: number }
 ): { x: number; y: number } {
   const tokens = String(position || 'center')
     .trim()
@@ -302,8 +305,14 @@ export function resolveConicPosition(
     yToken = first
   }
 
-  const x = resolvePositionToken(xToken, 'x', width, inheritableStyle)
-  const y = resolvePositionToken(yToken, 'y', height, inheritableStyle)
+  const x = resolvePositionToken(xToken, 'x', width, inheritableStyle, viewport)
+  const y = resolvePositionToken(
+    yToken,
+    'y',
+    height,
+    inheritableStyle,
+    viewport
+  )
 
   return {
     x: typeof x === 'number' ? x : width / 2,
@@ -574,7 +583,8 @@ export function buildConicGradient(
   offsets: number[],
   inheritableStyle: Record<string, number | string>,
   from?: 'background' | 'mask',
-  maskMode?: string
+  maskMode?: string,
+  viewport?: { width: number; height: number }
 ): [string, string, string?, string?] {
   const parsed = parseConicGradient(image)
   const [baseImageWidth, baseImageHeight] = dimensions
@@ -599,7 +609,8 @@ export function buildConicGradient(
     parsed.position,
     imageWidth,
     imageHeight,
-    inheritableStyle
+    inheritableStyle,
+    viewport
   )
   const resolvedInputStops = resolveConicInputStops(image, parsed.stops)
   const { stops, cycle } = normalizeConicStops(

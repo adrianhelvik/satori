@@ -18,8 +18,4 @@ export const RUNTIME_INHERITED_PROPS: Set<string> = new Set([
   'perspective',
   'contain',
   'willChange',
-
-  // Internal rendering context fields.
-  '_viewportWidth',
-  '_viewportHeight',
 ])

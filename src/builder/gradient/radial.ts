@@ -28,7 +28,8 @@ export function buildRadialGradient(
   offsets: number[],
   inheritableStyle: Record<string, number | string>,
   from?: 'background' | 'mask',
-  maskMode?: string
+  maskMode?: string,
+  viewport?: { width: number; height: number }
 ): [string, string, string?, string?] {
   const {
     shape,
@@ -64,7 +65,8 @@ export function buildRadialGradient(
     xDelta,
     yDelta,
     inheritableStyle.fontSize as number,
-    inheritableStyle
+    inheritableStyle,
+    viewport
   )
   cx = pos.x
   cy = pos.y
@@ -73,7 +75,8 @@ export function buildRadialGradient(
     width,
     colorStops,
     repeating,
-    inheritableStyle
+    inheritableStyle,
+    viewport
   )
 
   const stops = normalizeStops(
@@ -82,7 +85,8 @@ export function buildRadialGradient(
     inheritableStyle,
     repeating,
     from,
-    maskMode
+    maskMode,
+    viewport
   )
 
   const gradientId = `satori_radial_${id}`
@@ -97,7 +101,8 @@ export function buildRadialGradient(
     { x: cx, y: cy },
     [xDelta, yDelta],
     inheritableStyle,
-    repeating
+    repeating,
+    viewport
   )
 
   const props = calcRadialGradientProps(
@@ -107,7 +112,8 @@ export function buildRadialGradient(
     [xDelta, yDelta],
     inheritableStyle,
     repeating,
-    spread
+    spread,
+    viewport
   )
 
   const defs = buildXMLString(
@@ -193,7 +199,8 @@ function calcColorStopTotalLength(
   width: number,
   stops: ColorStop[],
   repeating: boolean,
-  inheritableStyle: Record<string, string | number>
+  inheritableStyle: Record<string, string | number>,
+  viewport?: { width: number; height: number }
 ) {
   if (!repeating) return width
   const lastStop = stops.at(-1)
@@ -205,7 +212,8 @@ function calcColorStopTotalLength(
     +inheritableStyle.fontSize,
     width,
     inheritableStyle,
-    true
+    true,
+    viewport
   )
 }
 
@@ -215,7 +223,8 @@ function calcRadialGradient(
   xDelta: number,
   yDelta: number,
   baseFontSize: number,
-  style: Record<string, string | number>
+  style: Record<string, string | number>,
+  viewport?: { width: number; height: number }
 ) {
   const pos: { x: number; y: number } = { x: xDelta / 2, y: yDelta / 2 }
   if (cx.type === 'keyword') {
@@ -230,7 +239,8 @@ function calcRadialGradient(
         baseFontSize,
         xDelta,
         style,
-        true
+        true,
+        viewport
       ) ?? xDelta / 2
   }
 
@@ -246,7 +256,8 @@ function calcRadialGradient(
         baseFontSize,
         yDelta,
         style,
-        true
+        true,
+        viewport
       ) ?? yDelta / 2
   }
 
@@ -282,7 +293,8 @@ function calcRadialGradientProps(
   [xDelta, yDelta]: [number, number],
   inheritableStyle: Record<string, string | number>,
   repeating: boolean,
-  spread: Record<string, number>
+  spread: Record<string, number>,
+  viewport?: { width: number; height: number }
 ) {
   const { r, rx, ratio = 1 } = spread
   if (!repeating) {
@@ -309,7 +321,8 @@ function calcRadialGradientProps(
               baseFontSize,
               xDelta,
               inheritableStyle,
-              true
+              true,
+              viewport
             ) / radius
           ),
   }
@@ -322,7 +335,8 @@ function calcRadius(
   centerAxis: { x: number; y: number },
   length: [number, number],
   inheritableStyle: Record<string, string | number>,
-  repeating: boolean
+  repeating: boolean,
+  viewport?: { width: number; height: number }
 ) {
   const [xDelta, yDelta] = length
   const { x: cx, y: cy } = centerAxis
@@ -344,7 +358,8 @@ function calcRadius(
             baseFontSize,
             xDelta,
             inheritableStyle,
-            true
+            true,
+            viewport
           )
         ),
       })
@@ -356,7 +371,8 @@ function calcRadius(
             baseFontSize,
             xDelta,
             inheritableStyle,
-            true
+            true,
+            viewport
           )
         ),
         ry: Number(
@@ -365,7 +381,8 @@ function calcRadius(
             baseFontSize,
             yDelta,
             inheritableStyle,
-            true
+            true,
+            viewport
           )
         ),
       })

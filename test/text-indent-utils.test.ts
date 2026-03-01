@@ -6,10 +6,7 @@ import {
 } from '../src/text/text-indent.js'
 
 describe('text-indent helpers', () => {
-  const inheritedStyle = {
-    _viewportWidth: 1200,
-    _viewportHeight: 630,
-  }
+  const inheritedStyle = {}
 
   it('resolves numeric and percentage text-indent values', () => {
     expect(resolveTextIndentConfig(24, 200, 16, inheritedStyle)).toEqual({

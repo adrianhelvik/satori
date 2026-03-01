@@ -105,20 +105,10 @@ export function resolveFixedPosition(
   layoutBox: { left: number; top: number; width: number; height: number },
   style: SerializedStyle,
   inheritedStyle: SerializedStyle,
-  viewportDimensions?: { width: number; height: number }
+  viewportDimensions: { width: number; height: number }
 ): { left: number; top: number } {
-  const viewportWidth = viewportDimensions
-    ? viewportDimensions.width
-    : parseFiniteNumber(
-        style._viewportWidth,
-        parseFiniteNumber(inheritedStyle._viewportWidth, 0)
-      )
-  const viewportHeight = viewportDimensions
-    ? viewportDimensions.height
-    : parseFiniteNumber(
-        style._viewportHeight,
-        parseFiniteNumber(inheritedStyle._viewportHeight, 0)
-      )
+  const viewportWidth = viewportDimensions.width
+  const viewportHeight = viewportDimensions.height
 
   const leftInset = resolveFixedInset(
     style.left,

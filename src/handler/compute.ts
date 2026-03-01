@@ -132,21 +132,36 @@ function setAspectRatioIfAllowed(
   }
 }
 
+export interface ImageMetadata {
+  src: string
+  width: number
+  height: number
+}
+
+export interface ComputeStyleResult {
+  style: SerializedStyle
+  inheritedStyle: SerializedStyle
+  imageMetadata?: ImageMetadata
+}
+
 export default async function compute(
   node: YogaNode,
   type: SatoriElement | string,
   inheritedStyle: SerializedStyle,
   definedStyle: Record<string, string | number>,
-  props: Record<string, any>
-): Promise<[SerializedStyle, SerializedStyle]> {
+  props: Record<string, any>,
+  viewport?: { width: number; height: number }
+): Promise<ComputeStyleResult> {
   const Yoga = await getYoga()
 
   // Extend the default style with defined and inherited styles.
   const style: SerializedStyle = {
     ...inheritedStyle,
-    ...expand(presets[type], inheritedStyle),
-    ...expand(definedStyle, inheritedStyle),
+    ...expand(presets[type], inheritedStyle, viewport),
+    ...expand(definedStyle, inheritedStyle, viewport),
   }
+
+  let imageMetadata: ImageMetadata | undefined
 
   if (type === 'img') {
     let [resolvedSrc, imageWidth, imageHeight] = await resolveImageData(
@@ -241,9 +256,11 @@ export default async function compute(
     style.height = isAbsoluteContentSize
       ? (contentBoxHeight as number) + extraVertical
       : contentBoxHeight
-    style.__src = resolvedSrc
-    style.__srcWidth = imageWidth
-    style.__srcHeight = imageHeight
+    imageMetadata = {
+      src: resolvedSrc,
+      width: imageWidth,
+      height: imageHeight,
+    }
   }
 
   if (type === 'svg') {
@@ -259,8 +276,14 @@ export default async function compute(
         return undefined
 
       return (
-        lengthToNumber(value, inheritedStyle.fontSize, 1, inheritedStyle) ||
-        value
+        lengthToNumber(
+          value,
+          inheritedStyle.fontSize,
+          1,
+          inheritedStyle,
+          false,
+          viewport
+        ) || value
       )
     }
 
@@ -596,5 +619,5 @@ export default async function compute(
     node.setWidthAuto()
   }
 
-  return [style, inheritable(style)]
+  return { style, inheritedStyle: inheritable(style), imageMetadata }
 }

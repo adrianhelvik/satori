@@ -18,8 +18,6 @@ describe('style inheritance sets', () => {
       .sort()
 
     expect(runtimeOnly).toEqual([
-      '_viewportHeight',
-      '_viewportWidth',
       'contain',
       'filter',
       'font',

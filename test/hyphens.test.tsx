@@ -70,8 +70,6 @@ describe('hyphens', () => {
       color: 'black',
       fontSize: 16,
       opacity: 1,
-      _viewportWidth: 100,
-      _viewportHeight: 100,
     })
 
     expect(expanded.hyphenateLimitChars).toBe('8 3 3')

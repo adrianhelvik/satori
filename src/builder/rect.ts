@@ -837,7 +837,12 @@ export default async function rect(
         primitiveInheritedStyle,
         'background',
         style.imageRendering as string | undefined,
-        style.imageOrientation as string | undefined
+        style.imageOrientation as string | undefined,
+        undefined,
+        false,
+        viewportWidth != null && viewportHeight != null
+          ? { width: viewportWidth, height: viewportHeight }
+          : undefined
       )
       if (image) {
         // Background images that come first in the array are rendered last.

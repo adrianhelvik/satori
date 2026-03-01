@@ -775,7 +775,8 @@ function mergeBackgroundPositionAxes(serializedStyle: SerializedStyle): void {
 
 export default function expand(
   style: Record<string, string | number> | undefined,
-  inheritedStyle: SerializedStyle
+  inheritedStyle: SerializedStyle,
+  viewport?: { width: number; height: number }
 ): SerializedStyle {
   const serializedStyle: SerializedStyle = {}
 
@@ -897,7 +898,8 @@ export default function expand(
             baseFontSize,
             baseFontSize,
             inheritedStyle,
-            true
+            true,
+            viewport
           ) / baseFontSize
       }
     } else {
@@ -907,7 +909,9 @@ export default function expand(
           value,
           baseFontSize,
           baseFontSize,
-          inheritedStyle
+          inheritedStyle,
+          false,
+          viewport
         )
         if (typeof len !== 'undefined') serializedStyle[prop] = len
         value = serializedStyle[prop]
@@ -943,8 +947,14 @@ export default function expand(
         // Convert em, rem, vw, vh values to px (number), but keep % values.
         const len =
           typeof _v === 'string'
-            ? lengthToNumber(_v, baseFontSize, baseFontSize, inheritedStyle) ??
-              _v
+            ? lengthToNumber(
+                _v,
+                baseFontSize,
+                baseFontSize,
+                inheritedStyle,
+                false,
+                viewport
+              ) ?? _v
             : _v
         transform[type] = len
       }
@@ -954,7 +964,7 @@ export default function expand(
       const textShadowRadius = value as unknown as Array<number | string>
 
       serializedStyle.textShadowRadius = textShadowRadius.map((_v) =>
-        lengthToNumber(_v, baseFontSize, 0, inheritedStyle, false)
+        lengthToNumber(_v, baseFontSize, 0, inheritedStyle, false, viewport)
       )
     }
 
@@ -971,9 +981,17 @@ export default function expand(
             baseFontSize,
             0,
             inheritedStyle,
-            false
+            false,
+            viewport
           ),
-          width: lengthToNumber(width, baseFontSize, 0, inheritedStyle, false),
+          width: lengthToNumber(
+            width,
+            baseFontSize,
+            0,
+            inheritedStyle,
+            false,
+            viewport
+          ),
         })
       )
     }

@@ -103,7 +103,8 @@ export default async function backgroundImage(
   imageRendering?: string,
   imageOrientation?: string,
   maskMode?: string,
-  maskSizeIsExplicit = false
+  maskSizeIsExplicit = false,
+  viewport?: { width: number; height: number }
 ): Promise<BackgroundImageBuildResult> {
   // Default to `repeat`.
   repeat = repeat || 'repeat'
@@ -134,7 +135,8 @@ export default async function backgroundImage(
       offsets,
       inheritableStyle,
       from,
-      maskMode
+      maskMode,
+      viewport
     )
   }
 
@@ -149,7 +151,8 @@ export default async function backgroundImage(
       offsets,
       inheritableStyle,
       from,
-      maskMode
+      maskMode,
+      viewport
     )
   }
 
@@ -164,7 +167,8 @@ export default async function backgroundImage(
       offsets,
       inheritableStyle,
       from,
-      maskMode
+      maskMode,
+      viewport
     )
   }
 

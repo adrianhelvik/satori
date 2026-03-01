@@ -23,7 +23,8 @@ export function buildLinearGradient(
   offsets: number[],
   inheritableStyle: Record<string, number | string>,
   from?: 'background' | 'mask',
-  maskMode?: string
+  maskMode?: string,
+  viewport?: { width: number; height: number }
 ): [string, string, string?, string?] {
   const parsed = parseLinearGradient(image)
   const [baseImageWidth, baseImageHeight] = dimensions
@@ -71,7 +72,7 @@ export function buildLinearGradient(
   }
 
   xys = repeating
-    ? calcPercentage(parsed.stops, length, points, inheritableStyle)
+    ? calcPercentage(parsed.stops, length, points, inheritableStyle, viewport)
     : points
 
   const stops = normalizeStops(
@@ -80,7 +81,8 @@ export function buildLinearGradient(
     inheritableStyle,
     repeating,
     from,
-    maskMode
+    maskMode,
+    viewport
   )
 
   const gradientId = `satori_bi${id}`
@@ -257,7 +259,8 @@ function calcPercentage(
     x2: number
     y2: number
   },
-  inheritableStyle: Record<string, string | number>
+  inheritableStyle: Record<string, string | number>,
+  viewport?: { width: number; height: number }
 ) {
   const { x1, x2, y1, y2 } = points
   const p1 = !stops[0].offset
@@ -269,7 +272,8 @@ function calcPercentage(
         inheritableStyle.fontSize as number,
         length,
         inheritableStyle,
-        true
+        true,
+        viewport
       ) / length
   const p2 = !stops.at(-1).offset
     ? 1
@@ -280,7 +284,8 @@ function calcPercentage(
         inheritableStyle.fontSize as number,
         length,
         inheritableStyle,
-        true
+        true,
+        viewport
       ) / length
 
   const sx = (x2 - x1) * p1 + x1

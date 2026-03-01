@@ -81,8 +81,6 @@ describe('all property', () => {
         color: 'black',
         fontSize: 16,
         opacity: 1,
-        _viewportWidth: 240,
-        _viewportHeight: 100,
       }
     )
 
@@ -98,8 +96,6 @@ describe('all property', () => {
         fontSize: 16,
         opacity: 1,
         hyphenateLimitChars: '8 3 3',
-        _viewportWidth: 240,
-        _viewportHeight: 100,
       }
     )
 
@@ -114,8 +110,6 @@ describe('all property', () => {
         fontSize: 16,
         opacity: 1,
         fontVariantCaps: 'small-caps',
-        _viewportWidth: 240,
-        _viewportHeight: 100,
       }
     )
 
@@ -130,8 +124,6 @@ describe('all property', () => {
         fontSize: 16,
         opacity: 1,
         fontVariantPosition: 'super',
-        _viewportWidth: 240,
-        _viewportHeight: 100,
       }
     )
 
@@ -146,8 +138,6 @@ describe('all property', () => {
         fontSize: 16,
         opacity: 1,
         fontVariant: ['small-caps', 'super'],
-        _viewportWidth: 240,
-        _viewportHeight: 100,
       }
     )
 
