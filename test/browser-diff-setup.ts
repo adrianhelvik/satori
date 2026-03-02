@@ -438,7 +438,7 @@ afterEach(async (ctx) => {
     ? `${relative(process.cwd(), testFilePath)} :: ${testName}`
     : testName
   const slug = slugify(displayName)
-  const comparability = classifyComparability(displayName)
+  let comparability = classifyComparability(displayName)
 
   for (let i = 0; i < captures.length; i++) {
     const { element, options, svg, additionalAssets } = captures[i]
@@ -446,6 +446,19 @@ afterEach(async (ctx) => {
     const { width: w, height: h } = resolveBrowserCaptureSize(options, svg)
     const suffix = captures.length > 1 ? `-${i}` : ''
     const baseName = `${slug}${suffix}`
+
+    // Override comparability when graphemeImages are used — satori renders emoji
+    // as embedded image data URIs while Chrome uses native emoji fonts, so pixel
+    // matching is not meaningful.
+    if (
+      options.graphemeImages &&
+      Object.keys(options.graphemeImages).length > 0
+    ) {
+      comparability = {
+        comparable: false,
+        note: 'Uses graphemeImages (emoji): satori embeds image data URIs, Chrome uses native emoji fonts',
+      }
+    }
 
     try {
       // Render element to HTML

@@ -22,6 +22,7 @@ export interface TextFlowConfig {
 
   // Measurement callbacks
   measureText: (text: string) => number
+  measureString: (text: string) => number
   measureGrapheme: (text: string) => number
   tabWidth: number
   isImage: (s: string) => boolean
@@ -103,6 +104,7 @@ export function computeTextFlow(
     justifyByCharacter,
     discretionaryHyphenCharacter,
     measureText,
+    measureString,
     measureGrapheme,
     tabWidth,
     isImage,
@@ -134,7 +136,6 @@ export function computeTextFlow(
   currentWidth = getLineIndent(0, textIndentConfig)
   const emptyLineHeight = Math.round(engineHeight())
 
-  // We naively implement the width calculation without proper kerning.
   // @TODO: Support different writing modes.
   // @TODO: Support RTL languages.
   let i = 0
@@ -149,7 +150,7 @@ export function computeTextFlow(
       originWidth,
       endingSpacesWidth,
       text: _word,
-    } = calcWordWidth(word, currentWidth, measureText, tabWidth)
+    } = calcWordWidth(word, currentWidth, measureString, tabWidth)
     word = _word
 
     w = originWidth

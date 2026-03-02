@@ -624,28 +624,58 @@ export default class FontLoader {
       return font
     }
 
-    const ascender = (resolvedFont: opentype.Font, useOS2Table = false) => {
-      const _ascender =
-        (useOS2Table ? resolvedFont.tables?.os2?.sTypoAscender : 0) ||
-        resolvedFont.ascender
-      return (_ascender / resolvedFont.unitsPerEm) * fontSize
+    // Match Chrome's font metric selection for line-height: normal.
+    // Chrome checks OS/2 fsSelection bit 7 (USE_TYPO_METRICS):
+    //   - If set: use sTypoAscender/sTypoDescender/sTypoLineGap
+    //   - If not set: use usWinAscent/usWinDescent (no lineGap)
+    //   - Fallback: hhea table values
+    const resolveMetrics = (resolvedFont: opentype.Font) => {
+      const os2 = resolvedFont.tables?.os2
+      const useTypo = os2 && (os2.fsSelection & 0x0080) !== 0
+
+      if (useTypo) {
+        return {
+          ascender: os2.sTypoAscender,
+          descender: os2.sTypoDescender,
+          lineGap: os2.sTypoLineGap || 0,
+        }
+      }
+
+      if (os2 && os2.usWinAscent != null) {
+        return {
+          ascender: os2.usWinAscent,
+          descender: -os2.usWinDescent,
+          lineGap: 0,
+        }
+      }
+
+      return {
+        ascender: resolvedFont.ascender,
+        descender: resolvedFont.descender,
+        lineGap: 0,
+      }
     }
 
-    const descender = (resolvedFont: opentype.Font, useOS2Table = false) => {
-      const _descender =
-        (useOS2Table ? resolvedFont.tables?.os2?.sTypoDescender : 0) ||
-        resolvedFont.descender
-      return (_descender / resolvedFont.unitsPerEm) * fontSize
+    const ascender = (resolvedFont: opentype.Font) => {
+      return (
+        (resolveMetrics(resolvedFont).ascender / resolvedFont.unitsPerEm) *
+        fontSize
+      )
     }
 
-    const height = (resolvedFont: opentype.Font, useOS2Table = false) => {
+    const descender = (resolvedFont: opentype.Font) => {
+      return (
+        (resolveMetrics(resolvedFont).descender / resolvedFont.unitsPerEm) *
+        fontSize
+      )
+    }
+
+    const height = (resolvedFont: opentype.Font) => {
       if ('string' === typeof lineHeight && 'normal' === lineHeight) {
-        const _lineGap =
-          (useOS2Table ? resolvedFont.tables?.os2?.sTypoLineGap : 0) || 0
+        const m = resolveMetrics(resolvedFont)
         return (
-          ascender(resolvedFont, useOS2Table) -
-          descender(resolvedFont, useOS2Table) +
-          (_lineGap / resolvedFont.unitsPerEm) * fontSize
+          ((m.ascender - m.descender + m.lineGap) / resolvedFont.unitsPerEm) *
+          fontSize
         )
       } else if ('number' === typeof lineHeight) {
         return fontSize * lineHeight

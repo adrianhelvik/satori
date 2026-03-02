@@ -187,17 +187,14 @@ export default async function* buildTextNodes(
   const discretionaryHyphenCharacter = resolveHyphenateCharacter()
   const kerning = fontKerning !== 'none'
 
-  const { measureGrapheme, measureGraphemeArray, measureText } = genMeasurer(
-    engine,
-    isImage,
-    {
+  const { measureGrapheme, measureGraphemeArray, measureText, measureString } =
+    genMeasurer(engine, isImage, {
       fontSize: resolvedFontSize,
       letterSpacing,
       wordSpacing: wordSpacingValue,
       kerning,
       locale,
-    }
-  )
+    })
 
   const tabWidth = isString(tabSize)
     ? lengthToNumber(tabSize, resolvedFontSize, 1, parentStyle) ?? 0
@@ -219,6 +216,7 @@ export default async function* buildTextNodes(
     justifyByCharacter,
     discretionaryHyphenCharacter,
     measureText,
+    measureString,
     measureGrapheme,
     tabWidth,
     isImage,

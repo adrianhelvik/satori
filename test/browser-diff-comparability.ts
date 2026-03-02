@@ -5,7 +5,12 @@ interface NonComparableCase {
 
 const COMPARABLE_EXCEPTIONS: RegExp[] = []
 
-const NON_COMPARABLE_CASES: NonComparableCase[] = []
+const NON_COMPARABLE_CASES: NonComparableCase[] = [
+  {
+    pattern: /emoji.*detect/i,
+    note: 'Emoji detection test uses loadAdditionalAsset: satori embeds image data URIs, Chrome uses native emoji fonts',
+  },
+]
 
 export function classifyComparability(testName: string): {
   comparable: boolean
