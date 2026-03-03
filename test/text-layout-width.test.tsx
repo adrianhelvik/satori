@@ -7,11 +7,43 @@ describe('text layout width behavior', () => {
   let fonts
   initFonts((f) => (fonts = f))
 
-  it('should preserve explicit width for direct text children', async () => {
+  it('should shrink explicit-width items per CSS flexShrink default', async () => {
     let detectedWidth: number | undefined
 
+    // CSS flex items default to flexShrink: 1, so a 200px-wide child
+    // inside a 100px container shrinks to fit.
     await satori(
       <div style={{ width: 200, height: 20, backgroundColor: 'red' }}>
+        Hello, World
+      </div>,
+      {
+        width: 100,
+        height: 100,
+        fonts,
+        onNodeDetected(node) {
+          if (node.type === 'div') {
+            detectedWidth = node.width
+          }
+        },
+      }
+    )
+
+    expect(detectedWidth).toBe(100)
+  })
+
+  it('should preserve explicit width when flexShrink is 0', async () => {
+    let detectedWidth: number | undefined
+
+    // With flexShrink: 0, the item overflows instead of shrinking.
+    await satori(
+      <div
+        style={{
+          width: 200,
+          height: 20,
+          flexShrink: 0,
+          backgroundColor: 'red',
+        }}
+      >
         Hello, World
       </div>,
       {

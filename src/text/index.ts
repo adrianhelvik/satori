@@ -21,7 +21,6 @@ import {
 import {
   shouldSkipWhenFindingMissingFont,
   resolveAdjustedFontSize,
-  hasExplicitWidth,
 } from './helpers.js'
 import { computeTextFlowWithTextWrap, type TextFlowConfig } from './flow.js'
 import type { TextFlowResult } from './types.js'
@@ -61,7 +60,6 @@ export default async function* buildTextNodes(
     textIndent,
     hyphenateCharacter,
     fontKerning,
-    flexShrink,
   } = parentStyle
 
   const fontAspect = font.getFontAspect(parentStyle, locale)
@@ -112,10 +110,6 @@ export default async function* buildTextNodes(
 
   const textContainer = createTextContainerNode(Yoga, textAlign)
   parent.insertChild(textContainer, parent.getChildCount())
-
-  if (isUndefined(flexShrink) && !hasExplicitWidth(parentStyle.width)) {
-    parent.setFlexShrink(1)
-  }
 
   // Get the correct font according to the container style.
   // https://www.w3.org/TR/CSS2/visudet.html

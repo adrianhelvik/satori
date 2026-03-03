@@ -207,11 +207,10 @@ describe('flex-shrink text behavior', () => {
     })
   })
 
-  describe('explicit width disables auto-shrink', () => {
-    it('should not auto-set flexShrink when width is explicit', async () => {
-      // The auto-shrink logic only activates when width is auto/undefined.
-      // With explicit width, flexShrink stays at satori's default (0),
-      // so items overflow. CSS would shrink these (flexShrink defaults to 1).
+  describe('explicit width shrinks per CSS default', () => {
+    it('should shrink items with explicit width per CSS flexShrink default', async () => {
+      // CSS flex items default to flexShrink: 1, so items with explicit width
+      // shrink proportionally when they overflow the container.
       const svg = await satori(
         <div
           style={{

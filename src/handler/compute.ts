@@ -486,7 +486,7 @@ export default async function compute(
   }
   node.setFlexGrow(typeof style.flexGrow === 'undefined' ? 0 : style.flexGrow)
   node.setFlexShrink(
-    typeof style.flexShrink === 'undefined' ? 0 : style.flexShrink
+    typeof style.flexShrink === 'undefined' ? 1 : style.flexShrink
   )
 
   if (typeof style.maxHeight !== 'undefined') {

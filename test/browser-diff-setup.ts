@@ -240,9 +240,28 @@ function normalizeAssetProps(
   }
 
   if (normalized.style && typeof normalized.style === 'object') {
-    normalized.style = {
+    const style = {
       ...(normalized.style as Record<string, unknown>),
     }
+
+    // Convert satori's lineClamp to -webkit-line-clamp for browser rendering.
+    // The browser drops `line-clamp` as an unknown CSS property, so we must
+    // convert it to the supported -webkit-box model before rendering.
+    // Only applies when display is 'block' (satori requires this too).
+    const rawClamp = style.lineClamp ?? style['line-clamp']
+    if (rawClamp != null && style.display === 'block') {
+      const clampMatch = String(rawClamp).match(/^([1-9]\d*)/)
+      if (clampMatch) {
+        style.display = '-webkit-box'
+        style.WebkitBoxOrient = 'vertical'
+        style.WebkitLineClamp = clampMatch[1]
+        style.overflow = style.overflow || 'hidden'
+        delete style.lineClamp
+        delete style['line-clamp']
+      }
+    }
+
+    normalized.style = style
   }
 
   return normalized
