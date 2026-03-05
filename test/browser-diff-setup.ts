@@ -339,6 +339,12 @@ body {
   background: transparent;
   -webkit-font-smoothing: antialiased;
   text-rendering: geometricPrecision;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-content: normal;
+  align-items: flex-start;
+  justify-content: flex-start;
   ${escapedFontFamily ? `font-family: ${escapedFontFamily};` : ''}
 }
 ${BROWSER_PRESET_CSS}

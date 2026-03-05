@@ -10,6 +10,10 @@ const NON_COMPARABLE_CASES: NonComparableCase[] = [
     pattern: /emoji.*detect/i,
     note: 'Emoji detection test uses loadAdditionalAsset: satori embeds image data URIs, Chrome uses native emoji fonts',
   },
+  {
+    pattern: /lower-hexadecimal/i,
+    note: 'lower-hexadecimal is a non-standard list-style-type not supported by browsers',
+  },
 ]
 
 export function classifyComparability(testName: string): {
