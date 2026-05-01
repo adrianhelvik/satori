@@ -1,0 +1,31 @@
+Bundled license information:
+
+object-assign/index.js:
+  /*
+  object-assign
+  (c) Sindre Sorhus
+  @license MIT
+  */
+
+react/cjs/react.production.min.js:
+  /** @license React v17.0.2
+   * react.production.min.js
+   *
+   * Copyright (c) Facebook, Inc. and its affiliates.
+   *
+   * This source code is licensed under the MIT license found in the
+   * LICENSE file in the root directory of this source tree.
+   */
+
+react/cjs/react.development.js:
+  /** @license React v17.0.2
+   * react.development.js
+   *
+   * Copyright (c) Facebook, Inc. and its affiliates.
+   *
+   * This source code is licensed under the MIT license found in the
+   * LICENSE file in the root directory of this source tree.
+   */
+
+cssesc/cssesc.js:
+  /*! https://mths.be/cssesc v3.0.0 by @mathias */

@@ -5,7 +5,7 @@ node_modules
 .next
 .idea
 .turbo
-dist
+# dist (committed for github-installable use)
 .pnpm-debug.log
 __diff_output__
 test/__browser_diffs__
