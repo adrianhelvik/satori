@@ -36,7 +36,6 @@
     }
   },
   "scripts": {
-    "prepare": "husky install",
     "dev": "pnpm run dev:default",
     "dev:default": "NODE_ENV=development tsup src/index.ts --watch --ignore-watch playground",
     "dev:playground": "turbo dev --filter=satori-playground...",
