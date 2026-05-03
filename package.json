@@ -124,10 +124,5 @@
   "packageManager": "pnpm@8.7.0",
   "engines": {
     "node": ">=16"
-  },
-  "pnpm": {
-    "patchedDependencies": {
-      "yoga-layout@3.2.1": "patches/yoga-layout@3.2.1.patch"
-    }
   }
 }
