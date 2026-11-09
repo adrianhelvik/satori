@@ -2,6 +2,9 @@ import { buildXMLString, lengthToNumber } from '../utils.js'
 import type { GlyphBox } from '../font.js'
 import type { SerializedStyle } from '../handler/style-types.js'
 
+/** Most half-waves a wavy line is drawn with. */
+const MAX_WAVE_STEPS = 4096
+
 function buildSkipInkSegments(
   start: number,
   end: number,
@@ -286,8 +289,17 @@ function buildDecorationLine(
         .map(([x1, x2]) => {
           let d = `M ${x1} ${y}`
           let up = true
-          for (let x = x1; x < x2; x += halfWave) {
-            const nextX = Math.min(x + halfWave, x2)
+          // A line longer than MAX_WAVE_STEPS half-waves gets longer
+          // half-waves, and the step count also stops a coordinate so large
+          // that adding a half-wave no longer changes it.
+          const step = Math.max(halfWave, (x2 - x1) / MAX_WAVE_STEPS)
+          let steps = 0
+          for (
+            let x = x1;
+            x < x2 && steps < MAX_WAVE_STEPS;
+            x += step, steps++
+          ) {
+            const nextX = Math.min(x + step, x2)
             const cpX = (x + nextX) / 2
             const cpY = up ? y - amplitude : y + amplitude
             d += ` Q ${cpX} ${cpY} ${nextX} ${y}`

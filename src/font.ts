@@ -140,6 +140,9 @@ const MAX_BAND_ROWS = 256
  */
 const BAND_COLUMNS_PER_STROKE = 16
 
+/** Most columns one span of ink is sampled at, whatever its coordinates. */
+const MAX_BAND_COLUMNS = 4096
+
 function computeBandBox(
   commands: opentype.Path['commands'],
   band?: SkipInkBand
@@ -165,6 +168,23 @@ function computeBandBox(
   const yStep = bandHeight / ySamples
   const yStart = bandMin + yStep / 2
   const columnWidth = Math.max(1, strokeWidth / BAND_COLUMNS_PER_STROKE)
+
+  // Columns are counted from the glyph's own left edge. Far from the origin
+  // an absolute pixel index is too large for `col + 1` to change it, and a
+  // loop over such indices never ends. A glyph is a bounded number of
+  // columns wide, whatever its position.
+  let glyphLeft = Infinity
+  for (const seg of segments) {
+    glyphLeft = Math.min(glyphLeft, seg.from[0], seg.to[0])
+  }
+  if (
+    !Number.isFinite(glyphLeft) ||
+    !Number.isFinite(bandHeight) ||
+    !Number.isFinite(columnWidth)
+  ) {
+    return []
+  }
+  const originColumn = Math.floor(glyphLeft / columnWidth)
 
   const columnHits = new Set<number>()
 
@@ -192,10 +212,13 @@ function computeBandBox(
     for (let j = 0; j < intersections.length - 1; j += 2) {
       const from = Math.min(intersections[j], intersections[j + 1])
       const to = Math.max(intersections[j], intersections[j + 1])
-      const start = Math.floor(from / columnWidth)
-      const end = Math.ceil(to / columnWidth)
-      for (let col = start; col < end; col++) {
-        columnHits.add(col)
+      const start = Math.floor(from / columnWidth) - originColumn
+      const count = Math.min(
+        Math.ceil(to / columnWidth) - originColumn - start,
+        MAX_BAND_COLUMNS
+      )
+      for (let k = 0; k < count; k++) {
+        columnHits.add(start + k)
       }
     }
   }
@@ -217,8 +240,8 @@ function computeBandBox(
   }
   inkRanges.push([rangeStart, prev + 1])
   for (const range of inkRanges) {
-    range[0] *= columnWidth
-    range[1] *= columnWidth
+    range[0] = (range[0] + originColumn) * columnWidth
+    range[1] = (range[1] + originColumn) * columnWidth
   }
 
   const boxes: GlyphBox[] = []

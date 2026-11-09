@@ -279,6 +279,46 @@ describe('Text Decoration', () => {
     expect(lines(huge)).toBeGreaterThan(lines(await underlined(100000, 'none')))
   })
 
+  it('Should skip ink on text placed far from the origin', async () => {
+    // At 1e17 adding 1 to a pixel index no longer changes it, so sampling
+    // columns by absolute index never finishes.
+    const svg = await satori(
+      <div style={{ display: 'flex', width: 200, height: 200 }}>
+        <div
+          style={{
+            position: 'absolute',
+            left: 1e17,
+            fontSize: 40,
+            textDecorationLine: 'underline',
+          }}
+        >
+          g
+        </div>
+      </div>,
+      { width: 200, height: 200, fonts }
+    )
+    expect(svg).toContain('<svg')
+  })
+
+  it('Should draw a wavy line with a bounded number of waves', async () => {
+    const svg = await satori(
+      <div
+        style={{
+          display: 'flex',
+          fontSize: 1000000,
+          textDecorationLine: 'underline',
+          textDecorationStyle: 'wavy',
+          textDecorationThickness: 1,
+          textDecorationSkipInk: 'none',
+        }}
+      >
+        g
+      </div>,
+      { width: 200, height: 200, fonts }
+    )
+    expect(svg.match(/ Q /g)?.length ?? 0).toBeLessThanOrEqual(4096)
+  })
+
   it('Should render continuous line when `text-decoration-skip-ink: none`', async () => {
     const svg = await satori(
       <div
