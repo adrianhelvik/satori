@@ -122,6 +122,26 @@ describe('word-break', () => {
     })
   })
 
+  it('should let a grapheme wider than its box overflow instead of retrying it', async () => {
+    // A word wider than the box is split into graphemes. A grapheme that is
+    // still too wide cannot be split, and splitting it again never ends.
+    const glyphs = async (text: string, style = {}) => {
+      const svg = await satori(
+        <div style={{ display: 'flex', width: 1, fontSize: 40, ...style }}>
+          {text}
+        </div>,
+        { width: 100, height: 100, fonts }
+      )
+      return svg.match(/ d="([^"]*)"/g)?.join('').length ?? 0
+    }
+    for (const style of [{}, { wordBreak: 'break-all' as const }]) {
+      // Both letters are drawn.
+      expect(await glyphs('éé', style)).toBeGreaterThan(
+        await glyphs('é', style)
+      )
+    }
+  })
+
   it('should support non-breaking space', async () => {
     const text = `She weighs around blah 50\u00a0kg`
     const svg = await satori(

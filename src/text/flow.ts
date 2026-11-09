@@ -185,10 +185,12 @@ export function computeTextFlow(
 
     const needToBreakWord =
       allowBreakWord && w > width && (isAtLineStart || willWrap || forceBreak)
+    // A single grapheme cannot be broken further. Splitting it again would
+    // put the same word back and retry it forever, so it overflows instead.
+    const chars = needToBreakWord ? segment(word, 'grapheme', locale) : []
 
-    if (needToBreakWord) {
+    if (chars.length > 1) {
       // Break the word into multiple segments and continue the loop.
-      const chars = segment(word, 'grapheme', locale)
       words.splice(i, 1, ...chars)
       if (currentWidth > 0) {
         // Start a new line, spaces can be ignored.
