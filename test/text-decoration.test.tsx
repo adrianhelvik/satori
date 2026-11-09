@@ -252,6 +252,33 @@ describe('Text Decoration', () => {
     expect(toImage(svg, 260)).toMatchImageSnapshot()
   })
 
+  it('Should skip ink on very large text without work that grows with its size', async () => {
+    const underlined = (fontSize: number, skipInk: 'auto' | 'none') =>
+      satori(
+        <div
+          style={{
+            display: 'flex',
+            fontSize,
+            color: '#000',
+            textDecorationLine: 'underline',
+            textDecorationSkipInk: skipInk,
+          }}
+        >
+          agpa
+        </div>,
+        { width: 200, height: 200, fonts }
+      )
+    const lines = (svg: string) => svg.match(/<line /g)?.length ?? 0
+
+    const started = Date.now()
+    const huge = await underlined(100000, 'auto')
+    // Sampling every pixel of a 100000px underline takes about half a minute.
+    expect(Date.now() - started).toBeLessThan(5000)
+    // The descenders still split the line, as they do at a normal size.
+    expect(lines(huge)).toBe(lines(await underlined(40, 'auto')))
+    expect(lines(huge)).toBeGreaterThan(lines(await underlined(100000, 'none')))
+  })
+
   it('Should render continuous line when `text-decoration-skip-ink: none`', async () => {
     const svg = await satori(
       <div

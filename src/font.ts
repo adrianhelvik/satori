@@ -131,6 +131,15 @@ function evaluateBezier(points: BandPoint[], t: number): BandPoint {
   return working[0]
 }
 
+/** Most rows a glyph is sampled at to find where an underline crosses it. */
+const MAX_BAND_ROWS = 256
+
+/**
+ * Columns per underline stroke width once a pixel is finer than needed.
+ * A stroke is a tenth of the font size, so this is a column per 1/160 em.
+ */
+const BAND_COLUMNS_PER_STROKE = 16
+
 function computeBandBox(
   commands: opentype.Path['commands'],
   band?: SkipInkBand
@@ -144,10 +153,18 @@ function computeBandBox(
   const segments = flattenPath(commands)
   if (!segments.length) return []
 
+  // Rows every 0.25px and columns every pixel, up to a fixed count of each:
+  // past that, rows and columns grow with the stroke instead, so the work per
+  // glyph stays the same however large the text is. Text up to about 160px
+  // samples exactly as before.
   const bandHeight = bandMax - bandMin
-  const ySamples = Math.max(12, Math.ceil(bandHeight / 0.25))
+  const ySamples = Math.min(
+    MAX_BAND_ROWS,
+    Math.max(12, Math.ceil(bandHeight / 0.25))
+  )
   const yStep = bandHeight / ySamples
   const yStart = bandMin + yStep / 2
+  const columnWidth = Math.max(1, strokeWidth / BAND_COLUMNS_PER_STROKE)
 
   const columnHits = new Set<number>()
 
@@ -175,8 +192,8 @@ function computeBandBox(
     for (let j = 0; j < intersections.length - 1; j += 2) {
       const from = Math.min(intersections[j], intersections[j + 1])
       const to = Math.max(intersections[j], intersections[j + 1])
-      const start = Math.floor(from)
-      const end = Math.ceil(to)
+      const start = Math.floor(from / columnWidth)
+      const end = Math.ceil(to / columnWidth)
       for (let col = start; col < end; col++) {
         columnHits.add(col)
       }
@@ -199,6 +216,10 @@ function computeBandBox(
     prev = col
   }
   inkRanges.push([rangeStart, prev + 1])
+  for (const range of inkRanges) {
+    range[0] *= columnWidth
+    range[1] *= columnWidth
+  }
 
   const boxes: GlyphBox[] = []
   const bleed = strokeWidth * 0.6
